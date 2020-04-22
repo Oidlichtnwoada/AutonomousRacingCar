@@ -27,15 +27,11 @@ using namespace std;
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
 #define PUBLISHER_MESSAGE_QUEUE_SIZE    10
 
-const string TOPIC_SCAN  = "/scan";
-const string TOPIC_POS = "/scan_match_location";
-const string TOPIC_RVIZ = "/scan_match_debug";
-const string FRAME_POINTS = "laser";
-
+#define TOPIC_SCAN    "/scan"
+#define TOPIC_RVIZ    "/scan_match_debug"
 #define GT_POSE_TOPIC "/gt_pose"
-
-//const float RANGE_LIMIT = 10.0;
-#define RANGE_LIMIT 10.0
+#define FRAME_POINTS  "laser"
+#define RANGE_LIMIT   10.0
 
 const float MAX_ITER = 2.0;
 const float MIN_INFO = 0.1;
@@ -49,7 +45,6 @@ std_msgs::ColorRGBA toColor(float r, float g, float b, float a = 1.0) {
     color.a = a;
     return(color);
 }
-
 
 class ScanMatcher {
 
@@ -69,7 +64,6 @@ private:
 
     boost::shared_ptr<ros::Subscriber> laser_scan_subscriber_;
     boost::shared_ptr<ros::Subscriber> gt_pose_subscriber_;
-    boost::shared_ptr<ros::Publisher> pos_pub_;
     boost::shared_ptr<ros::Publisher> marker_pub_;
 
     boost::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
@@ -89,7 +83,6 @@ ScanMatcher::ScanMatcher()
     : node_handle_(ros::NodeHandle())
     , laser_scan_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_SCAN, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &ScanMatcher::laserScanSubscriberCallback, this)))
     , gt_pose_subscriber_(new ros::Subscriber(node_handle_.subscribe(GT_POSE_TOPIC, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &ScanMatcher::groundTruthPoseCallback, this)))
-    , pos_pub_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_POS, PUBLISHER_MESSAGE_QUEUE_SIZE)))
     , marker_pub_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RVIZ, PUBLISHER_MESSAGE_QUEUE_SIZE)))
     , tf_broadcaster_(new tf2_ros::TransformBroadcaster())
     , tf_listener_(new tf2_ros::TransformListener(tf_buffer_, true))
