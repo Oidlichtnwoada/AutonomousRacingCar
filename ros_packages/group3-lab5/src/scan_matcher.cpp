@@ -2,175 +2,185 @@
 #include <string>
 #include <cmath>
 
-#include "ros/ros.h"
-#include "sensor_msgs/LaserScan.h"
+#include <ros/ros.h>
+#include <sensor_msgs/LaserScan.h>
 #include <geometry_msgs/PoseStamped.h>
-#include "scan_matching_skeleton/correspond.h"
-#include "scan_matching_skeleton/transform.h"
-#include "scan_matching_skeleton/visualization.h"
-#include <tf/transform_broadcaster.h>
+#include <scan_matcher/correspond.h>
+#include <scan_matcher/transform.h>
+#include <scan_matcher/visualization.h>
 
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_eigen/tf2_eigen.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2/convert.h>
+
+#include <std_srvs/Trigger.h>
+#include <Eigen/Dense>
+
+#include <future>
+#include <mutex>
+#include <boost/range/adaptor/indexed.hpp>
 
 using namespace std;
 
-const string& TOPIC_SCAN  = "/scan";
-const string& TOPIC_POS = "/scan_match_location";
-const string& TOPIC_RVIZ = "/scan_match_debug";
-const string& FRAME_POINTS = "laser";
+#define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
+#define PUBLISHER_MESSAGE_QUEUE_SIZE    10
 
-const float RANGE_LIMIT = 10.0;
+const string TOPIC_SCAN  = "/scan";
+const string TOPIC_POS = "/scan_match_location";
+const string TOPIC_RVIZ = "/scan_match_debug";
+const string FRAME_POINTS = "laser";
+
+#define GT_POSE_TOPIC "/gt_pose"
+
+//const float RANGE_LIMIT = 10.0;
+#define RANGE_LIMIT 10.0
 
 const float MAX_ITER = 2.0;
 const float MIN_INFO = 0.1;
 const float A = (1-MIN_INFO)/MAX_ITER/MAX_ITER;
 
-
-class ScanProcessor {
-  private:
-    ros::Publisher pos_pub;
-    ros::Publisher marker_pub;
-
-    vector<Point> points;
-    vector<Point> transformed_points;
-    vector<Point> prev_points;
-    vector<Correspondence> corresponds;
-    vector< vector<int> > jump_table;
-    Transform prev_trans, curr_trans;
-    tf::TransformBroadcaster br;
-    tf::Transform tr;
-
-    PointVisualizer* points_viz;
-    CorrespondenceVisualizer* corr_viz;
-
-    geometry_msgs::PoseStamped msg;
-    Eigen::Matrix3f global_tf;
+std_msgs::ColorRGBA toColor(float r, float g, float b, float a = 1.0) {
+    std_msgs::ColorRGBA color;
+    color.r = r;
+    color.g = g;
+    color.b = b;
+    color.a = a;
+    return(color);
+}
 
 
-    std_msgs::ColorRGBA col;
+class ScanMatcher {
 
-  public:
-    ScanProcessor(ros::NodeHandle& n) : curr_trans(Transform()) {
-      pos_pub = n.advertise<geometry_msgs::PoseStamped>(TOPIC_POS, 1);
-      marker_pub = n.advertise<visualization_msgs::Marker>(TOPIC_RVIZ, 1);
-      points_viz = new PointVisualizer(marker_pub, "scan_match", FRAME_POINTS);
-      corr_viz = new CorrespondenceVisualizer(marker_pub, "scan_match", FRAME_POINTS);
-      global_tf = Eigen::Matrix3f::Identity(3,3);
-    }
+public:
+    ScanMatcher();
+    typedef boost::shared_ptr<sensor_msgs::LaserScan const> LaserScanMessage;
+    typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseStampedMessage;
+    typedef std::vector<::Point> Points;
 
-    void handleLaserScan(const sensor_msgs::LaserScan::ConstPtr& msg) {
-      readScan(msg);
+private:
+    static Points convertToPoints(LaserScanMessage);
+    void matchPointSets(const ros::Time&, const Points&, const Points&);
+    void laserScanSubscriberCallback(LaserScanMessage);
+    void groundTruthPoseCallback(PoseStampedMessage);
 
-      //We have nothing to compare to!
-      if(prev_points.empty()){
-        ROS_INFO("First Scan");
-        prev_points = points;
-        return;
-      }
+    ros::NodeHandle node_handle_;
 
-      //col.r = 0.0; col.b = 1.0; col.g = 0.0; col.a = 1.0;
-      //points_viz->addPoints(points, col);
+    boost::shared_ptr<ros::Subscriber> laser_scan_subscriber_;
+    boost::shared_ptr<ros::Subscriber> gt_pose_subscriber_;
+    boost::shared_ptr<ros::Publisher> pos_pub_;
+    boost::shared_ptr<ros::Publisher> marker_pub_;
 
-      col.r = 1.0; col.b = 0.0; col.g = 0.0; col.a = 1.0;
-      points_viz->addPoints(prev_points, col);
+    boost::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    tf2_ros::Buffer tf_buffer_;
+    boost::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    boost::shared_ptr<PointVisualizer> points_viz_;
+    boost::shared_ptr<CorrespondenceVisualizer> corr_viz_;
 
-      int count = 0;
-      computeJump(jump_table, prev_points);
-      ROS_INFO("Starting Optimization");
+    Eigen::Affine3d global_tf_;
+    LaserScanMessage previous_scan_msg_;
+    Points previous_scan_points_;
 
-      curr_trans = Transform();
-
-      while (count < MAX_ITER && (curr_trans != prev_trans || count==0)) {
-        transformPoints(points, curr_trans, transformed_points);
-
-
-
-        //************************************************ Find correspondence between points of the current and previous frames  *************** ////
-        // **************************************************** getCorrespondence() function is the fast search function and getNaiveCorrespondence function is the naive search option **** ////
-
-        // getCorrespondence(prev_points, transformed_points, points, jump_table, corresponds, A*count*count+MIN_INFO);
-
-        getNaiveCorrespondence(prev_points, transformed_points, points, jump_table, corresponds, A*count*count+MIN_INFO);
-
-
-        prev_trans = curr_trans;
-        ++count;
-
-        // **************************************** We update the transforms here ******************************************* ////
-        updateTransform(corresponds, curr_trans);
-
-      }
-
-      col.r = 0.0; col.b = 0.0; col.g = 1.0; col.a = 1.0;
-      points_viz->addPoints(transformed_points, col);
-      points_viz->publishPoints();
-
-      ROS_INFO("Count: %i", count);
-
-      this->global_tf = global_tf * curr_trans.getMatrix();
-
-      publishPos();
-      prev_points = points;
-    }
-
-    // Handles reading of scan, pushes fills points vector
-    void readScan(const sensor_msgs::LaserScan::ConstPtr& msg) {
-      float range_min = msg->range_min;
-      float range_max = msg->range_max;
-      float angle_min = msg->angle_min;
-      float angle_increment = msg->angle_increment;
-
-      const vector<float>& ranges = msg->ranges;
-      points.clear();
-
-      for (int i = 0; i < ranges.size(); ++i) {
-        float range = ranges.at(i);
-        if (range > RANGE_LIMIT) {
-          continue;
-        }
-        if (!isnan(range) && range >= range_min && range <= range_max) {
-          points.push_back(Point(range, angle_min + angle_increment * i));
-        }
-      }
-
-    }
-
-    void publishPos() {
-     msg.pose.position.x = global_tf(0,2);
-     msg.pose.position.y = global_tf(1,2);
-     msg.pose.position.z = 0;
-     tf::Matrix3x3 tf3d;
-     tf3d.setValue(static_cast<double>(global_tf(0,0)), static_cast<double>(global_tf(0,1)), 0,
-             static_cast<double>(global_tf(1,0)), static_cast<double>(global_tf(1,1)), 0, 0, 0, 1);
-
-     tf::Quaternion q;
-     tf3d.getRotation(q);
-     msg.pose.orientation.x = q.x();
-     msg.pose.orientation.y = q.y();
-     msg.pose.orientation.z = q.z();
-     msg.pose.orientation.w = q.w();
-     msg.header.frame_id = "laser";
-     msg.header.stamp = ros::Time::now();
-     pos_pub.publish(msg);
-     tr.setOrigin(tf::Vector3(global_tf(0,2), global_tf(1,2), 0));
-     tr.setRotation(q);
-     br.sendTransform(tf::StampedTransform(tr, ros::Time::now(), "map", "laser"));
-
-    }
-
-    ~ScanProcessor() {}
+    std::mutex tf_broadcaster_mutex_;
 };
+
+ScanMatcher::ScanMatcher()
+    : node_handle_(ros::NodeHandle())
+    , laser_scan_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_SCAN, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &ScanMatcher::laserScanSubscriberCallback, this)))
+    , gt_pose_subscriber_(new ros::Subscriber(node_handle_.subscribe(GT_POSE_TOPIC, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &ScanMatcher::groundTruthPoseCallback, this)))
+    , pos_pub_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_POS, PUBLISHER_MESSAGE_QUEUE_SIZE)))
+    , marker_pub_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RVIZ, PUBLISHER_MESSAGE_QUEUE_SIZE)))
+    , tf_broadcaster_(new tf2_ros::TransformBroadcaster())
+    , tf_listener_(new tf2_ros::TransformListener(tf_buffer_, true))
+    , points_viz_(new PointVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
+    , corr_viz_(new CorrespondenceVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
+    , global_tf_(Eigen::Matrix3d::Identity(3,3))
+{}
+
+void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_msg) {
+
+    // Publish ground truth pose for debugging purposes...
+
+    geometry_msgs::TransformStamped transform_msg;
+    transform_msg.header.stamp = pose_msg->header.stamp;
+    transform_msg.header.frame_id = "map";          // parent frame id
+    transform_msg.child_frame_id = "ground_truth/base_link";  // child frame id
+
+    transform_msg.transform.rotation.x = pose_msg->pose.orientation.x;
+    transform_msg.transform.rotation.y = pose_msg->pose.orientation.y;
+    transform_msg.transform.rotation.z = pose_msg->pose.orientation.z;
+    transform_msg.transform.rotation.w = pose_msg->pose.orientation.w;
+
+    transform_msg.transform.translation.x = pose_msg->pose.position.x;
+    transform_msg.transform.translation.y = pose_msg->pose.position.y;
+    transform_msg.transform.translation.z = pose_msg->pose.position.z;
+
+    // Not sure if tf2_ros::TransformBroadcaster is thread-safe or not, so let's suppose it's not...
+    {
+        std::lock_guard<std::mutex> scoped_lock(tf_broadcaster_mutex_);
+        tf_broadcaster_->sendTransform(transform_msg);
+    }
+}
+
+void ScanMatcher::laserScanSubscriberCallback(ScanMatcher::LaserScanMessage scan_msg) {
+    if(!previous_scan_msg_) {
+        previous_scan_msg_ = scan_msg;
+        previous_scan_points_ = ScanMatcher::convertToPoints(scan_msg);
+        return;
+    }
+
+    Points scan_points = ScanMatcher::convertToPoints(scan_msg);
+    std::future handle = std::async(std::launch::async,
+            &ScanMatcher::matchPointSets, this, scan_msg->header.stamp, previous_scan_points_, scan_points);
+
+    previous_scan_msg_ = scan_msg;
+    previous_scan_points_ = scan_points;
+}
+
+ScanMatcher::Points ScanMatcher::convertToPoints(ScanMatcher::LaserScanMessage scan_msg) {
+    Points points;
+    points.reserve(scan_msg->ranges.size());
+    const float angle_min = scan_msg->angle_min;
+    const float angle_increment = scan_msg->angle_increment;
+    for(auto const& element : scan_msg->ranges | boost::adaptors::indexed()) {
+        const float range = element.value();
+        const float angle = angle_min + (float) element.index() * angle_increment;
+        if(std::isfinite(range) && range <= RANGE_LIMIT) {
+            points.push_back(Points::value_type(range, angle));
+        }
+    }
+    return(points);
+}
+
+void ScanMatcher::matchPointSets(
+        const ros::Time& t,
+        const ScanMatcher::Points& pts_t0,
+        const ScanMatcher::Points& pts_t1) {
+
+    // TODO: Implement ICP here...
+    //       The goal is to update global_tf_ with the newly estimated transformation
+    //       from pts_t0 to pts_t1.
+
+    {
+        // Publish map-->base_link coordinate frame transformation.
+        geometry_msgs::TransformStamped transform_msg = tf2::eigenToTransform(global_tf_);
+        transform_msg.header.stamp = t;
+        transform_msg.header.frame_id = "map";   // parent frame id
+        transform_msg.child_frame_id = "base_link";   // child frame id
+
+        // Not sure if tf2_ros::TransformBroadcaster is thread-safe or not, so let's suppose it's not...
+        std::lock_guard<std::mutex> scoped_lock(tf_broadcaster_mutex_);
+        tf_broadcaster_->sendTransform(transform_msg);
+
+        points_viz_->addPoints(pts_t0, toColor(1.0, 0.0, 0.0));
+        points_viz_->publishPoints();
+    }
+}
 
 int main(int argc, char **argv) {
   ros::init(argc, argv, "scan_matcher");
-  ros::NodeHandle n;
-
-  // processor
-  ScanProcessor processor(n);
-
-  // SUBSCRIBE
-  ros::Subscriber sub = n.subscribe(TOPIC_SCAN, 1,
-    &ScanProcessor::handleLaserScan, &processor);
-
+  ScanMatcher scan_matcher;
   ros::spin();
   return 0;
 }

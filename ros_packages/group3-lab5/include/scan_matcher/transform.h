@@ -6,7 +6,7 @@ using namespace std;
 static const float EPSILON = 0.00001;
 
 //#include <Eigen/Geometry>
-#include <scan_matching_skeleton/correspond.h>
+#include <scan_matcher/correspond.h>
 
 struct Transform {
   float x_disp, y_disp, theta_rot;

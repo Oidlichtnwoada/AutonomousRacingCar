@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ros/ros.h"
-#include "visualization_msgs/Marker.h"
-#include "scan_matching_skeleton/correspond.h"
+#include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
+#include <scan_matcher/correspond.h>
 
 using namespace std;
 
@@ -17,7 +17,7 @@ protected:
 
 public:
 	PointVisualizer(ros::Publisher& pub, string ns, string frame_id);
-	void addPoints(vector<Point>& points, std_msgs::ColorRGBA color);
+	void addPoints(const vector<Point>& points, std_msgs::ColorRGBA color);
 	void publishPoints();
     ~PointVisualizer() {};
 };
