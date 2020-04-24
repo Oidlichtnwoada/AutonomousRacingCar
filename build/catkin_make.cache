@@ -1,0 +1,2 @@
+f110_ros/cartographer_config/f110_description:f110_ros/f110_simulator:f110_ros/pure_pursuit:f110_ros/reactive_methods:f110_ros/rrt:f110_ros/safety:f110_ros/scan_matching:f110_ros/wall_follow:f110_ros/waypoint_logger:lab5
+-DCATKIN_DEVEL_PREFIX=/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/devel -DCMAKE_INSTALL_PREFIX=/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/install -G Unix Makefiles

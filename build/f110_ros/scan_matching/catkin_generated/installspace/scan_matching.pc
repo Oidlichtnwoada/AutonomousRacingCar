@@ -1,0 +1,8 @@
+prefix=/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/install
+
+Name: scan_matching
+Description: Description of scan_matching
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: nav_msgs roscpp rospy std_msgs

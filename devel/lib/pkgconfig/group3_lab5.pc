@@ -1,0 +1,8 @@
+prefix=/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/devel
+
+Name: group3_lab5
+Description: Description of group3_lab5
+Version: 0.0.1
+Cflags: -I/usr/include/eigen3 -I/usr/include
+Libs: -L${prefix}/lib 
+Requires: roscpp std_msgs std_srvs sensor_msgs geometry_msgs tf2 tf2_ros tf2_eigen tf2_geometry_msgs tf2_sensor_msgs
