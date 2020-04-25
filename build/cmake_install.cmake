@@ -131,16 +131,7 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/gtest/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/cartographer_config/f110_description/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/reactive_methods/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/wall_follow/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/scan_matching/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/pure_pursuit/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/safety/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/rrt/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/f110_simulator/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/lab5/cmake_install.cmake")
-  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/f110_ros/waypoint_logger/cmake_install.cmake")
+  include("/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/build/group3_lab5/cmake_install.cmake")
 
 endif()
 
