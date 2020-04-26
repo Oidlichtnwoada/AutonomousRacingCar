@@ -75,6 +75,8 @@ private:
     Eigen::Affine3d global_tf_;
     LaserScanMessage previous_scan_msg_;
     Points previous_scan_points_;
+    std::future<void> async_matching_task_;
+    ros::Time first_scan_timestamp_; // only for debugging
 
     std::mutex tf_broadcaster_mutex_;
 };
@@ -118,14 +120,25 @@ void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_m
 
 void ScanMatcher::laserScanSubscriberCallback(ScanMatcher::LaserScanMessage scan_msg) {
     if(!previous_scan_msg_) {
+        first_scan_timestamp_ = scan_msg->header.stamp;
         previous_scan_msg_ = scan_msg;
         previous_scan_points_ = ScanMatcher::convertToPoints(scan_msg);
         return;
     }
 
+    if(async_matching_task_.valid() &&
+       async_matching_task_.wait_for(std::chrono::nanoseconds(0)) != future_status::ready) {
+        return;
+    }
+
     Points scan_points = ScanMatcher::convertToPoints(scan_msg);
-    std::future handle = std::async(std::launch::async,
-            &ScanMatcher::matchPointSets, this, scan_msg->header.stamp, previous_scan_points_, scan_points);
+
+    async_matching_task_ = std::async(std::launch::async,
+                                      &ScanMatcher::matchPointSets,
+                                      this,
+                                      scan_msg->header.stamp,
+                                      previous_scan_points_,
+                                      scan_points);
 
     previous_scan_msg_ = scan_msg;
     previous_scan_points_ = scan_points;
