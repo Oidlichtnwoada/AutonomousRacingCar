@@ -1,0 +1,9 @@
+[submodule "course_repo"]
+	path = autonomous_racing_cars
+	url = https://github.com/raminmh/autonomous_racing_cars.git
+[submodule "autonomous_racing_cars"]
+	path = autonomous_racing_cars
+	url = https://github.com/raminmh/autonomous_racing_cars.git
+[submodule "f1tenth_labs"]
+	path = f1tenth_labs
+	url = https://github.com/f1tenth/f1tenth_labs.git

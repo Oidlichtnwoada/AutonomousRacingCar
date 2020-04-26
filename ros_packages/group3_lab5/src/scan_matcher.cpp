@@ -156,6 +156,19 @@ void ScanMatcher::matchPointSets(
     //       from pts_t0 to pts_t1.
 
     {
+        //ICP algorithm
+        ScanMatcher::Points temp_pts_t0 = pts_t0;
+        ScanMatcher::Points temp_pts_t1 = pts_t1;
+        vector<vector<int>> jump_table;
+        computeJump(jump_table, temp_pts_t0);
+        vector<Correspondence> correspondence_vector;
+        getCorrespondence(temp_pts_t0, temp_pts_t1, temp_pts_t1, jump_table, correspondence_vector, 0);
+        Transform transform;
+        updateTransform(correspondence_vector, transform);
+        global_tf_.translation().x() = transform.x_disp;
+        global_tf_.translation().y() = transform.y_disp;
+        //global_tf_.rotation().yaw() = transform.theta_rot; TODO set yaw
+
         // Publish map-->base_link coordinate frame transformation.
         geometry_msgs::TransformStamped transform_msg = tf2::eigenToTransform(global_tf_);
         transform_msg.header.stamp = t;
