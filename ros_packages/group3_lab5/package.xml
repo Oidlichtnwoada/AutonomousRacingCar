@@ -19,5 +19,6 @@
   <depend>tf2_sensor_msgs</depend>
   <build_depend>eigen</build_depend>
   <build_depend>boost</build_depend>
+  <test_depend>rosunit</test_depend>
   <export></export>
 </package>

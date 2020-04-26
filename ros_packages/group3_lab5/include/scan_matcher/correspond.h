@@ -21,8 +21,8 @@ struct Point {
   float radialGap(const Point* pt2) const{
     return abs(r-pt2->r);
   }
-  float getX() { return r * cos(theta); }
-  float getY() { return r * sin(theta); }
+  float getX() const { return r * cos(theta); }
+  float getY() const { return r * sin(theta); }
   bool operator<(const Point& p) { return theta < p.theta; }
   bool operator>(const Point& p) { return theta > p.theta; }
   geometry_msgs::Point getPoint() const {
@@ -48,7 +48,7 @@ struct Point {
     r = sqrt(newx*newx+newy*newy);
     theta = atan2(newy,newx);
   }
-  Eigen::Vector2f getVector() {
+  Eigen::Vector2f getVector() const {
     return Eigen::Vector2f(getX(), getY());
   }
 };

@@ -56,3 +56,11 @@ install(FILES
         launch/simulator.yaml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+catkin_add_gtest(test_icp_algorithm
+        test/test_icp_algorithm.cpp
+        src/scan_matcher/transform.cpp
+        src/scan_matcher/correspond.cpp
+        src/scan_matcher/visualization.cpp
+)
+target_link_libraries(test_icp_algorithm ${catkin_LIBRARIES})

@@ -16,7 +16,7 @@ struct Transform {
   Transform(float x_disp, float y_disp, float theta_rot) :
     x_disp(x_disp), y_disp(y_disp), theta_rot(theta_rot) {}
 
-  bool operator==(Transform& t2) {
+  bool operator==(const Transform& t2) const {
     return abs(x_disp-t2.x_disp) < EPSILON &&  abs(y_disp-t2.y_disp) < EPSILON &&
            abs(theta_rot - t2.theta_rot) < EPSILON;
   }
@@ -46,7 +46,7 @@ struct Transform {
     return p;
   }
 
-  Eigen::Matrix3f getMatrix() {
+  Eigen::Matrix3f getMatrix() const {
     Eigen::Matrix3f mat;
     mat << cos(theta_rot), -sin(theta_rot), x_disp, sin(theta_rot), cos(theta_rot), y_disp, 0, 0, 1;
     return mat;
