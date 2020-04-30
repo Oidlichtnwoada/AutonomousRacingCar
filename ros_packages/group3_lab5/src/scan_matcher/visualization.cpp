@@ -45,12 +45,12 @@ void CorrespondenceVisualizer::addCorrespondences(vector<SimpleCorrespondence> c
   for (SimpleCorrespondence c : correspondences) {
 
       geometry_msgs::Point p;
-      p.x = c.p_t0.x();
-      p.y = c.p_t0.y();
+      p.x = c.p_t0().x();
+      p.y = c.p_t0().y();
 
       geometry_msgs::Point q;
-      q.x = c.p_t1.x();
-      q.y = c.p_t1.y();
+      q.x = c.p_t1().x();
+      q.y = c.p_t1().y();
 
       line_list.points.push_back(p);
       line_list.colors.push_back(col);

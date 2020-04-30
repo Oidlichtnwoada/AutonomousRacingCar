@@ -56,6 +56,17 @@ geometry_msgs::Point Point::getPoint() const {
     return p;
 }
 
+SimpleCorrespondence::SimpleCorrespondence(Eigen::Vector2f p0,
+                                           Eigen::Vector2f p0_second_best,
+                                           Eigen::Vector2f p1)
+    : p_t0_(p0), p_t1_(p1) {
+    nn_ << p0.y() - p0_second_best.y(), p0_second_best.x() - p0.x();
+    nn_.normalize();
+}
+
+const Eigen::Vector2f& SimpleCorrespondence::p_t0() const { return p_t0_; }
+const Eigen::Vector2f& SimpleCorrespondence::p_t1() const { return p_t1_; }
+const Eigen::Vector2f& SimpleCorrespondence::nn() const   { return nn_; }
 
 JumpTable computeJumpTable(const Points& points) {
     const int number_of_points = points.size();
@@ -278,10 +289,13 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
             distance_of_best_match <= max_correspondence_dist) {
 
             const Point& p_t0 = pts_t0[index_of_last_best_match];
+            const Point& p_t0_second_best = pts_t0[index_of_second_best_match];
             const Point& p_t1 = trans_pts_t1[i];
-            const SimpleCorrespondence correspondence = {
-                    .p_t0 = Eigen::Vector2f(p_t0.getX(),p_t0.getY()),
-                    .p_t1 = Eigen::Vector2f(p_t1.getX(),p_t1.getY()) };
+
+            const SimpleCorrespondence correspondence(
+                    Eigen::Vector2f(p_t0.getX(), p_t0.getY()),
+                    Eigen::Vector2f(p_t0_second_best.getX(), p_t0_second_best.getY()),
+                    Eigen::Vector2f(p_t1.getX(), p_t1.getY()));
             correspondences.push_back(correspondence);
         }
     } // main loop (i)

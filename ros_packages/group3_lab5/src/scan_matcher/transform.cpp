@@ -93,18 +93,26 @@ Eigen::VectorXf conv(const Eigen::VectorXf& f, const Eigen::VectorXf& g) {
 Transform estimateTransformation(const SimpleCorrespondences& correspondences, bool t0_to_t1) {
 
     // Estimate transformation from t0 to t1
+    assert(t0_to_t1);
 
     Eigen::Matrix4f M = Eigen::Matrix4f::Zero();
     Eigen::Vector4f g = Eigen::Vector4f::Zero();
     for(unsigned int i=0; i<correspondences.size(); i++) {
-        const Eigen::Vector2f& p = t0_to_t1 ? correspondences[i].p_t0 : correspondences[i].p_t1;
-        const Eigen::Vector2f& q = t0_to_t1 ? correspondences[i].p_t1 : correspondences[i].p_t0;
+        //const Eigen::Vector2f& p = t0_to_t1 ? correspondences[i].p_t0 : correspondences[i].p_t1;
+        //const Eigen::Vector2f& q = t0_to_t1 ? correspondences[i].p_t1 : correspondences[i].p_t0;
 
-        Eigen::Matrix<float, 2, 4> M_k;
-        M_k <<  1.f, 0.f, p.x(), -p.y(),
+        const Eigen::Vector2f& p = correspondences[i].p_t0();
+        const Eigen::Vector2f& q = correspondences[i].p_t1();
+        const Eigen::Vector2f& nn = correspondences[i].nn();
+
+        Eigen::Matrix2f C_i;
+        C_i = nn * nn.transpose();
+
+        Eigen::Matrix<float, 2, 4> M_i;
+        M_i <<  1.f, 0.f, p.x(), -p.y(),
                 0.f, 1.f, p.y(),  p.x();
-        M = M + M_k.transpose() * M_k;
-        g = g + (-2.f * q.transpose() * M_k).transpose();
+        M = M + M_i.transpose() * C_i * M_i;
+        g = g + (-2.f * q.transpose() * C_i * M_i).transpose();
     }
 
     Eigen::Matrix4f W;
@@ -130,7 +138,7 @@ Transform estimateTransformation(const SimpleCorrespondences& correspondences, b
 
     Eigen::VectorXf poly_coefficients(5);
     poly_coefficients << 0.f, 0.f,
-            (g1.transpose() * (A.inverse() * B * 4.f      * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B * 4.f)      * g2 + g2.transpose() * 4.f * g2),
+    (g1.transpose() * (A.inverse() * B * 4.f      * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B * 4.f)      * g2 + g2.transpose() * 4.f * g2),
             (g1.transpose() * (A.inverse() * B * 4.f * Sa * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B * 4.f * Sa) * g2 + g2.transpose() * 4.f * Sa * g2),
             (g1.transpose() * (A.inverse() * B *  Sa * Sa * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B *  Sa * Sa) * g2 + g2.transpose() *  Sa * Sa * g2);
 

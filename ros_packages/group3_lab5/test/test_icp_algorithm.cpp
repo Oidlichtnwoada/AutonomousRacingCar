@@ -75,10 +75,35 @@ TEST_F(TestICP, check_transformation_estimation) {
 
     SimpleCorrespondences correspondences;
     for(int i=0; i<pts_t0.size(); i++) {
-        const SimpleCorrespondence correspondence = {
-                .p_t0 = Eigen::Vector2f(pts_t0[i].getX(), pts_t0[i].getY()),
-                .p_t1 = Eigen::Vector2f(pts_t1[i].getX(), pts_t1[i].getY())
-        };
+
+        const int j2_up = i + 1;
+        const int j2_down = i - 1;
+        int j2 = (-1);
+
+        if (j2_up < pts_t0.size()) {
+            j2 = j2_up;
+        }
+        if (j2_down >= 0) {
+
+            if (j2 != (-1)) {
+                const Point &p_j2_up = pts_t0[j2_up];
+                const Point &p_j2_down = pts_t0[j2_down];
+                const float distance_j2_up = pts_t1[i].distToPoint2(&p_j2_up);
+                const float distance_j2_down = pts_t1[i].distToPoint2(&p_j2_down);
+                j2 = (distance_j2_up < distance_j2_down) ? j2_up : j2_down;
+            } else {
+                j2 = j2_down;
+            }
+        }
+
+        const Point& p_t0 = pts_t0[i];
+        const Point& p_t0_second_best = pts_t0[j2];
+        const Point& p_t1 = pts_t1[i];
+
+        const SimpleCorrespondence correspondence(
+                Eigen::Vector2f(p_t0.getX(), p_t0.getY()),
+                Eigen::Vector2f(p_t0_second_best.getX(), p_t0_second_best.getY()),
+                Eigen::Vector2f(p_t1.getX(), p_t1.getY()));
         correspondences.push_back(correspondence);
     }
     Transform estimated_transform = estimateTransformation(correspondences);

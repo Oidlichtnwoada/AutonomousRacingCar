@@ -35,10 +35,22 @@ typedef std::vector<JumpTableEntry> JumpTable;
 typedef std::vector<Point> Points;
 JumpTable computeJumpTable(const Points& points);
 
-struct SimpleCorrespondence {
-    Eigen::Vector2f p_t0;
-    Eigen::Vector2f p_t1;
+class SimpleCorrespondence {
+public:
+    SimpleCorrespondence(Eigen::Vector2f p0,
+                         Eigen::Vector2f p0_second_best,
+                         Eigen::Vector2f p1);
+
+    const Eigen::Vector2f& p_t0() const;
+    const Eigen::Vector2f& p_t1() const;
+    const Eigen::Vector2f& nn() const;
+
+protected:
+    Eigen::Vector2f p_t0_;
+    Eigen::Vector2f p_t1_;
+    Eigen::Vector2f nn_;
 };
+
 typedef std::vector<SimpleCorrespondence> SimpleCorrespondences;
 
 SimpleCorrespondences findCorrespondences(const Points& pts_t0,
