@@ -139,7 +139,7 @@ TEST_F(TestICP, check_full_algorithm) {
             SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table);
             const Transform new_estimated_transform_t1_to_t0 =
                     estimated_transform_t1_to_t0 +
-                    estimateTransformation(correspondences, false);
+                    estimateTransformation(correspondences).inverse();
 
             if (estimated_transform_t1_to_t0 == new_estimated_transform_t1_to_t0) {
                 break;

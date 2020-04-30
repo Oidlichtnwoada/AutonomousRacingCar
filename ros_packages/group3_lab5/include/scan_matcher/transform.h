@@ -12,7 +12,8 @@ struct Transform {
     Transform operator+(const Transform&) const;
     Point apply(const Point) const;
     Eigen::Matrix3f getMatrix() const;
+    Transform inverse() const;
 };
 
 std::vector<Point> transformPoints(const std::vector<Point>& points, const Transform& t);
-Transform estimateTransformation(const SimpleCorrespondences& correspondences, bool t0_to_t1 = true);
+Transform estimateTransformation(const SimpleCorrespondences& correspondences);

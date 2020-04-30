@@ -43,6 +43,9 @@ Eigen::Matrix3f Transform::getMatrix() const {
     return mat;
 }
 
+Transform Transform::inverse() const {
+    return(Transform(-x_disp, -y_disp, -theta_rot));
+}
 
 std::vector<Point> transformPoints(const std::vector<Point> &points, const Transform &t)
 {
@@ -90,17 +93,14 @@ Eigen::VectorXf conv(const Eigen::VectorXf& f, const Eigen::VectorXf& g) {
     return out;
 }
 
-Transform estimateTransformation(const SimpleCorrespondences& correspondences, bool t0_to_t1) {
+Transform estimateTransformation(const SimpleCorrespondences& correspondences) {
 
     // Estimate transformation from t0 to t1
-    assert(t0_to_t1);
 
     Eigen::Matrix4f M = Eigen::Matrix4f::Zero();
     Eigen::Vector4f g = Eigen::Vector4f::Zero();
     for(unsigned int i=0; i<correspondences.size(); i++) {
-        //const Eigen::Vector2f& p = t0_to_t1 ? correspondences[i].p_t0 : correspondences[i].p_t1;
-        //const Eigen::Vector2f& q = t0_to_t1 ? correspondences[i].p_t1 : correspondences[i].p_t0;
-
+        
         const Eigen::Vector2f& p = correspondences[i].p_t0();
         const Eigen::Vector2f& q = correspondences[i].p_t1();
         const Eigen::Vector2f& nn = correspondences[i].nn();

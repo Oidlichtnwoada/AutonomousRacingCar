@@ -168,10 +168,6 @@ void ScanMatcher::matchPointSets(
         const ScanMatcher::Points& pts_t0,
         const ScanMatcher::Points& pts_t1) {
 
-    // TODO: Implement ICP here...
-    //       The goal is to update global_tf_ with the newly estimated transformation
-    //       from pts_t0 to pts_t1.
-
     {
         //ICP algorithm
 
@@ -186,7 +182,7 @@ void ScanMatcher::matchPointSets(
             SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table, max_correspondence_dist);
             const Transform new_estimated_transform_t1_to_t0 =
                     estimated_transform_t1_to_t0 +
-                    estimateTransformation(correspondences, false);
+                    estimateTransformation(correspondences).inverse();
 
             if (estimated_transform_t1_to_t0 == new_estimated_transform_t1_to_t0) {
                 break;
