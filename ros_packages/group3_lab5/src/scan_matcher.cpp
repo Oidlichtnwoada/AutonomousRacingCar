@@ -17,6 +17,7 @@
 
 #include <std_srvs/Trigger.h>
 #include <Eigen/Dense>
+#include <unsupported/Eigen/EulerAngles>
 
 #include <iostream>
 #include <string>
@@ -36,10 +37,7 @@ using namespace std;
 #define RANGE_LIMIT   10.0
 
 #define MAX_NUMBER_OF_ITERATIONS 10
-
-//const float MAX_ITER = 2.0;
-//const float MIN_INFO = 0.1;
-//const float A = (1-MIN_INFO)/MAX_ITER/MAX_ITER;
+#define DEFAULT_POSE_RECOVERY_INTERVAL 4.0
 
 std_msgs::ColorRGBA toColor(float r, float g, float b, float a = 1.0) {
     std_msgs::ColorRGBA color;
@@ -82,7 +80,12 @@ private:
     std::future<void> async_matching_task_;
     ros::Time first_scan_timestamp_; // only for debugging
 
+    ros::Time last_pose_recovery_timestamp_;
+
     std::mutex tf_broadcaster_mutex_;
+    std::mutex global_tf_mutex_;
+
+    double pose_recovery_interval_;
 };
 
 ScanMatcher::ScanMatcher()
@@ -95,7 +98,12 @@ ScanMatcher::ScanMatcher()
     , points_viz_(new PointVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
     , corr_viz_(new CorrespondenceVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
     , global_tf_(Eigen::Matrix3d::Identity(3,3))
-{}
+{
+    node_handle_.param<double>("pose_recovery_interval", pose_recovery_interval_, DEFAULT_POSE_RECOVERY_INTERVAL);
+    #ifndef NDEBUG
+    std::cout << "pose_recovery_interval = " << pose_recovery_interval_ << "s" << std:endl;
+    #endif
+}
 
 void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_msg) {
 
@@ -119,6 +127,34 @@ void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_m
     {
         std::lock_guard<std::mutex> scoped_lock(tf_broadcaster_mutex_);
         tf_broadcaster_->sendTransform(transform_msg);
+    }
+
+    const ros::Time currentTime = ros::Time::now();
+    if(pose_recovery_interval_ > 0 && std::abs((currentTime -
+        last_pose_recovery_timestamp_).toSec()) > pose_recovery_interval_) {
+
+        last_pose_recovery_timestamp_ = ros::Time::now();
+        const Eigen::Vector3d translation(
+                transform_msg.transform.translation.x,
+                transform_msg.transform.translation.y,
+                transform_msg.transform.translation.z);
+        const Eigen::Quaterniond rotation(
+                transform_msg.transform.rotation.w,
+                transform_msg.transform.rotation.x,
+                transform_msg.transform.rotation.y,
+                transform_msg.transform.rotation.z);
+
+        Eigen::Affine3d global_tf = Eigen::Affine3d::Identity();
+        typedef Eigen::EulerSystem<Eigen::EULER_Y, Eigen::EULER_X, Eigen::EULER_Z> EulerSystem;
+        typedef Eigen::EulerAngles<double, EulerSystem> EulerAngles;
+        EulerAngles angles = EulerAngles::FromRotation<true, false, false>(rotation);
+        const double& z_angle = angles.angles()(2);
+        global_tf.prerotate(Eigen::AngleAxisd(z_angle, Eigen::Vector3d::UnitZ()));
+        global_tf.pretranslate(translation);
+        {
+            std::lock_guard<std::mutex> scoped_lock(global_tf_mutex_);
+            global_tf_ = global_tf;
+        }
     }
 }
 
@@ -168,48 +204,50 @@ void ScanMatcher::matchPointSets(
         const ScanMatcher::Points& pts_t0,
         const ScanMatcher::Points& pts_t1) {
 
-    {
-        //ICP algorithm
+    //ICP algorithm
 
-        Transform estimated_transform_t1_to_t0(0.f, 0.f, 0.f);
-        const JumpTable jump_table = computeJumpTable(pts_t0);
-        unsigned int number_of_iterations = 0;
-        const float max_correspondence_dist = std::numeric_limits<float>::max();
+    Transform estimated_transform_t1_to_t0(0.f, 0.f, 0.f);
+    const JumpTable jump_table = computeJumpTable(pts_t0);
+    unsigned int number_of_iterations = 0;
+    const float max_correspondence_dist = std::numeric_limits<float>::max();
 
-        for (int i = 0; i < MAX_NUMBER_OF_ITERATIONS; i++) {
-            number_of_iterations++;
-            Points trans_pts_t1 = transformPoints(pts_t1, estimated_transform_t1_to_t0);
-            SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table, max_correspondence_dist);
-            const Transform new_estimated_transform_t1_to_t0 =
-                    estimated_transform_t1_to_t0 +
-                    estimateTransformation(correspondences).inverse();
+    for (int i = 0; i < MAX_NUMBER_OF_ITERATIONS; i++) {
+        number_of_iterations++;
+        Points trans_pts_t1 = transformPoints(pts_t1, estimated_transform_t1_to_t0);
+        SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table, max_correspondence_dist);
+        const Transform new_estimated_transform_t1_to_t0 =
+                estimated_transform_t1_to_t0 +
+                estimateTransformation(correspondences).inverse();
 
-            if (estimated_transform_t1_to_t0 == new_estimated_transform_t1_to_t0) {
-                break;
-            }
-            estimated_transform_t1_to_t0 = new_estimated_transform_t1_to_t0;
+        if (estimated_transform_t1_to_t0 == new_estimated_transform_t1_to_t0) {
+            break;
         }
+        estimated_transform_t1_to_t0 = new_estimated_transform_t1_to_t0;
+    }
 
-        const float inverse_tx = estimated_transform_t1_to_t0.x_disp;
-        const float inverse_ty = estimated_transform_t1_to_t0.y_disp;
-        const float inverse_rot_theta = estimated_transform_t1_to_t0.theta_rot;
+    const float inverse_tx = estimated_transform_t1_to_t0.x_disp;
+    const float inverse_ty = estimated_transform_t1_to_t0.y_disp;
+    const float inverse_rot_theta = estimated_transform_t1_to_t0.theta_rot;
 
+    // Publish map-->base_link coordinate frame transformation.
+    geometry_msgs::TransformStamped transform_msg;
+    {
+        std::lock_guard<std::mutex> scoped_lock(global_tf_mutex_);
         global_tf_.rotate(Eigen::AngleAxisf(inverse_rot_theta, Eigen::Vector3f::UnitZ()).cast<double>());
         global_tf_.translate(Eigen::Vector3f(inverse_tx, inverse_ty, 0.f).cast<double>());
-
-        // Publish map-->base_link coordinate frame transformation.
-        geometry_msgs::TransformStamped transform_msg = tf2::eigenToTransform(global_tf_);
-        transform_msg.header.stamp = t;
-        transform_msg.header.frame_id = "map";   // parent frame id
-        transform_msg.child_frame_id = "base_link";   // child frame id
-
-        // Not sure if tf2_ros::TransformBroadcaster is thread-safe or not, so let's suppose it's not...
-        std::lock_guard<std::mutex> scoped_lock(tf_broadcaster_mutex_);
-        tf_broadcaster_->sendTransform(transform_msg);
-
-        points_viz_->addPoints(pts_t0, toColor(1.0, 0.0, 0.0));
-        points_viz_->publishPoints();
+        transform_msg = tf2::eigenToTransform(global_tf_);
     }
+    transform_msg.header.stamp = t;
+    transform_msg.header.frame_id = "map";   // parent frame id
+    transform_msg.child_frame_id = "base_link";   // child frame id
+
+    // Not sure if tf2_ros::TransformBroadcaster is thread-safe or not, so let's suppose it's not...
+    std::lock_guard<std::mutex> scoped_lock(tf_broadcaster_mutex_);
+    tf_broadcaster_->sendTransform(transform_msg);
+
+    points_viz_->addPoints(pts_t0, toColor(1.0, 0.0, 0.0));
+    points_viz_->publishPoints();
+
 }
 
 int main(int argc, char **argv) {

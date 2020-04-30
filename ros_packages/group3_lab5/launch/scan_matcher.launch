@@ -1,4 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="group3_lab5" name="scan_matcher" type="scan_matcher" output="screen"/>
+    <node pkg="group3_lab5" name="scan_matcher" type="scan_matcher" output="screen" >
+        <param name="pose_recovery_interval" type="double" value="4.0"/>
+    </node>
 </launch>
