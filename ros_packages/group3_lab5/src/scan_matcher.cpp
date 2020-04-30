@@ -18,6 +18,8 @@
 #include <std_srvs/Trigger.h>
 #include <Eigen/Dense>
 
+#include <iostream>
+#include <string>
 #include <future>
 #include <mutex>
 #include <boost/range/adaptor/indexed.hpp>
@@ -33,9 +35,11 @@ using namespace std;
 #define FRAME_POINTS  "laser"
 #define RANGE_LIMIT   10.0
 
-const float MAX_ITER = 2.0;
-const float MIN_INFO = 0.1;
-const float A = (1-MIN_INFO)/MAX_ITER/MAX_ITER;
+#define MAX_NUMBER_OF_ITERATIONS 10
+
+//const float MAX_ITER = 2.0;
+//const float MIN_INFO = 0.1;
+//const float A = (1-MIN_INFO)/MAX_ITER/MAX_ITER;
 
 std_msgs::ColorRGBA toColor(float r, float g, float b, float a = 1.0) {
     std_msgs::ColorRGBA color;
@@ -170,17 +174,32 @@ void ScanMatcher::matchPointSets(
 
     {
         //ICP algorithm
-        ScanMatcher::Points temp_pts_t0 = pts_t0;
-        ScanMatcher::Points temp_pts_t1 = pts_t1;
-        vector<vector<int>> jump_table;
-        computeJump(jump_table, temp_pts_t0);
-        vector<Correspondence> correspondence_vector;
-        getCorrespondence(temp_pts_t0, temp_pts_t1, temp_pts_t1, jump_table, correspondence_vector, 0);
-        Transform transform;
-        updateTransform(correspondence_vector, transform);
-        global_tf_.translation().x() = transform.x_disp;
-        global_tf_.translation().y() = transform.y_disp;
-        //global_tf_.rotation().yaw() = transform.theta_rot; TODO set yaw
+
+        Transform estimated_transform_t1_to_t0(0.f, 0.f, 0.f);
+        const JumpTable jump_table = computeJumpTable(pts_t0);
+        unsigned int number_of_iterations = 0;
+        const float max_correspondence_dist = std::numeric_limits<float>::max();
+
+        for (int i = 0; i < MAX_NUMBER_OF_ITERATIONS; i++) {
+            number_of_iterations++;
+            Points trans_pts_t1 = transformPoints(pts_t1, estimated_transform_t1_to_t0);
+            SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table, max_correspondence_dist);
+            const Transform new_estimated_transform_t1_to_t0 =
+                    estimated_transform_t1_to_t0 +
+                    estimateTransformation(correspondences, false);
+
+            if (estimated_transform_t1_to_t0 == new_estimated_transform_t1_to_t0) {
+                break;
+            }
+            estimated_transform_t1_to_t0 = new_estimated_transform_t1_to_t0;
+        }
+
+        const float inverse_tx = estimated_transform_t1_to_t0.x_disp;
+        const float inverse_ty = estimated_transform_t1_to_t0.y_disp;
+        const float inverse_rot_theta = estimated_transform_t1_to_t0.theta_rot;
+
+        global_tf_.rotate(Eigen::AngleAxisf(inverse_rot_theta, Eigen::Vector3f::UnitZ()).cast<double>());
+        global_tf_.translate(Eigen::Vector3f(inverse_tx, inverse_ty, 0.f).cast<double>());
 
         // Publish map-->base_link coordinate frame transformation.
         geometry_msgs::TransformStamped transform_msg = tf2::eigenToTransform(global_tf_);
@@ -198,6 +217,9 @@ void ScanMatcher::matchPointSets(
 }
 
 int main(int argc, char **argv) {
+#if !defined(NDEBUG)
+    std::cerr << "WARNING: Debug build." << std::endl;
+#endif
   ros::init(argc, argv, "scan_matcher");
   ScanMatcher scan_matcher;
   ros::spin();

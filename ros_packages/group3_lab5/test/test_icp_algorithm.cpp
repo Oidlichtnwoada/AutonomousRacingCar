@@ -4,6 +4,10 @@
 #include <random>
 #include <algorithm>
 
+#define TRANSFORM_EPSILON 1E-4
+#define MAX_NUMBER_OF_ITERATIONS 100
+#define NUMBER_OF_TESTS 100
+
 class TestICP : public ::testing::Test {
 protected:
     typedef ::Point Point;
@@ -12,6 +16,7 @@ protected:
     Points generateFakeLaserScan(bool random_phase = true, float angular_increment = 2.0f) {
         std::random_device random_device;
         std::mt19937 random_generator(random_device());
+        random_generator.seed(123456789UL); // constant seed for reproducible results
         std::uniform_real_distribution<float> random_distribution(0.0f, M_PI);
         const std::vector<float> frequencies = {2,3,5,13};
         std::vector<float> phases(frequencies.size(), 0.0f);
@@ -56,27 +61,83 @@ protected:
         }
         return(transformed_pts);
     }
-
-    Transform matchPointSets(const Points& pts_t0, const Points& pts_t1) {
-        Points temp_pts_t0 = pts_t0;
-        Points temp_pts_t1 = pts_t1;
-        std::vector<std::vector<int> > jump_table;
-        computeJump(jump_table, temp_pts_t0);
-        vector<Correspondence> correspondence_vector;
-        getCorrespondence(temp_pts_t0, temp_pts_t1, temp_pts_t1, jump_table, correspondence_vector, 0);
-        Transform transform;
-        updateTransform(correspondence_vector, transform);
-        return(transform);
-    }
 };
 
 TEST_F(TestICP, check_transformation_estimation) {
 
-    const Transform known_transform(1.0, 0.0, 0.0);
-    Points pts_t0 = generateFakeLaserScan();
-    Points pts_t1 = transformPointSet(pts_t0, 1.0, 0.0, 0.0);
-    const Transform estimated_transform = matchPointSets(pts_t0, pts_t1);
+    const float tx = 0.1f;
+    const float ty = -0.05f;
+    const float rot_theta = 4.0 / 180.0 * M_PI; // 4 deg.
+
+    Points pts_t0 = generateFakeLaserScan(false, 1.0f);
+    const Transform known_transform(tx,ty,rot_theta);
+    Points pts_t1 = transformPointSet(pts_t0,tx,ty,rot_theta);
+
+    SimpleCorrespondences correspondences;
+    for(int i=0; i<pts_t0.size(); i++) {
+        const SimpleCorrespondence correspondence = {
+                .p_t0 = Eigen::Vector2f(pts_t0[i].getX(), pts_t0[i].getY()),
+                .p_t1 = Eigen::Vector2f(pts_t1[i].getX(), pts_t1[i].getY())
+        };
+        correspondences.push_back(correspondence);
+    }
+    Transform estimated_transform = estimateTransformation(correspondences);
     EXPECT_TRUE(estimated_transform == known_transform);
+}
+
+TEST_F(TestICP, check_full_algorithm) {
+
+    std::random_device random_device;
+    std::mt19937 random_generator(random_device());
+    random_generator.seed(987654321UL); // constant seed for reproducible results
+    std::uniform_real_distribution<float> random_distribution(0.0f, 1.0);
+
+    for(int test_n = 0; test_n < NUMBER_OF_TESTS; test_n++) {
+
+        const float tx = random_distribution(random_generator) - 0.5;
+        const float ty = random_distribution(random_generator) - 0.5;
+        const float rot_theta = random_distribution(random_generator) / 180.0f * M_PI * 15.0;
+
+        const Transform known_transform(tx, ty, rot_theta);
+        Points pts_t0 = generateFakeLaserScan(true, 1.0f);
+        Points pts_t1 = transformPointSet(pts_t0, tx, ty, rot_theta);
+
+        Transform estimated_transform_t1_to_t0(0.f, 0.f, 0.f);
+        const JumpTable jump_table = computeJumpTable(pts_t0);
+
+        unsigned int number_of_iterations = 0;
+
+        for (int i = 0; i < MAX_NUMBER_OF_ITERATIONS; i++) {
+
+            number_of_iterations++;
+            Points trans_pts_t1 = transformPoints(pts_t1, estimated_transform_t1_to_t0);
+            SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table);
+            const Transform new_estimated_transform_t1_to_t0 =
+                    estimated_transform_t1_to_t0 +
+                    estimateTransformation(correspondences, false);
+
+            if (estimated_transform_t1_to_t0 == new_estimated_transform_t1_to_t0) {
+                break;
+            }
+            estimated_transform_t1_to_t0 = new_estimated_transform_t1_to_t0;
+        }
+
+        const float inverse_tx = estimated_transform_t1_to_t0.x_disp;
+        const float inverse_ty = estimated_transform_t1_to_t0.y_disp;
+        const float inverse_rot_theta = estimated_transform_t1_to_t0.theta_rot;
+
+        const bool tx_is_correct = std::abs(tx + inverse_tx) < TRANSFORM_EPSILON;
+        const bool ty_is_correct = std::abs(ty + inverse_ty) < TRANSFORM_EPSILON;
+        const bool rot_theta_is_correct = std::abs(rot_theta + inverse_rot_theta) < TRANSFORM_EPSILON;
+
+        if(!tx_is_correct || !ty_is_correct || !rot_theta_is_correct) {
+            assert(false);
+        }
+
+        EXPECT_TRUE(tx_is_correct);
+        EXPECT_TRUE(ty_is_correct);
+        EXPECT_TRUE(rot_theta_is_correct);
+    }
 }
 
 int main(int argc, char **argv) {

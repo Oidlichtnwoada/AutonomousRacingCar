@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(group3_lab5)
 set(NODE_NAME "scan_matcher" CACHE STRING "")
 
-add_compile_options(-std=c++17)
+add_compile_options(-std=c++14)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -63,4 +63,11 @@ catkin_add_gtest(test_icp_algorithm
         src/scan_matcher/correspond.cpp
         src/scan_matcher/visualization.cpp
 )
+
 target_link_libraries(test_icp_algorithm ${catkin_LIBRARIES})
+
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -DGLIBCXX_DEBUG -D_GLIBCXX_DEBUG")
+#set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -DGLIBCXX_DEBUG -D_GLIBCXX_DEBUG")
+
+#message("CMAKE_C_FLAGS_DEBUG is ${CMAKE_C_FLAGS_DEBUG}")
+#message("CMAKE_C_FLAGS_RELEASE is ${CMAKE_C_FLAGS_RELEASE}")

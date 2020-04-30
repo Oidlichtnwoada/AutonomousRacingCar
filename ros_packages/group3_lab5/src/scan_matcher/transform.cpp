@@ -1,221 +1,154 @@
 #include <scan_matcher/transform.h>
-#include <cmath>
-#include <ros/ros.h>
-#include <Eigen/Geometry>
 #include <complex>
+#include <unsupported/Eigen/Polynomials>
 
-#define NUM_ITERATIONS 100
+Transform::Transform() : x_disp(0), y_disp(0), theta_rot(0) {}
 
-using namespace std;
+Transform::Transform(float _x_disp, float _y_disp, float _theta_rot) :
+        x_disp(_x_disp), y_disp(_y_disp), theta_rot(_theta_rot) {}
 
-void transformPoints(const vector<Point> &points, Transform &t, vector<Point> &transformed_points)
-{
-  transformed_points.clear();
-  for (int i = 0; i < points.size(); i++)
-  {
-    transformed_points.push_back(t.apply(points[i]));
-    //printf("%f %transformed_points.back().r, transformed_points.back().theta);
-  }
+bool Transform::operator==(const Transform& t2) const {
+    return std::abs(x_disp-t2.x_disp) < EPSILON &&
+           std::abs(y_disp-t2.y_disp) < EPSILON &&
+           std::abs(theta_rot - t2.theta_rot) < EPSILON;
 }
 
-// returns the largest real root to ax^3 + bx^2 + cx + d = 0
-complex<float> get_cubic_root(float a, float b, float c, float d)
+bool Transform::operator!=(const Transform& t2) const {
+    return !(*this == t2);
+}
+
+Transform Transform::operator+(const Transform& t2) const {
+    const Eigen::Matrix3f H1 = getMatrix();
+    const Eigen::Matrix3f H2 = t2.getMatrix();
+    const Eigen::Matrix3f H = H1*H2;
+    const float x = H(0,2);
+    const float y = H(1,2);
+    const float theta = std::atan2(H(1,0),H(0,0));
+    return Transform(x, y, theta);
+}
+
+Point Transform::apply(const Point _p) const {
+    const float x = _p.getX() + x_disp;
+    const float y = _p.getY() + y_disp;
+    Point p;
+    p.r = std::sqrt(x*x+y*y);
+    p.theta = std::atan2(y,x);
+    p.theta = p.theta + theta_rot;
+    return p;
+}
+
+Eigen::Matrix3f Transform::getMatrix() const {
+    Eigen::Matrix3f mat;
+    mat << cos(theta_rot), -sin(theta_rot), x_disp, sin(theta_rot), cos(theta_rot), y_disp, 0, 0, 1;
+    return mat;
+}
+
+
+std::vector<Point> transformPoints(const std::vector<Point> &points, const Transform &t)
 {
-  //std::cout<< "a= " << a<< ";  b= " << b<< ";  c= " << c<< ";  d= " << d<<";"<<std::endl;
-  // Reduce to depressed cubic
-  float p = c / a - b * b / (3 * a * a);
-  float q = 2 * b * b * b / (27 * a * a * a) + d / a - b * c / (3 * a * a);
-
-  // std::cout<<"p = "<<p<<";"<<std::endl;
-  // std::cout<<"q = "<<q<<";"<<std::endl;
-
-  complex<float> xi(-.5, sqrt(3) / 2);
-
-  complex<float> inside = sqrt(q * q / 4 + p * p * p / 27);
-
-  complex<float> root;
-
-  for (float k = 0; k < 3; ++k)
-  {
-    // get root for 3 possible values of k
-    root = -b / (3 * a) + pow(xi, k) * pow(-q / 2.f + inside, 1.f / 3.f) + pow(xi, 2.f * k) * pow(-q / 2.f - inside, 1.f / 3.f);
-    //std::cout<<"RootTemp: "<< root<<std::endl;
-    if (root.imag() != 0)
-    {
-      return root;
+    std::vector<Point> transformed_points;
+    for (int i = 0; i < points.size(); i++) {
+        transformed_points.push_back(t.apply(points[i]));
     }
-  }
-
-  return root;
+    return(transformed_points);
 }
 
-// returns the largest real root to ax^4 + bx^3 + cx^2 + dx + e = 0
-float greatest_real_root(float a, float b, float c, float d, float e)
-{
-  // Written with inspiration from: https://en.wikipedia.org/wiki/Quartic_function#General_formula_for_roots
-  //std::cout<< "a= " << a<< ";  b= " << b<< ";  c= " << c<< ";  d= " << d<< ";  e= " << e<<";"<<std::endl;
-
-  // Reduce to depressed Quadratic
-  float p = (8 * a * c - 3 * b * b) / (8 * a * a);
-  float q = (b * b * b - 4 * a * b * c + 8 * a * a * d) / (8 * a * a * a);
-  float r = (-3 * b * b * b * b + 256 * a * a * a * e - 64 * a * a * b * d + 16 * a * b * b * c) / (256 * a * a * a * a);
-
-  // std::cout<<"p = "<<p<<";"<<std::endl;
-  // std::cout<<"q = "<<q<<";"<<std::endl;
-  // std::cout<<"r = "<<r<<";"<<std::endl;
-
-  // Ferrari's Solution for Quartics: 8m^3 + 8pm^2 + (2p^2-8r)m - q^2 = 0
-  complex<float> m = get_cubic_root(8, 8 * p, 2 * p * p - 8 * r, -q * q);
-
-  complex<float> root1 = -b / (4 * a) + (sqrt(2.f * m) + sqrt(-(2 * p + 2.f * m + sqrt(2.f) * q / sqrt(m)))) / 2.f;
-  complex<float> root2 = -b / (4 * a) + (sqrt(2.f * m) - sqrt(-(2 * p + 2.f * m + sqrt(2.f) * q / sqrt(m)))) / 2.f;
-  complex<float> root3 = -b / (4 * a) + (-sqrt(2.f * m) + sqrt(-(2 * p + 2.f * m - sqrt(2.f) * q / sqrt(m)))) / 2.f;
-  complex<float> root4 = -b / (4 * a) + (-sqrt(2.f * m) - sqrt(-(2 * p + 2.f * m - sqrt(2.f) * q / sqrt(m)))) / 2.f;
-
-  vector<complex<float>> roots{root1, root2, root3, root4};
-
-  float max_real_root = 0.f;
-
-  for (complex<float> root : roots)
-  {
-    if (root.imag() == 0)
-    {
-      max_real_root = max(max_real_root, root.real());
+double find_greatest_real_root(Eigen::VectorXd poly_coeffs) {
+    const int n = poly_coeffs.size();
+    assert(n==5);
+    Eigen::PolynomialSolver<double, 4> psolve(poly_coeffs);
+    Eigen::Matrix<std::complex<double>, 4, 1, 0, 4, 1> eigen_roots = psolve.roots();
+    int assigned = 0;
+    double lambda = 0;
+    for(unsigned int i=0; i<eigen_roots.size(); i++){
+        if(eigen_roots(i).imag() == 0){
+            if(!assigned || eigen_roots(i).real() > lambda) {
+                assigned = 1;
+                lambda = eigen_roots(i).real();
+            }
+        }
     }
-    //std::cout<<"Max real root:" << max_real_root<<std::endl;
-
-    return max_real_root;
-  }
+    assert(assigned);
+    return(lambda);
 }
 
-Eigen::Matrix4f merge_2x2_to_4x4_matrice(Eigen::Matrix2f m_0_0, Eigen::Matrix2f m_0_1, Eigen::Matrix2f m_1_0, Eigen::Matrix2f m_1_1)
-{
-  Eigen::Matrix4f res;
-
-  for (int y = 0; y < 4; y++)
-  {
-    for (int z = 0; z < 4; z++)
-    {
-      if (y < 2 && z < 2)
-        res(y, z) = m_0_0(y, z);
-      else if (y < 2 && z < 4)
-        res(y, z) = m_0_1(y, z - 2);
-      else if (y < 4 && z < 2)
-        res(y, z) = m_1_0(y - 2, z);
-      else
-        res(y, z) = m_1_1(y - 2, z - 2);
+Eigen::VectorXf conv(const Eigen::VectorXf& f, const Eigen::VectorXf& g) {
+    // conv(f,g) returns thefull  convolution of vectors f and g
+    // Adapted from: http://coliru.stacked-crooked.com/a/d4371c490934d34e
+    int const nf = f.size();
+    int const ng = g.size();
+    int const n  = nf + ng - 1;
+    Eigen::VectorXf out(n);
+    out.fill(0.f);
+    for(auto i(0); i < n; ++i) {
+        int const jmn = (i >= ng - 1)? i - (ng - 1) : 0;
+        int const jmx = (i <  nf - 1)? i            : nf - 1;
+        for(auto j(jmn); j <= jmx; ++j) {
+            out[i] += (f[j] * g[i - j]);
+        }
     }
-  }
-
-  return res;
+    return out;
 }
 
-void updateTransform(vector<Correspondence> &corresponds, Transform &curr_trans)
-{
-  // Written with inspiration from: https://github.com/AndreaCensi/gpc/blob/master/c/gpc.c
-  // You can use the helper functions which are defined above for finding roots and transforming points as and when needed.
-  // use helper functions and structs in transform.h and correspond.h
-  // input : corresponds : a struct vector of Correspondene struct object defined in correspond.
-  // input : curr_trans : A Transform object refernece
-  // output : update the curr_trans object. Being a call by reference function, Any changes you make to curr_trans will be reflected in the calling function in the scan_match.cpp program/
+Transform estimateTransformation(const SimpleCorrespondences& correspondences, bool t0_to_t1) {
 
-  // You can change the number of iterations here. More the number of iterations, slower will be the convergence but more accurate will be the results. You need to find the right balance.
-  int number_iter = NUM_ITERATIONS;
+    // Estimate transformation from t0 to t1
 
-  // Fill in the values for the matrices
-  Eigen::Matrix4f M, W;
-  Eigen::MatrixXf g(4, 1);
+    Eigen::Matrix4f M = Eigen::Matrix4f::Zero();
+    Eigen::Vector4f g = Eigen::Vector4f::Zero();
+    for(unsigned int i=0; i<correspondences.size(); i++) {
+        const Eigen::Vector2f& p = t0_to_t1 ? correspondences[i].p_t0 : correspondences[i].p_t1;
+        const Eigen::Vector2f& q = t0_to_t1 ? correspondences[i].p_t1 : correspondences[i].p_t0;
 
-  M << 0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 0, 0;
+        Eigen::Matrix<float, 2, 4> M_k;
+        M_k <<  1.f, 0.f, p.x(), -p.y(),
+                0.f, 1.f, p.y(),  p.x();
+        M = M + M_k.transpose() * M_k;
+        g = g + (-2.f * q.transpose() * M_k).transpose();
+    }
 
-  W << 0, 0, 0, 0,
-      0, 0, 0, 0,
-      0, 0, 1, 0,
-      0, 0, 0, 1;
+    Eigen::Matrix4f W;
+    W << 0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1;
 
-  g << 0, 0, 0, 0;
+    // M = [A B
+    //      C D]
 
-  for (int i = 0; i < number_iter && i < corresponds.size(); i++)
-  {
-    //fill in the values of the matrics
-    Eigen::MatrixXf M_i(2, 4);
-    Eigen::Matrix2f C_i;
-    Eigen::Vector2f pi_i = corresponds[i].getPiVec();
+    M = 2.f * M;
+    const Eigen::Matrix2f A = M.block(0,0,2,2);
+    const Eigen::Matrix2f B = M.block(0,2,2,2);
+    //const Eigen::Matrix2f C = M.block(2,0,2,2); // not needed
+    const Eigen::Matrix2f D = M.block(2,2,2,2);
 
-    Eigen::Vector2f ni = corresponds[i].getNormalNorm();
+    const Eigen::Matrix2f S = D - B.transpose() * A.inverse() * B;
+    const Eigen::Matrix2f Sa = S.inverse() * S.determinant();
 
-    M_i << 1, 0, pi_i(0), -pi_i(1),
-        0, 1, pi_i(1), pi_i(0);
+    const Eigen::Vector2f g1 = g.segment(0,2);
+    const Eigen::Vector2f g2 = g.segment(2,2);
 
-    C_i << ni * ni.transpose(); // maybe consider the w_i
+    Eigen::VectorXf poly_coefficients(5);
+    poly_coefficients << 0.f, 0.f,
+            (g1.transpose() * (A.inverse() * B * 4.f      * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B * 4.f)      * g2 + g2.transpose() * 4.f * g2),
+            (g1.transpose() * (A.inverse() * B * 4.f * Sa * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B * 4.f * Sa) * g2 + g2.transpose() * 4.f * Sa * g2),
+            (g1.transpose() * (A.inverse() * B *  Sa * Sa * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B *  Sa * Sa) * g2 + g2.transpose() *  Sa * Sa * g2);
 
-    M += M_i.transpose() * C_i * M_i;
-    g += -2 * pi_i.transpose() * C_i * M_i;
-  }
+    Eigen::Vector3f p_lambda;
+    p_lambda << 4.f,
+            2.f * S(0,0) + 2.f * S(1,1),
+            S(0,0) * S(1,1) - S(1,0) * S(0,1);
 
-  // Define sub-matrices A, B, D from M
-  Eigen::Matrix2f A, B, D;
-  Eigen::Matrix4f M_temp = 2 * M;
+    poly_coefficients -= conv(p_lambda, p_lambda);
 
-  A << M_temp(0, 0), M_temp(0, 1),
-      M_temp(1, 0), M_temp(1, 1);
+    const float lambda = (float) find_greatest_real_root(poly_coefficients.cast<double>().reverse());
+    const Eigen::Vector4f x = -(M + 2.f * lambda * W).inverse() * g;
 
-  B << M_temp(0, 2), M_temp(0, 3),
-      M_temp(1, 2), M_temp(1, 3);
+    const Eigen::Vector2f translation = x.segment(0,2);
+    const float theta = std::atan2(x(3),x(2));
 
-  D << M_temp(2, 2), M_temp(2, 3),
-      M_temp(3, 2), M_temp(3, 3);
+    //std::cout << "translation: [" << translation(0) << ", " << translation(1) << "]" << std::endl;
+    //std::cout << "rotation: " << (theta * 180.0f / M_PI) << std::endl;
 
-  //define S and S_A matrices from the matrices A B and D
-  Eigen::Matrix2f S = (D - B.transpose() * A.inverse() * B);
-  ;
-  Eigen::Matrix2f S_A = S.determinant() * S.inverse();
-  ;
-
-  //find the coefficients of the quadratic function of lambda
-  float pow_2;
-  float pow_1;
-  float pow_0;
-  Eigen::Matrix4f m_pow_2, m_pow_1, m_pow_0;
-
-  Eigen::Matrix2f m0_0_0, m0_0_1, m0_1_0, m0_1_1;
-  Eigen::Matrix2f m1_0_0, m1_0_1, m1_1_0, m1_1_1;
-  Eigen::Matrix2f m2_0_0, m2_0_1, m2_1_0, m2_1_1;
-
-  m2_0_0 << A.inverse() * B * B.transpose() * A.inverse().transpose();
-  m2_0_1 << -A.inverse() * B;
-  m2_1_0 << -A.inverse() * B;
-  m2_1_1 << 1.0, 0.0,
-      0.0, 1.0;
-
-  m1_0_0 << A.inverse() * B * S_A * B.transpose() * A.inverse().transpose();
-  m1_0_1 << -A.inverse() * B * S_A;
-  m1_1_0 << -A.inverse() * B * S_A;
-  m1_1_1 << S_A;
-
-  m0_0_0 << A.inverse() * B * S_A.transpose() * S_A * B.transpose() * A.inverse().transpose();
-  m0_0_1 << -A.inverse() * B * S_A.transpose() * S_A;
-  m0_1_0 << -A.inverse() * B * S_A.transpose() * S_A;
-  m0_1_1 << S_A.transpose() * S_A;
-
-  m_pow_2 = merge_2x2_to_4x4_matrice(m2_0_0, m2_0_1, m2_1_0, m2_1_1);
-  m_pow_1 = merge_2x2_to_4x4_matrice(m1_0_0, m1_0_1, m1_1_0, m1_1_1);
-  m_pow_0 = merge_2x2_to_4x4_matrice(m0_0_0, m0_0_1, m0_1_0, m0_1_1);
-
-  pow_2 = (4.0 * g * m_pow_2 * g.transpose())(0, 0); // TODO swapped g and g^T to get a valid matrix multiplication
-  pow_1 = (4.0 * g * m_pow_1 * g.transpose())(0, 0);
-  pow_0 = (g * m_pow_0 * g.transpose())(0, 0);
-
-  // find the value of lambda by solving the equation formed. You can use the greatest real root function
-  float lambda = greatest_real_root(0.0, 0.0, pow_2, pow_1, pow_0);
-
-  //find the value of x which is the vector for translation and rotation
-  Eigen::Vector4f x = -(2 * M + 2 * lambda * W).inverse().transpose() * g.transpose(); // TODO using g.transpose() instead of g to make matrix multiplication working
-
-  // Convert from x to new transform
-  float theta = atan2(x(3), x(2));
-  curr_trans = Transform(x(0), x(1), theta);
+    return(Transform(translation(0), translation(1), theta));
 }

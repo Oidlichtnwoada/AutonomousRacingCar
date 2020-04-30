@@ -1,216 +1,289 @@
 #include <scan_matcher/correspond.h>
-#include <cmath>
-#include <ros/ros.h>
 
-#define N_RAYS 1080
-#define PHI_0 -M_PI
+// Enable this for "naive" correspondence search (without jump tables):
+// #define DISABLE_OPTIMIZATIONS
 
-using namespace std;
+Point::Point() : r(0), theta(0) {}
 
-const int UP_SMALL = 0;
-const int UP_BIG = 1;
-const int DOWN_SMALL = 2;
-const int DOWN_BIG = 3;
+Point::Point(float range, float angle) : r(range), theta(angle){};
 
-void getNaiveCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
-                            vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)
-{
-
-  c.clear();
-  int last_best = -1;
-  const int n = trans_points.size();
-  const int m = old_points.size();
-  float min_dist = 100000.00;
-  int min_index = 0;
-  int second_min_index = 0;
-
-  //Do for each point
-  for (int i = 0; i < n; ++i)
-  {
-    for (int j = 0; j < m; ++j)
-    {
-      float dist = old_points[i].distToPoint2(&trans_points[j]);
-      if (dist < min_dist)
-      {
-        min_dist = dist;
-        min_index = j;
-        second_min_index = j - 1;
-      }
-    }
-    c.push_back(Correspondence(&trans_points[i], &points[i], &old_points[min_index], &old_points[second_min_index]));
-  }
+float Point::distToPoint(const Point* pt2) const {
+    return sqrt(r*r + pt2->r*pt2->r - 2*r*pt2->r*cos(pt2->theta-theta));
 }
 
-void getCorrespondence(vector<Point> &old_points, vector<Point> &trans_points, vector<Point> &points,
-                       vector<vector<int>> &jump_table, vector<Correspondence> &c, float prob)
-{
-  // Written with inspiration from: https://github.com/AndreaCensi/gpc/blob/master/c/gpc.c
-  // use helper functions and structs in transform.h and correspond.h
-  // input : old_points : vector of struct points containing the old points (points of the previous frame)
-  // input : trans_points : vector of struct points containing the new points transformed to the previous frame using the current estimated transform
-  // input : points : vector of struct points containing the new points
-  // input : jump_table : jump table computed using the helper functions from the transformed and old points
-  // input : c: vector of struct correspondences . This is a refernece which needs to be updated in place and return the new correspondences to calculate the transforms.
-  // output : c; update the correspondence vector in place which is provided as a reference. you need to find the index of the best and the second best point.
-  //Initializecorrespondences
-  c.clear();
-
-  int last_best = -1;
-  const int n = trans_points.size();
-  const int m = old_points.size();
-
-  //Do for each point
-  for (int i = 0; i < n; ++i)
-  {
-    int best = -1;
-    int second_best = -1;
-    double best_dist = std::numeric_limits<double>::infinity();
-
-    int start_idx = trans_points[i].theta - PHI_0 * N_RAYS / (2 * M_PI); // maybe correct
-
-    int start_at;
-    if (last_best != -1)
-      start_at = last_best + 1;
-    else
-      start_at = start_idx;
-
-    int up = start_at + 1;
-    int down = start_at;
-
-    double last_dist_up = std::numeric_limits<double>::infinity();
-    double last_dist_down = std::numeric_limits<double>::infinity();
-
-    bool up_stopped = false;
-    bool down_stopped = false;
-
-    while (!(up_stopped && down_stopped))
-    {
-      bool now_up = !up_stopped & (last_dist_up < last_dist_down);
-
-      if (now_up)
-      {
-        if (up >= N_RAYS)
-        {
-          up_stopped = true;
-          continue;
-        }
-        last_dist_up = trans_points[i].distToPoint2(&old_points[up]);
-
-        if (last_dist_up < best_dist) //&& last_dist_up <= BODER_ACCEPTABLE_CORRESPONDENCE) // TODO define "corresponcdence is acceptable" -condition (border value for minimal correspondence
-        {
-          best = up;
-          best_dist = last_dist_up;
-        }
-
-        if (up > start_idx)
-        {
-          double delta_phi = old_points[up].theta - trans_points[i].theta;
-          double min_dist_up = std::sin(delta_phi) * trans_points[i].r;
-
-          if (min_dist_up * min_dist_up > best_dist)
-          {
-            up_stopped = true;
-            continue;
-          }
-          if (old_points[up].r < trans_points[i].r)
-            up = jump_table[up][UP_BIG];
-          else
-            up = jump_table[up][UP_SMALL];
-        }
-        else
-          up++;
-      }
-      if (!now_up)
-      {
-        if (down < 0)
-        {
-          down_stopped = true;
-          continue;
-        }
-        last_dist_down = trans_points[i].distToPoint2(&old_points[down]);
-
-        if (last_dist_down < best_dist) //&& last_dist_up <= BODER_ACCEPTABLE_CORRESPONDENCE) // TODO define "corresponcdence is acceptable" -condition (border value for minimal correspondence
-        {
-          best = down;
-          best_dist = last_dist_down;
-        }
-
-        if (down <= start_idx)
-        {
-          double delta_phi = old_points[down].theta - trans_points[i].theta;
-          double min_dist_down = std::sin(delta_phi) * trans_points[i].r;
-
-          if (min_dist_down * min_dist_down > best_dist)
-          {
-            down_stopped = true;
-            continue;
-          }
-          if (old_points[down].r < trans_points[i].r)
-            down = jump_table[down][DOWN_BIG];
-          else
-            down = jump_table[down][DOWN_SMALL];
-        }
-        else
-          down--;
-      }
-    }
-
-    last_best = best;
-    if (trans_points[i].distToPoint2(&old_points[(best - 1) % N_RAYS]) < trans_points[i].distToPoint2(&old_points[(best + 1) % N_RAYS]))
-      second_best = (best - 1) % N_RAYS;
-    else
-      second_best = (best + 1) % N_RAYS;
-
-    // TODO set null-correspondence
-    if (best == -1)
-    {
-      best = i;
-      second_best = (i + 1) % N_RAYS;
-    }
-
-    c.push_back(Correspondence(&trans_points[i], &points[i], &old_points[best], &old_points[second_best]));
-  }
+float Point::distToPoint2(const Point* pt2) const {
+    return r*r + (pt2->r)*(pt2->r) - 2*r*(pt2->r)*std::cos(pt2->theta - theta);
 }
 
-void computeJump(vector<vector<int>> &table, vector<Point> &points)
-{
-  table.clear();
-  int n = points.size();
-  for (int i = 0; i < n; ++i)
-  {
-    vector<int> v = {n, n, -1, -1};
-    for (int j = i + 1; j < n; ++j)
-    {
-      if (points[j].r < points[i].r)
-      {
-        v[UP_SMALL] = j;
-        break;
-      }
+float Point::radialGap(const Point* pt2) const{
+    return abs(r-pt2->r);
+}
+
+float Point::getX() const { return r * cos(theta); }
+float Point::getY() const { return r * sin(theta); }
+
+bool Point::operator<(const Point& p) const { return theta < p.theta; }
+bool Point::operator>(const Point& p) const { return theta > p.theta; }
+
+void Point::wrapTheta(){
+    while(theta > M_PI){
+        theta -= 2*M_PI;
     }
-    for (int j = i + 1; j < n; ++j)
-    {
-      if (points[j].r > points[i].r)
-      {
-        v[UP_BIG] = j;
-        break;
-      }
+    while(theta <= -M_PI){
+        theta += 2*M_PI;
     }
-    for (int j = i - 1; j >= 0; --j)
-    {
-      if (points[j].r < points[i].r)
-      {
-        v[DOWN_SMALL] = j;
-        break;
-      }
+}
+
+void Point::rotate(float phi){
+    theta = theta + phi;
+    wrapTheta();
+}
+
+void Point::translate(float x, float y) {
+    float newx = getX()+x;
+    float newy = getY()+y;
+    r = sqrt(newx*newx+newy*newy);
+    theta = atan2(newy,newx);
+}
+
+Eigen::Vector2f Point::getVector() const {
+    return Eigen::Vector2f(getX(), getY());
+}
+
+geometry_msgs::Point Point::getPoint() const {
+    geometry_msgs::Point p;
+    p.x = r * cos(theta); p.y = r * sin(theta); p.z = 0.0;
+    return p;
+}
+
+
+JumpTable computeJumpTable(const Points& points) {
+    const int number_of_points = points.size();
+    JumpTable jt;
+
+    for(int i=0; i < number_of_points; i++) {
+
+        JumpTableEntry jte;
+
+        int j = i + 1;
+        while(j < number_of_points && points[j].r <= points[i].r) j++;
+        jte.up_bigger = (j-i);
+
+        j = i + 1;
+        while(j < number_of_points && points[j].r >= points[i].r) j++;
+        jte.up_smaller = (j-i);
+
+        j = i - 1;
+        while(j>=0 && points[j].r>=points[i].r) j--;
+        jte.down_smaller = (j-i);
+
+        j = i - 1;
+        while(j>=0 && points[j].r<=points[i].r) j--;
+        jte.down_bigger = (j-i);
+
+        jt.push_back(jte);
     }
-    for (int j = i - 1; j >= 0; --j)
-    {
-      if (points[j].r > points[i].r)
-      {
-        v[DOWN_BIG] = j;
-        break;
-      }
-    }
-    table.push_back(v);
-  }
+    return(jt);
+}
+
+SimpleCorrespondences findCorrespondences(const Points& pts_t0,
+                                          const Points& trans_pts_t1,  // pts_t1 transformed to pts_t0's frame
+                                          const JumpTable& jump_table,  // computed from pts_t0
+                                          const float max_correspondence_dist) {
+
+
+    SimpleCorrespondences correspondences;
+
+#define INVALID_INDEX -1
+    assert(jump_table.size() == pts_t0.size());
+
+    const int number_of_rays_t0 = pts_t0.size();
+    const int number_of_rays_t1 = trans_pts_t1.size();
+    int index_of_last_best_match = INVALID_INDEX; // this is an index into pts_t0
+
+    for (unsigned int i = 0; i < number_of_rays_t1; i++) { // i is an index into trans_pts_t1
+
+        const Point p_i_w = trans_pts_t1[i]; // i-th point of y_{t} in y_{t-1}'s frame
+        // in [Censi 2008]: p_{i}^{$\omega$}
+
+        int index_of_best_match = INVALID_INDEX; // this is an index into pts_t0
+
+        float distance_of_best_match = std::numeric_limits<float>::max();
+
+        // approximated index in pts_t0 corresponding to trans_pts_t1[i]
+        int start_index = i; // [TP]: for our purposes, this can be set to i
+
+        const int we_start_at = (index_of_last_best_match != INVALID_INDEX) ? (index_of_last_best_match + 1)
+                                                                            : (start_index);
+
+        assert(we_start_at >= 0);
+        int j_up = std::min<int>(we_start_at + 1, number_of_rays_t0-1); // j_up is an index into pts_t0
+        int j_down = std::min<int>(we_start_at, number_of_rays_t0-1);   // j_up is an index into pts_t0
+
+        // distance of the last point examined in up/down direction
+        float last_distance_in_up_direction = std::numeric_limits<float>::max();
+        float last_distance_in_down_direction = std::numeric_limits<float>::max();
+
+        bool up_search_stopped = false;
+        bool down_search_stopped = false;
+
+        while (!up_search_stopped || !down_search_stopped) {
+
+            const bool should_search_in_up_direction =
+                    !up_search_stopped ||
+                    (down_search_stopped && (last_distance_in_up_direction < last_distance_in_down_direction));
+            // NOTE: This condition not correctly stated in Fig.5 of [Censi 2008], resulting in bugs
+            //       when copied verbatim from the paper.
+
+            if (should_search_in_up_direction) {
+                if (j_up >= number_of_rays_t0) {
+                    up_search_stopped = true;
+                    continue;
+                } else {
+
+                    const Point &p_j = pts_t0[j_up];
+                    last_distance_in_up_direction = p_i_w.distToPoint2(&p_j);
+
+                    const bool correspondence_is_acceptable = true;
+                    // this is from [Censi 2008], but it's not clear
+                    // what the acceptance criteria should be...
+
+                    if (correspondence_is_acceptable &&
+                        (last_distance_in_up_direction < distance_of_best_match)) {
+                        index_of_best_match = j_up;
+                        distance_of_best_match = last_distance_in_up_direction;
+                    }
+
+#ifndef DISABLE_OPTIMIZATIONS
+                    if (j_up > start_index) {
+
+                        // compute early stopping criteria
+
+                        const float delta_theta = (p_j.theta - p_i_w.theta);
+                        const float min_dist_up = p_i_w.r * ((delta_theta > M_PI_2) ? 1.0 : std::sin(delta_theta));
+
+                        if((min_dist_up * min_dist_up) > distance_of_best_match) {
+                            up_search_stopped = true;
+                            continue;
+                        }
+
+                        // jump table lookup
+                        if(p_j.r < p_i_w.r) {
+                            j_up += jump_table[j_up].up_bigger;
+                        } else {
+                            j_up += jump_table[j_up].up_smaller;
+                        }
+
+                        if (j_up >= number_of_rays_t0) {
+                            up_search_stopped = true;
+                            continue;
+                        }
+
+                    } else {
+                        j_up++;
+                    }
+#else
+                    j_up++;
+#endif
+                }
+            }
+
+            const bool should_search_in_down_direction =
+                    !down_search_stopped ||
+                    (up_search_stopped && (last_distance_in_up_direction >= last_distance_in_down_direction));
+
+            if (should_search_in_down_direction) {
+
+                if (j_down < 0) {
+                    down_search_stopped = true;
+                    continue;
+                } else {
+
+                    const Point &p_j = pts_t0[j_down];
+                    last_distance_in_down_direction = p_i_w.distToPoint2(&p_j);
+
+                    const bool correspondence_is_acceptable = true;
+                    // this is from [Censi 2008], but it's not clear
+                    // what the acceptance criteria should be...
+
+                    if (correspondence_is_acceptable &&
+                        (last_distance_in_down_direction < distance_of_best_match)) {
+                        index_of_best_match = j_down;
+                        distance_of_best_match = last_distance_in_down_direction;
+                    }
+
+#ifndef DISABLE_OPTIMIZATIONS
+                    if (j_down < start_index) {
+                        // compute early stopping criteria
+
+                        const float delta_theta = (p_i_w.theta - p_j.theta);
+                        const float min_dist_down = p_i_w.r * ((delta_theta > M_PI_2) ? 1.0 : std::sin(delta_theta));
+
+                        if((min_dist_down * min_dist_down) > distance_of_best_match) {
+                            down_search_stopped = true;
+                            continue;
+                        }
+
+                        // jump table lookup
+                        if(p_j.r < p_i_w.r) {
+                            j_down += jump_table[j_down].down_bigger;
+                        } else {
+                            j_down += jump_table[j_down].down_smaller;
+                        }
+
+                        if (j_down < 0) {
+                            down_search_stopped = true;
+                            continue;
+                        }
+
+
+                    } else {
+                        j_down--;
+                    }
+#else
+                    j_down--;
+#endif
+                }
+            }
+
+            index_of_last_best_match = index_of_best_match;
+        }
+
+        // Find j2, the index of the "second best match" (in the immediate neighborhood of the best match)
+
+        const int j2_up = index_of_last_best_match + 1; // j2_up is an index into pts_t0
+        const int j2_down = index_of_last_best_match - 1; // j2_down is an index into pts_t0
+        int j2 = INVALID_INDEX;
+
+        if (j2_up < number_of_rays_t0) {
+            j2 = j2_up;
+        }
+        if (j2_down >= 0) {
+
+            if (j2 != INVALID_INDEX) {
+                const Point &p_j2_up = pts_t0[j2_up];
+                const Point &p_j2_down = pts_t0[j2_down];
+                const float distance_j2_up = p_i_w.distToPoint2(&p_j2_up);
+                const float distance_j2_down = p_i_w.distToPoint2(&p_j2_down);
+                j2 = (distance_j2_up < distance_j2_down) ? j2_up : j2_down;
+            } else {
+                j2 = j2_down;
+            }
+        }
+
+        const int index_of_second_best_match = j2;
+
+        if (index_of_last_best_match != INVALID_INDEX &&
+            index_of_second_best_match != INVALID_INDEX &&
+            distance_of_best_match <= max_correspondence_dist) {
+
+            const Point& p_t0 = pts_t0[index_of_last_best_match];
+            const Point& p_t1 = trans_pts_t1[i];
+            const SimpleCorrespondence correspondence = {
+                    .p_t0 = Eigen::Vector2f(p_t0.getX(),p_t0.getY()),
+                    .p_t1 = Eigen::Vector2f(p_t1.getX(),p_t1.getY()) };
+            correspondences.push_back(correspondence);
+        }
+    } // main loop (i)
+    return(correspondences);
 }

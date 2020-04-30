@@ -39,14 +39,23 @@ CorrespondenceVisualizer::CorrespondenceVisualizer(ros::Publisher& pub, string n
   num_visuals++;
 }
 
-void CorrespondenceVisualizer::addCorrespondences(vector<Correspondence> correspondences) {
+void CorrespondenceVisualizer::addCorrespondences(vector<SimpleCorrespondence> correspondences) {
   std_msgs::ColorRGBA col;
   col.r = 1.0; col.b = 0.0; col.g = 0.0; col.a = 1.0;
-  for (Correspondence c : correspondences) {
-    line_list.points.push_back(c.p->getPoint());
-    line_list.colors.push_back(col);
-    line_list.points.push_back(c.getPiGeo());
-    line_list.colors.push_back(col);
+  for (SimpleCorrespondence c : correspondences) {
+
+      geometry_msgs::Point p;
+      p.x = c.p_t0.x();
+      p.y = c.p_t0.y();
+
+      geometry_msgs::Point q;
+      q.x = c.p_t1.x();
+      q.y = c.p_t1.y();
+
+      line_list.points.push_back(p);
+      line_list.colors.push_back(col);
+      line_list.points.push_back(q);
+      line_list.colors.push_back(col);
   }
 }
 

@@ -31,7 +31,7 @@ protected:
 
 public:
 	CorrespondenceVisualizer(ros::Publisher& pub, string ns, string frame_id);
-	void addCorrespondences(vector<Correspondence> corresponds);
+	void addCorrespondences(vector<SimpleCorrespondence> corresponds);
 	void publishCorrespondences();
     ~CorrespondenceVisualizer() {};
 };
