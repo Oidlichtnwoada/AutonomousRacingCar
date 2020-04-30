@@ -2,7 +2,9 @@
 
 **Group 3**
 
-<!-- TODO: Your names here... -->
+Stefan  Adelmann (01633044)
+Hannes  Brantner (e01614466)
+Daniel  Lukitsch (01634053)
 Thomas Pintaric (09620608)
 
 # Lab 5: Scan Matching
@@ -36,8 +38,8 @@ find ./src/f1tenth_labs -maxdepth 1 -type d -iname 'lab?' -or -iname 'project' |
 # Unpack this submission into the catkin workspace
 tar -xzf group5_lab5.tar.gz --directory=${ROS_LAB_WORKSPACE}/src
 
-# Build all packages
-catkin build --workspace ${ROS_LAB_WORKSPACE}
+# Build all packages (Release)
+catkin build --workspace ${ROS_LAB_WORKSPACE} -DCMAKE_BUILD_TYPE=Release
 source ${ROS_LAB_WORKSPACE}/devel/setup.bash
 ```
 

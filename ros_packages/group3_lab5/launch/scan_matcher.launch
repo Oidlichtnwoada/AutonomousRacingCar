@@ -1,4 +1,4 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="pintaric_lab5" name="scan_matcher" type="scan_matcher" output="screen"/>
+    <node pkg="group3_lab5" name="scan_matcher" type="scan_matcher" output="screen"/>
 </launch>
