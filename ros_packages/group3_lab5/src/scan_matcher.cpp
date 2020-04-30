@@ -101,7 +101,7 @@ ScanMatcher::ScanMatcher()
 {
     node_handle_.param<double>("pose_recovery_interval", pose_recovery_interval_, DEFAULT_POSE_RECOVERY_INTERVAL);
     #ifndef NDEBUG
-    std::cout << "pose_recovery_interval = " << pose_recovery_interval_ << "s" << std:endl;
+    std::cout << "pose_recovery_interval = " << pose_recovery_interval_ << "s" << std::endl;
     #endif
 }
 
