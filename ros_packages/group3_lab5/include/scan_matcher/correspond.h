@@ -39,16 +39,25 @@ class SimpleCorrespondence {
 public:
     SimpleCorrespondence(Eigen::Vector2f p0,
                          Eigen::Vector2f p0_second_best,
-                         Eigen::Vector2f p1);
+                         Eigen::Vector2f p1,
+                         unsigned int idx_p0,
+                         unsigned int idx_p1,
+                         float distance = (-1.f));
 
     const Eigen::Vector2f& p_t0() const;
     const Eigen::Vector2f& p_t1() const;
     const Eigen::Vector2f& nn() const;
+    unsigned int idx_p0() const;
+    unsigned int idx_p1() const;
+    float distance() const;
 
 protected:
     Eigen::Vector2f p_t0_;
     Eigen::Vector2f p_t1_;
     Eigen::Vector2f nn_;
+    unsigned int idx_p0_;
+    unsigned int idx_p1_;
+    float distance_;
 };
 
 typedef std::vector<SimpleCorrespondence> SimpleCorrespondences;
