@@ -75,13 +75,13 @@ double find_greatest_real_root(Eigen::VectorXd poly_coeffs) {
     return(lambda);
 }
 
-Eigen::VectorXf conv(const Eigen::VectorXf& f, const Eigen::VectorXf& g) {
-    // conv(f,g) returns thefull  convolution of vectors f and g
+Eigen::VectorXd conv(const Eigen::VectorXd& f, const Eigen::VectorXd& g) {
+    // conv(f,g) returns the full  convolution of vectors f and g
     // Adapted from: http://coliru.stacked-crooked.com/a/d4371c490934d34e
     int const nf = f.size();
     int const ng = g.size();
     int const n  = nf + ng - 1;
-    Eigen::VectorXf out(n);
+    Eigen::VectorXd out(n);
     out.fill(0.f);
     for(auto i(0); i < n; ++i) {
         int const jmn = (i >= ng - 1)? i - (ng - 1) : 0;
@@ -97,26 +97,26 @@ Transform estimateTransformation(const SimpleCorrespondences& correspondences) {
 
     // Estimate transformation from t0 to t1
 
-    Eigen::Matrix4f M = Eigen::Matrix4f::Zero();
-    Eigen::Vector4f g = Eigen::Vector4f::Zero();
+    Eigen::Matrix4d M = Eigen::Matrix4d::Zero();
+    Eigen::Vector4d g = Eigen::Vector4d::Zero();
     for(unsigned int i=0; i<correspondences.size(); i++) {
         
-        const Eigen::Vector2f& p = correspondences[i].p_t0();
-        const Eigen::Vector2f& q = correspondences[i].p_t1();
-        const Eigen::Vector2f& nn = correspondences[i].nn();
+        const Eigen::Vector2d& p = correspondences[i].p_t0().cast<double>();
+        const Eigen::Vector2d& q = correspondences[i].p_t1().cast<double>();
+        const Eigen::Vector2d& nn = correspondences[i].nn().cast<double>();
 
-        Eigen::Matrix2f C_i;
+        Eigen::Matrix2d C_i;
         C_i = nn * nn.transpose();
 
-        Eigen::Matrix<float, 2, 4> M_i;
-        M_i <<  1.f, 0.f, p.x(), -p.y(),
-                0.f, 1.f, p.y(),  p.x();
+        Eigen::Matrix<double, 2, 4> M_i;
+        M_i <<  1.0, 0.0, p.x(), -p.y(),
+                0.0, 1.0, p.y(),  p.x();
         M = M + M_i.transpose() * C_i * M_i;
-        g = g + (-2.f * q.transpose() * C_i * M_i).transpose();
+        g = g + (-2.0 * q.transpose() * C_i * M_i).transpose();
     }
 
-    Eigen::Matrix4f W;
-    W << 0, 0, 0, 0,
+    Eigen::Matrix4d W;
+    W <<    0, 0, 0, 0,
             0, 0, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1;
@@ -124,35 +124,35 @@ Transform estimateTransformation(const SimpleCorrespondences& correspondences) {
     // M = [A B
     //      C D]
 
-    M = 2.f * M;
-    const Eigen::Matrix2f A = M.block(0,0,2,2);
-    const Eigen::Matrix2f B = M.block(0,2,2,2);
-    //const Eigen::Matrix2f C = M.block(2,0,2,2); // not needed
-    const Eigen::Matrix2f D = M.block(2,2,2,2);
+    M = 2.0 * M;
+    const Eigen::Matrix2d A = M.block(0,0,2,2);
+    const Eigen::Matrix2d B = M.block(0,2,2,2);
+    //const Eigen::Matrix2d C = M.block(2,0,2,2); // not needed
+    const Eigen::Matrix2d D = M.block(2,2,2,2);
 
-    const Eigen::Matrix2f S = D - B.transpose() * A.inverse() * B;
-    const Eigen::Matrix2f Sa = S.inverse() * S.determinant();
+    const Eigen::Matrix2d S = D - B.transpose() * A.inverse() * B;
+    const Eigen::Matrix2d Sa = S.inverse() * S.determinant();
 
-    const Eigen::Vector2f g1 = g.segment(0,2);
-    const Eigen::Vector2f g2 = g.segment(2,2);
+    const Eigen::Vector2d g1 = g.segment(0,2);
+    const Eigen::Vector2d g2 = g.segment(2,2);
 
-    Eigen::VectorXf poly_coefficients(5);
-    poly_coefficients << 0.f, 0.f,
-    (g1.transpose() * (A.inverse() * B * 4.f      * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B * 4.f)      * g2 + g2.transpose() * 4.f * g2),
-            (g1.transpose() * (A.inverse() * B * 4.f * Sa * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B * 4.f * Sa) * g2 + g2.transpose() * 4.f * Sa * g2),
-            (g1.transpose() * (A.inverse() * B *  Sa * Sa * B.transpose() * A.inverse()) * g1 + 2.f * g1.transpose() * (-A.inverse() * B *  Sa * Sa) * g2 + g2.transpose() *  Sa * Sa * g2);
+    Eigen::VectorXd poly_coefficients(5);
+    poly_coefficients << 0.0, 0.0,
+    (g1.transpose() * (A.inverse() * B * 4.0      * B.transpose() * A.inverse()) * g1 + 2.0 * g1.transpose() * (-A.inverse() * B * 4.0)      * g2 + g2.transpose() * 4.0 * g2),
+            (g1.transpose() * (A.inverse() * B * 4.0 * Sa * B.transpose() * A.inverse()) * g1 + 2.0 * g1.transpose() * (-A.inverse() * B * 4.0 * Sa) * g2 + g2.transpose() * 4.0 * Sa * g2),
+            (g1.transpose() * (A.inverse() * B *  Sa * Sa * B.transpose() * A.inverse()) * g1 + 2.0 * g1.transpose() * (-A.inverse() * B *  Sa * Sa) * g2 + g2.transpose() *  Sa * Sa * g2);
 
-    Eigen::Vector3f p_lambda;
-    p_lambda << 4.f,
-            2.f * S(0,0) + 2.f * S(1,1),
+    Eigen::Vector3d p_lambda;
+    p_lambda << 4.0,
+            2.0 * S(0,0) + 2.0 * S(1,1),
             S(0,0) * S(1,1) - S(1,0) * S(0,1);
 
     poly_coefficients -= conv(p_lambda, p_lambda);
 
-    const float lambda = (float) find_greatest_real_root(poly_coefficients.cast<double>().reverse());
-    const Eigen::Vector4f x = -(M + 2.f * lambda * W).inverse() * g;
+    const float lambda = (float) find_greatest_real_root(poly_coefficients.reverse());
+    const Eigen::Vector4d x = -(M + 2.0 * lambda * W).inverse() * g;
 
-    const Eigen::Vector2f translation = x.segment(0,2);
+    const Eigen::Vector2d translation = x.segment(0,2);
     const float theta = std::atan2(x(3),x(2));
 
     //std::cout << "translation: [" << translation(0) << ", " << translation(1) << "]" << std::endl;
