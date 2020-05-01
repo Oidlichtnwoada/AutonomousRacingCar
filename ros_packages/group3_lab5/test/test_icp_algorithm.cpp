@@ -103,7 +103,8 @@ TEST_F(TestICP, check_transformation_estimation) {
         const SimpleCorrespondence correspondence(
                 Eigen::Vector2f(p_t0.getX(), p_t0.getY()),
                 Eigen::Vector2f(p_t0_second_best.getX(), p_t0_second_best.getY()),
-                Eigen::Vector2f(p_t1.getX(), p_t1.getY()));
+                Eigen::Vector2f(p_t1.getX(), p_t1.getY()),
+                i,i);
         correspondences.push_back(correspondence);
     }
     Transform estimated_transform = estimateTransformation(correspondences);

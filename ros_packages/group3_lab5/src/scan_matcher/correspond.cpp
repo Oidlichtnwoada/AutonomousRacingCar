@@ -58,8 +58,11 @@ geometry_msgs::Point Point::getPoint() const {
 
 SimpleCorrespondence::SimpleCorrespondence(Eigen::Vector2f p0,
                                            Eigen::Vector2f p0_second_best,
-                                           Eigen::Vector2f p1)
-    : p_t0_(p0), p_t1_(p1) {
+                                           Eigen::Vector2f p1,
+                                           unsigned int idx_p0,
+                                           unsigned int idx_p1,
+                                           float distance)
+    : p_t0_(p0), p_t1_(p1), idx_p0_(idx_p0), idx_p1_(idx_p1), distance_(distance) {
     nn_ << p0.y() - p0_second_best.y(), p0_second_best.x() - p0.x();
     nn_.normalize();
 }
@@ -67,6 +70,10 @@ SimpleCorrespondence::SimpleCorrespondence(Eigen::Vector2f p0,
 const Eigen::Vector2f& SimpleCorrespondence::p_t0() const { return p_t0_; }
 const Eigen::Vector2f& SimpleCorrespondence::p_t1() const { return p_t1_; }
 const Eigen::Vector2f& SimpleCorrespondence::nn() const   { return nn_; }
+unsigned int SimpleCorrespondence::idx_p0() const   { return idx_p0_; }
+unsigned int SimpleCorrespondence::idx_p1() const   { return idx_p1_; }
+float SimpleCorrespondence::distance() const        { return distance_; }
+
 
 JumpTable computeJumpTable(const Points& points) {
     const int number_of_points = points.size();
@@ -111,6 +118,8 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
     const int number_of_rays_t0 = pts_t0.size();
     const int number_of_rays_t1 = trans_pts_t1.size();
     int index_of_last_best_match = INVALID_INDEX; // this is an index into pts_t0
+
+    std::vector<float> minimum_distance_so_far(number_of_rays_t0, std::numeric_limits<float>::max()); // used for outlier removal
 
     for (unsigned int i = 0; i < number_of_rays_t1; i++) { // i is an index into trans_pts_t1
 
@@ -295,9 +304,19 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
             const SimpleCorrespondence correspondence(
                     Eigen::Vector2f(p_t0.getX(), p_t0.getY()),
                     Eigen::Vector2f(p_t0_second_best.getX(), p_t0_second_best.getY()),
-                    Eigen::Vector2f(p_t1.getX(), p_t1.getY()));
+                    Eigen::Vector2f(p_t1.getX(), p_t1.getY()),
+                    index_of_last_best_match, i, distance_of_best_match);
             correspondences.push_back(correspondence);
+            minimum_distance_so_far[index_of_last_best_match] = std::min(minimum_distance_so_far[index_of_last_best_match], distance_of_best_match); // used for outlier removal
         }
     } // main loop (i)
-    return(correspondences);
+
+    // outlier removal
+    SimpleCorrespondences correspondences_without_outliers;
+    for(const SimpleCorrespondence& correspondence : correspondences) {
+        if(minimum_distance_so_far[correspondence.idx_p0()] == correspondence.distance()) {
+            correspondences_without_outliers.push_back(correspondence);
+        }
+    }
+    return(correspondences_without_outliers);
 }
