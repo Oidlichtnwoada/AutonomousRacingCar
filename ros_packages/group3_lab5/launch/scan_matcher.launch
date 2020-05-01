@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
     <node pkg="group3_lab5" name="scan_matcher" type="scan_matcher" output="screen" >
-        <param name="max_number_of_iterations" type="int" value="10"/>
+        <param name="max_number_of_iterations" type="int" value="100"/>
     </node>
 </launch>
