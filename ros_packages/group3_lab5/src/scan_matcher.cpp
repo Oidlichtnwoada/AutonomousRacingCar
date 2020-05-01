@@ -36,6 +36,8 @@ using namespace std;
 #define RANGE_LIMIT   10.0
 
 #define DEFAULT_MAX_NUMBER_OF_ITERATIONS 20
+#define DEFAULT_INLIER_RATIO 0.9
+#define DEFAULT_MAX_CORRESPONDENCE_DIST 0.0
 #define POSE_RESET_JOY_BUTTON_INDEX 10
 
 std_msgs::ColorRGBA toColor(float r, float g, float b, float a = 1.0) {
@@ -80,6 +82,7 @@ private:
     LaserScanMessage previous_scan_msg_;
     Points previous_scan_points_;
     std::future<void> async_matching_task_;
+
     ros::Time first_scan_timestamp_; // only for debugging
 
     std::mutex tf_broadcaster_mutex_;
@@ -87,6 +90,12 @@ private:
 
     std::atomic<bool> signal_pose_reset_;
     int max_number_of_iterations_;
+
+    unsigned int scan_msg_frames_dropped_;    // only for debugging
+    unsigned int scan_msg_frames_processed_;  // only for debugging
+
+    float inlier_ratio_;
+    float max_correspondence_dist_;
 };
 
 ScanMatcher::ScanMatcher()
@@ -101,11 +110,12 @@ ScanMatcher::ScanMatcher()
     , corr_viz_(new CorrespondenceVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
     , global_tf_(Eigen::Matrix3d::Identity(3,3))
     , signal_pose_reset_(false)
+    , scan_msg_frames_dropped_(0)
+    , scan_msg_frames_processed_(0)
 {
     node_handle_.param<int>("max_number_of_iterations", max_number_of_iterations_, DEFAULT_MAX_NUMBER_OF_ITERATIONS);
-    #ifndef NDEBUG
-    std::cout << "max_number_of_iterations = " << max_number_of_iterations_ << std::endl;
-    #endif
+    node_handle_.param<float>("max_correspondence_dist", max_correspondence_dist_, DEFAULT_MAX_CORRESPONDENCE_DIST);
+    node_handle_.param<float>("inlier_ratio", inlier_ratio_, DEFAULT_INLIER_RATIO);
 }
 
 void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_msg) {
@@ -176,8 +186,15 @@ void ScanMatcher::laserScanSubscriberCallback(ScanMatcher::LaserScanMessage scan
 
     if(async_matching_task_.valid() &&
        async_matching_task_.wait_for(std::chrono::nanoseconds(0)) != future_status::ready) {
+        scan_msg_frames_dropped_++;
+        if(scan_msg_frames_dropped_ % (1000*10) == 0) {
+            std::cerr << "INFO: " << scan_msg_frames_dropped_ << " scan messages skipped ("
+                << (int)(100.f * (float) (scan_msg_frames_dropped_) / (float) (scan_msg_frames_dropped_ + scan_msg_frames_processed_))
+                << "%)" << std::endl;
+        }
         return;
     }
+    scan_msg_frames_processed_++;
 
     Points scan_points = ScanMatcher::convertToPoints(scan_msg);
 
@@ -217,12 +234,20 @@ void ScanMatcher::matchPointSets(
     Transform estimated_transform_t1_to_t0(0.f, 0.f, 0.f);
     const JumpTable jump_table = computeJumpTable(pts_t0);
     unsigned int number_of_iterations = 0;
-    const float max_correspondence_dist = std::numeric_limits<float>::max();
+    const float max_correspondence_dist = max_correspondence_dist_ > 0.0f ?
+            max_correspondence_dist_ : std::numeric_limits<float>::max();
 
     for (int i = 0; i < max_number_of_iterations_; i++) {
         number_of_iterations++;
         Points trans_pts_t1 = transformPoints(pts_t1, estimated_transform_t1_to_t0);
-        SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table, max_correspondence_dist);
+
+        SimpleCorrespondences correspondences = findCorrespondences(
+                pts_t0,
+                trans_pts_t1,
+                jump_table,
+                max_correspondence_dist,
+                inlier_ratio_);
+
         const Transform new_estimated_transform_t1_to_t0 =
                 estimated_transform_t1_to_t0 +
                 estimateTransformation(correspondences).inverse();

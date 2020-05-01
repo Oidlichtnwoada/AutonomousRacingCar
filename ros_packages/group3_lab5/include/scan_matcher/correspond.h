@@ -65,4 +65,5 @@ typedef std::vector<SimpleCorrespondence> SimpleCorrespondences;
 SimpleCorrespondences findCorrespondences(const Points& pts_t0,
                                           const Points& trans_pts_t1,
                                           const JumpTable& jump_table, /* computed from pts_t0 */
-                                          const float max_correspondence_dist = std::numeric_limits<float>::max());
+                                          float max_correspondence_dist = std::numeric_limits<float>::max(),
+                                          float inlier_ratio = 0.9f);

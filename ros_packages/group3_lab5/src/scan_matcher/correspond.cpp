@@ -1,4 +1,5 @@
 #include <scan_matcher/correspond.h>
+#include <algorithm>
 
 // Enable this for "naive" correspondence search (without jump tables):
 // #define DISABLE_OPTIMIZATIONS
@@ -8,11 +9,13 @@ Point::Point() : r(0), theta(0) {}
 Point::Point(float range, float angle) : r(range), theta(angle){};
 
 float Point::distToPoint(const Point* pt2) const {
-    return sqrt(r*r + pt2->r*pt2->r - 2*r*pt2->r*cos(pt2->theta-theta));
+    assert(false); // don't use this (bad performance!)
+    return(std::sqrt(distToPoint2(pt2)));
 }
 
 float Point::distToPoint2(const Point* pt2) const {
-    return r*r + (pt2->r)*(pt2->r) - 2*r*(pt2->r)*std::cos(pt2->theta - theta);
+    const float d = r*r + (pt2->r)*(pt2->r) - 2*r*(pt2->r)*std::cos(pt2->theta - theta);
+    return(d < 0. ? 0. : d); // prevent negative values (due to numerical precision problems)
 }
 
 float Point::radialGap(const Point* pt2) const{
@@ -107,9 +110,11 @@ JumpTable computeJumpTable(const Points& points) {
 SimpleCorrespondences findCorrespondences(const Points& pts_t0,
                                           const Points& trans_pts_t1,  // pts_t1 transformed to pts_t0's frame
                                           const JumpTable& jump_table,  // computed from pts_t0
-                                          const float max_correspondence_dist) {
+                                          float max_correspondence_dist,
+                                          float inlier_ratio) {
 
 
+    assert(inlier_ratio >= 0.f && inlier_ratio <= 1.f);
     SimpleCorrespondences correspondences;
 
 #define INVALID_INDEX -1
@@ -163,6 +168,7 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
 
                     const Point &p_j = pts_t0[j_up];
                     last_distance_in_up_direction = p_i_w.distToPoint2(&p_j);
+                    assert(last_distance_in_up_direction >= 0.f);
 
                     const bool correspondence_is_acceptable = true;
                     // this is from [Censi 2008], but it's not clear
@@ -172,6 +178,7 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
                         (last_distance_in_up_direction < distance_of_best_match)) {
                         index_of_best_match = j_up;
                         distance_of_best_match = last_distance_in_up_direction;
+                        assert(distance_of_best_match < std::numeric_limits<float>::max());
                     }
 
 #ifndef DISABLE_OPTIMIZATIONS
@@ -221,6 +228,7 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
 
                     const Point &p_j = pts_t0[j_down];
                     last_distance_in_down_direction = p_i_w.distToPoint2(&p_j);
+                    assert(last_distance_in_down_direction >= 0.f);
 
                     const bool correspondence_is_acceptable = true;
                     // this is from [Censi 2008], but it's not clear
@@ -230,6 +238,7 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
                         (last_distance_in_down_direction < distance_of_best_match)) {
                         index_of_best_match = j_down;
                         distance_of_best_match = last_distance_in_down_direction;
+                        assert(distance_of_best_match < std::numeric_limits<float>::max());
                     }
 
 #ifndef DISABLE_OPTIMIZATIONS
@@ -312,11 +321,38 @@ SimpleCorrespondences findCorrespondences(const Points& pts_t0,
     } // main loop (i)
 
     // outlier removal
+
+    const std::size_t initial_number_of_correspondences = correspondences.size();
+
+    std::vector<float> distances;
     SimpleCorrespondences correspondences_without_outliers;
-    for(const SimpleCorrespondence& correspondence : correspondences) {
-        if(minimum_distance_so_far[correspondence.idx_p0()] == correspondence.distance()) {
+    for (const SimpleCorrespondence &correspondence : correspondences) {
+        if (minimum_distance_so_far[correspondence.idx_p0()] == correspondence.distance()) {
+            assert(correspondence.distance() < std::numeric_limits<float>::max());
+            assert(correspondence.distance() >= 0.f);
             correspondences_without_outliers.push_back(correspondence);
+            distances.push_back(correspondence.distance());
         }
     }
-    return(correspondences_without_outliers);
+
+    const std::size_t intermediate_number_of_correspondences = correspondences_without_outliers.size();
+
+    const size_t n_th = (size_t)((float)distances.size() * (1.f-inlier_ratio));
+    std::nth_element(distances.begin(), distances.begin() + n_th, distances.end(), std::greater<float>());
+    const float n_th_distance = distances[n_th];
+    const auto [min_distance, max_distance] = std::minmax_element(distances.begin(), distances.end());
+    if(min_distance < max_distance) {
+        auto new_end = std::remove_if(correspondences_without_outliers.begin(),
+                                      correspondences_without_outliers.end(),
+                                      [&](const SimpleCorrespondence &correspondence)
+                                      { return correspondence.distance() > n_th_distance; });
+
+        const std::size_t number_of_removed_entries = std::distance(new_end, correspondences_without_outliers.end());
+        correspondences_without_outliers.erase(new_end, correspondences_without_outliers.end());
+
+    }
+
+    const std::size_t final_number_of_correspondences = correspondences_without_outliers.size();
+
+    return (correspondences_without_outliers);
 }
