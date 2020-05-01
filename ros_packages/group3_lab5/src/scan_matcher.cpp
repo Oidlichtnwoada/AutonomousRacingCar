@@ -35,7 +35,7 @@ using namespace std;
 #define FRAME_POINTS  "laser"
 #define RANGE_LIMIT   10.0
 
-#define MAX_NUMBER_OF_ITERATIONS 100
+#define DEFAULT_MAX_NUMBER_OF_ITERATIONS 20
 #define POSE_RESET_JOY_BUTTON_INDEX 10
 
 std_msgs::ColorRGBA toColor(float r, float g, float b, float a = 1.0) {
@@ -86,6 +86,7 @@ private:
     std::mutex global_tf_mutex_;
 
     std::atomic<bool> signal_pose_reset_;
+    int max_number_of_iterations_;
 };
 
 ScanMatcher::ScanMatcher()
@@ -100,7 +101,12 @@ ScanMatcher::ScanMatcher()
     , corr_viz_(new CorrespondenceVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
     , global_tf_(Eigen::Matrix3d::Identity(3,3))
     , signal_pose_reset_(false)
-{}
+{
+    node_handle_.param<int>("max_number_of_iterations", max_number_of_iterations_, DEFAULT_MAX_NUMBER_OF_ITERATIONS);
+    #ifndef NDEBUG
+    std::cout << "max_number_of_iterations = " << max_number_of_iterations_ << std::endl;
+    #endif
+}
 
 void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_msg) {
 
@@ -213,7 +219,7 @@ void ScanMatcher::matchPointSets(
     unsigned int number_of_iterations = 0;
     const float max_correspondence_dist = std::numeric_limits<float>::max();
 
-    for (int i = 0; i < MAX_NUMBER_OF_ITERATIONS; i++) {
+    for (int i = 0; i < max_number_of_iterations_; i++) {
         number_of_iterations++;
         Points trans_pts_t1 = transformPoints(pts_t1, estimated_transform_t1_to_t0);
         SimpleCorrespondences correspondences = findCorrespondences(pts_t0, trans_pts_t1, jump_table, max_correspondence_dist);
