@@ -1,0 +1,270 @@
+\documentclass{article}
+% Set target color model to RGB
+\usepackage[inner=2.0cm,outer=2.0cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage[rgb]{xcolor}
+\usepackage{verbatim}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{amsgen,amsmath,amstext,amsbsy,amsopn,tikz,amssymb,tkz-linknodes}
+\usepackage{fancyhdr}
+\usepackage[colorlinks=true, urlcolor=blue,  linkcolor=blue, citecolor=blue]{hyperref}
+\usepackage[colorinlistoftodos]{todonotes}
+\usepackage{rotating}
+\usepackage{listings}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{amsmath}
+
+\usepackage{color} %red, green, blue, yellow, cyan, magenta, black, white
+\definecolor{mygreen}{RGB}{28,172,0} % color values Red, Green, Blue
+\definecolor{mylilas}{RGB}{170,55,241}
+
+\lstset{
+%	language=bash,
+	basicstyle=\ttfamily
+}
+
+\newcommand{\ra}[1]{\renewcommand{\arraystretch}{#1}}
+
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{cor}[thm]{Corollary}
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{rem}[thm]{Remark}
+\numberwithin{equation}{section}
+\graphicspath{ {./img/} }
+
+\newcommand{\homework}[6]{
+   \pagestyle{myheadings}
+   \thispagestyle{plain}
+   \newpage
+   \setcounter{page}{1}
+   \noindent
+   \begin{center}
+   \framebox{
+      \vbox{\vspace{2mm}
+    \hbox to 6.28in { {\bf F1TENTH Autonomous Racing \hfill {\small (#2)}} }
+       \vspace{6mm}
+       \hbox to 6.28in { {\Large \hfill #1  \hfill} }
+       \vspace{6mm}
+       \hbox to 6.28in { {\it Instructor: {\rm #3} \hfill Name: {\rm #5}, StudentID: {\rm #6}} }
+       %\hbox to 6.28in { {\it T\textbf{A:} #4  \hfill #6}}
+      \vspace{2mm}}
+   }
+   \end{center}
+   \markboth{#5 -- #1}{#5 -- #1}
+   \vspace*{4mm}
+}
+
+
+\newcommand{\problem}[3]{~\\\fbox{\textbf{Problem #1: #2}}\hfill (#3 points)\newline}
+\newcommand{\subproblem}[1]{~\newline\textbf{(#1)}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\Hy}{\mathcal{H}}
+\newcommand{\VS}{\textrm{VS}}
+\newcommand{\solution}{~\newline\textbf{\textit{(Solution)}} }
+
+\newcommand{\bbF}{\mathbb{F}}
+\newcommand{\bbX}{\mathbb{X}}
+\newcommand{\bI}{\mathbf{I}}
+\newcommand{\bX}{\mathbf{X}}
+\newcommand{\bY}{\mathbf{Y}}
+\newcommand{\bepsilon}{\boldsymbol{\epsilon}}
+\newcommand{\balpha}{\boldsymbol{\alpha}}
+\newcommand{\bbeta}{\boldsymbol{\beta}}
+\newcommand{\0}{\mathbf{0}}
+
+
+\usepackage{booktabs}
+
+
+
+\begin{document}
+
+	\homework {Lab 5: Scan Matching}{Due Date: 05.05.2020}{GROSU}{}{TEAM 3}{}
+	\thispagestyle{empty}
+	% -------- DO NOT REMOVE THIS LICENSE PARAGRAPH	----------------%
+	\begin{table}[h]
+		\begin{tabular}{l p{14cm}}
+		\raisebox{-2cm}{} & \textit{This lab and all related course material on \href{http://f1tenth.org/}{F1TENTH Autonomous Racing} has been developed by the Safe Autonomous Systems Lab at the University of Pennsylvania (Dr. Rahul Mangharam). It is licensed under a \href{https://creativecommons.org/licenses/by-nc-sa/4.0/}{Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.} You may download, use, and modify the material, but must give attribution appropriately. Best practices can be found \href{https://wiki.creativecommons.org/wiki/best_practices_for_attribution}{here}.}
+		\end{tabular}
+	\end{table}
+	% -------- DO NOT REMOVE THIS LICENSE PARAGRAPH	----------------%
+	
+	\noindent \large{\textbf{Course Policy:}} Read all the instructions below carefully before you start working on the assignment, and before you make a submission. All sources of material must be cited. The University Academic Code of Conduct will be strictly enforced.
+	\\
+	\\
+	\textbf{THIS IS A GROUP ASSIGNMENT}. Submit one from each team.\\
+
+	 \section{Theoretical Questions}
+	 \begin{enumerate}
+	 	\item $M_{i}=\left(\begin{array}{cccc}{1} & {0} & {p_{i 0}} & {-p_{i 1}} \\ {0} & {1} & {p_{i 1}} & {p_{i 0}}\end{array}\right)$
+ 		\begin{enumerate}
+ 		\item Show that $B_{i} :=M_{i}^{T} M_{i}$ is symmetric. \\
+ 		\newline{}
+ 		\textbf{Solution:}
+ 		\newline{}
+ 		\newline{}
+ 		If we calculate $B_i = M_i^T \cdot M_i$ we get the shown result for $B_i$.
+ 		\newline \newline
+ 		$B_i=$ 
+ 		$\begin{bmatrix} 
+ 		1 & 0 & p_{i0} & -p_{i1}\\
+ 		0 & 1 & p_{i1} & p_{i0}\\
+ 		p_{i0} & p_{i1} & p_{i0}^2 + p_{i1}^2 & 0\\
+ 		-p_{i1} & p_{i0} & 0 & p_{i0}^2 + p_{i1}^2
+ 		\end{bmatrix}$
+ 		\newline
+ 		\newline
+ 		As it can be seen, the matrix is symmetric, because all the elements are mirrored at the principal diagonal. So the assignment $B_i = B_i^T$ is correct. 
+ 		\newpage
+ 		
+ 		\item Demonstrate that $B_{i}$ is positive semi-definite. \\
+ 		
+        
+        \textbf{Solution:}
+        \newline{}
+        \newline{}
+        To show that the matrix $B_i$ is positive semi-definite, all of its eigenvalues have to be greater or equal $0$. So we first have to calculate the eigenvalues and then check each of them, if it satisfies the condition. \newline
+        
+        $Eigenvalues_{B_i}=$
+        $\begin{bmatrix} 
+        0 \\
+        0 \\
+        p_{i0}^2 + p_{i1}^2 + 1\\
+        p_{i0}^2 + p_{i1}^2 + 1\\
+        \end{bmatrix}$
+       \newline \newline
+       As each of the quadratic terms is bigger than $0$, the sum of them is also bigger than $0$, so we can directly see, that all the eigenvalues are greater or equal $0$ and so we showed, that $B_i$ is positive semi-definite.	
+ 		
+	 	\end{enumerate}
+ 		
+ 		\item The following is the optimization problem:
+ 		\[ 
+ 		x^{*}=\operatorname{argmin}_{x \in \mathbb{R}^{4}} \sum_{i=1}^{n}\left\|M_{i} x-\pi_{i}\right\|_{2}^{2} \quad \text { s.t. } \quad x_{3}^{2}+x_{4}^{2}=1
+ 		\] 
+ 		\begin{enumerate}
+		\item Find the matrices M, W and g which give you the formulation 
+		\[
+		 x^{*}=\operatorname{argmin}_{x \in \mathbb{R}^{4}} x^{T} M x+g^{T} x 
+		\quad \text { s.t. } x^{T} W x=1
+		\]
+ 		\textbf{Solution:} \\
+ 		To get $W$ we have to symbolically multiply $x^T   W   x = 1$ and then we can do a coefficient comparison with $x^2_3+x^2_4 = 1$, since both of these formulas can be set equal as they evaluate to $1$.
+ 		Therefore, we get the 4 following equations. \\ \newline
+ 		$ x_1   (w_{11}   x_1 + w_{12}   x_2 + w_{13}   x_3 + w_{14}   x_4) = 0 \implies w_{11} = w_{12} = w_{13} = w_{14} = 0$ \\ \newline
+		$ x_2   (w_{21}   x_1 + w_{22}   x_2 + w_{23}   x_3 + w_{24}   x_4) = 0 \implies w_{21} = w_{22} = w_{23} = w_{24} = 0$ \\ \newline
+		$ x_3   (w_{31}   x_1 + w_{32}   x_2 + w_{33}   x_3 + w_{34}   x_4) = x_3^2 \implies w_{31} = w_{32} = w_{34} = 0,\ w_{33} = 1$ \\ \newline
+		$ x_4   (w_{41}   x_1 + w_{42}   x_2 + w_{43}   x_3 + w_{44}   x_4) = x_4^2 \implies w_{41} = w_{42} = w_{43} = 0,\ w_{44} = 1$ \\ \newline
+		\\		
+		So the complete matrix $W$ looks like this
+		\newline \newline
+		$W = $ 
+		$\begin{bmatrix} 
+		0 & 0& 0 & 0 \\
+		0 & 0& 0 & 0 \\
+		0 & 0& 1 & 0 \\
+		0 & 0& 0 & 1 \\
+		\end{bmatrix}$
+		\newline \newline
+		
+		In the next step we want to define the matrices $M$ and $g$ from the given optimization problem. \\
+		So we start with the formula 
+		\[ 
+		\sum_{i=1}^{n}\left\|M_{i}   x-\pi_{i}\right\|_{C_i}^{2}
+		\]
+		and try to change it until we can read of the definitions of $M$ and $g$.
+		\newline
+		The first step that we do is to replace the norm, with its definition $\|y\|_C^2 = y^T   C   y$ so we get the following formula
+		\[ 
+		\sum_{i=1}^{n} ((M_{i}   x-\pi_{i})^T   C_i   (M_i   x - \pi_i))
+		\]
+		In the next steps, we use $ (A+B)^T = A^T + B^T$ and $(A   B)^T = B^T   A^T$ and expand the formula.
+		
+		 \[ 
+		 \sum_{i=1}^{n} (x^T   M_i^T   C_i   M_i   x - x^T   M_i^T   C_i   \pi_i - \pi_i^T   C_i   M_i   x + \pi^T_i   C_i   \pi_i)
+		 \]
+		
+		Now we can eliminate the constant term $\pi^T_i   C_i   \pi_i$ since we have a optimization problem and it would vanish anyway and because of $x^T   M_i^T   C_i   \pi_i$ can be rewritten to $\pi_i^T   C_i   M_i   x$ we can sum up these two negative terms. All in all we get 
+		\[ 
+		\sum_{i=1}^{n} (x^T   M_i^T   C_i   M_i   x - 2   \pi_i^T   C_i   M_i   x)
+		\]
+		
+		Next we split up the sum and take the $x$ matrices out of the sums as they do not depend on $i$.
+		
+		\[ 
+		x^T \sum_{i=1}^{n} (  M_i^T   C_i   M_i)   x \sum_{i=1}^{n} (- 2   \pi_i^T   C_i   M_i )  x
+		\]
+		
+		\[
+		x^{T} M x+g^{T} x 
+		\]
+		Now we can again compare the two formulas above to get $M$ and $g$ from them.
+		It can easily be seen, that 
+		\[ 
+		M = \sum_{i=1}^{n} M_i^T   C_i   M_i
+		\]
+		and 
+		\[ 
+		g^T = \sum_{i=1}^{n} - 2   \pi_i^T   C_i   M_i 
+		\]
+		where $C_i$ is a 2x2 matrix that is calculated with $C_i =  \begin{bmatrix} 
+		n_1\\
+		n_2\\
+		\end{bmatrix}
+		\begin{bmatrix} 
+		n_1 & n_2\\
+		\end{bmatrix}$
+
+		\item Show that M and W are positive semi definite. \\
+ 		\textbf{Solution:}
+		\\
+		Again, we have to calculate the eigenvalues for $M$ and $W$ and check if they are greater or equal $0$. To simplify this step, we assume, $n=1$ for $M$.
+		\\
+		\\
+		So we get the following eigenvalues for $M$ and $W$. \\ \\
+		$Eigenvalues_{M}=$
+		$\begin{bmatrix} 
+		0 \\
+		0 \\
+		0\\
+		n_1^2 p_0^2 + n_1^2 p_1^2 + n_1^2 + n_2^2 p_0^2+ n_2^2 p_1^2 + n_2^2 \\
+		\end{bmatrix}$
+		\newline \newline
+		
+		$Eigenvalues_{W}=$
+		$\begin{bmatrix} 
+		0 \\
+		0 \\
+		1\\
+		1\\
+		\end{bmatrix}$
+		\newline \newline
+		Again all the variables are quadratic, so there cannot be any negative values, so both matrices $M$ and $W$ are positive semi-definite.	
+ 		\end{enumerate}
+	 	
+	 \end{enumerate}
+ 	The eigenvalue computations and matrix multiplications are done in Matlab with the following code.
+ 	
+ 	\lstset{language=Matlab,%
+ 		%basicstyle=\color{red},
+ 		breaklines=true,%
+ 		morekeywords={matlab2tikz},
+ 		keywordstyle=\color{blue},%
+ 		morekeywords=[2]{1}, keywordstyle=[2]{\color{black}},
+ 		identifierstyle=\color{black},%
+ 		stringstyle=\color{mylilas},
+ 		commentstyle=\color{mygreen},%
+ 		showstringspaces=false,%without this there will be a symbol in the places where there is a space
+ 		numbers=left,%
+ 		numberstyle={\tiny \color{black}},% size of the numbers
+ 		numbersep=9pt, % this defines how far the numbers are from the text
+ 		emph=[1]{for,end,break},emphstyle=[1]\color{red}, %some words to emphasise
+ 		%emph=[2]{word1,word2}, emphstyle=[2]{style},    
+ 	}
+ 	
+ 	\lstinputlisting{lab5.m}
+ 
+		
+\end{document} 
