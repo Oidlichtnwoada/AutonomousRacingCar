@@ -3,26 +3,24 @@
 #include <cmath>
 
 #include <ros/ros.h>
+
 #include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/Joy.h>
 #include <geometry_msgs/PoseStamped.h>
+
 #include <scan_matcher/correspond.h>
 #include <scan_matcher/transform.h>
 #include <scan_matcher/visualization.h>
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
-#include <tf2/convert.h>
-
-#include <std_srvs/Trigger.h>
-#include <Eigen/Dense>
 #include <unsupported/Eigen/EulerAngles>
 
 #include <iostream>
-#include <string>
 #include <future>
 #include <mutex>
+
 #include <boost/range/adaptor/indexed.hpp>
 
 using namespace std;
@@ -30,14 +28,15 @@ using namespace std;
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
 #define PUBLISHER_MESSAGE_QUEUE_SIZE    10
 
+#define TOPIC_JOY     "/joy"
 #define TOPIC_SCAN    "/scan"
 #define TOPIC_RVIZ    "/scan_match_debug"
 #define GT_POSE_TOPIC "/gt_pose"
 #define FRAME_POINTS  "laser"
 #define RANGE_LIMIT   10.0
 
-#define MAX_NUMBER_OF_ITERATIONS 10
-#define DEFAULT_POSE_RECOVERY_INTERVAL 4.0
+#define MAX_NUMBER_OF_ITERATIONS 100
+#define POSE_RESET_JOY_BUTTON_INDEX 10
 
 std_msgs::ColorRGBA toColor(float r, float g, float b, float a = 1.0) {
     std_msgs::ColorRGBA color;
@@ -52,6 +51,7 @@ class ScanMatcher {
 
 public:
     ScanMatcher();
+    typedef boost::shared_ptr<sensor_msgs::Joy const> JoyMessage;
     typedef boost::shared_ptr<sensor_msgs::LaserScan const> LaserScanMessage;
     typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseStampedMessage;
     typedef std::vector<::Point> Points;
@@ -59,11 +59,13 @@ public:
 private:
     static Points convertToPoints(LaserScanMessage);
     void matchPointSets(const ros::Time&, const Points&, const Points&);
+    void joySubscriberCallback(JoyMessage);
     void laserScanSubscriberCallback(LaserScanMessage);
     void groundTruthPoseCallback(PoseStampedMessage);
 
     ros::NodeHandle node_handle_;
 
+    boost::shared_ptr<ros::Subscriber> gamepad_subscriber_;
     boost::shared_ptr<ros::Subscriber> laser_scan_subscriber_;
     boost::shared_ptr<ros::Subscriber> gt_pose_subscriber_;
     boost::shared_ptr<ros::Publisher> marker_pub_;
@@ -80,16 +82,15 @@ private:
     std::future<void> async_matching_task_;
     ros::Time first_scan_timestamp_; // only for debugging
 
-    ros::Time last_pose_recovery_timestamp_;
-
     std::mutex tf_broadcaster_mutex_;
     std::mutex global_tf_mutex_;
 
-    double pose_recovery_interval_;
+    std::atomic<bool> signal_pose_reset_;
 };
 
 ScanMatcher::ScanMatcher()
     : node_handle_(ros::NodeHandle())
+    , gamepad_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_JOY, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &ScanMatcher::joySubscriberCallback, this)))
     , laser_scan_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_SCAN, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &ScanMatcher::laserScanSubscriberCallback, this)))
     , gt_pose_subscriber_(new ros::Subscriber(node_handle_.subscribe(GT_POSE_TOPIC, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &ScanMatcher::groundTruthPoseCallback, this)))
     , marker_pub_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RVIZ, PUBLISHER_MESSAGE_QUEUE_SIZE)))
@@ -98,12 +99,8 @@ ScanMatcher::ScanMatcher()
     , points_viz_(new PointVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
     , corr_viz_(new CorrespondenceVisualizer(*marker_pub_, "scan_match", FRAME_POINTS))
     , global_tf_(Eigen::Matrix3d::Identity(3,3))
-{
-    node_handle_.param<double>("pose_recovery_interval", pose_recovery_interval_, DEFAULT_POSE_RECOVERY_INTERVAL);
-    #ifndef NDEBUG
-    std::cout << "pose_recovery_interval = " << pose_recovery_interval_ << "s" << std::endl;
-    #endif
-}
+    , signal_pose_reset_(false)
+{}
 
 void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_msg) {
 
@@ -129,11 +126,9 @@ void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_m
         tf_broadcaster_->sendTransform(transform_msg);
     }
 
-    const ros::Time currentTime = ros::Time::now();
-    if(pose_recovery_interval_ > 0 && std::abs((currentTime -
-        last_pose_recovery_timestamp_).toSec()) > pose_recovery_interval_) {
+    bool expected = true;
+    if(signal_pose_reset_.compare_exchange_strong(expected, false)) {
 
-        last_pose_recovery_timestamp_ = ros::Time::now();
         const Eigen::Vector3d translation(
                 transform_msg.transform.translation.x,
                 transform_msg.transform.translation.y,
@@ -155,6 +150,13 @@ void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_m
             std::lock_guard<std::mutex> scoped_lock(global_tf_mutex_);
             global_tf_ = global_tf;
         }
+    }
+}
+
+void ScanMatcher::joySubscriberCallback(ScanMatcher::JoyMessage joy_msg) {
+    if(joy_msg->buttons.size() > POSE_RESET_JOY_BUTTON_INDEX &&
+       joy_msg->buttons[POSE_RESET_JOY_BUTTON_INDEX]) {
+        signal_pose_reset_.store(true);
     }
 }
 
