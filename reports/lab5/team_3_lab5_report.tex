@@ -19,6 +19,8 @@
 \definecolor{mygreen}{RGB}{28,172,0} % color values Red, Green, Blue
 \definecolor{mylilas}{RGB}{170,55,241}
 
+\newcommand{\code}[1]{\texttt{#1}}
+
 \lstset{
 %	language=bash,
 	basicstyle=\ttfamily
@@ -44,11 +46,12 @@
    \begin{center}
    \framebox{
       \vbox{\vspace{2mm}
-    \hbox to 6.28in { {\bf F1TENTH Autonomous Racing \hfill {\small (#2)}} }
+    \hbox to 6.28in { {\bf VU Autonomous Racing Cars (2020S)\hfill {\small (#2)}} }
        \vspace{6mm}
        \hbox to 6.28in { {\Large \hfill #1  \hfill} }
        \vspace{6mm}
-       \hbox to 6.28in { {\it Instructor: {\rm #3} \hfill Name: {\rm #5}, StudentID: {\rm #6}} }
+       %\hbox to 6.28in { {\it Instructor: {\rm #3} \hfill Name: {\rm #5}, StudentID: {\rm #6}} }
+       \hbox to 6.28in { {\it Instructor: {\rm #3} \hfill Name(s): {\rm #5}} }
        %\hbox to 6.28in { {\it T\textbf{A:} #4  \hfill #6}}
       \vspace{2mm}}
    }
@@ -82,7 +85,7 @@
 
 \begin{document}
 
-	\homework {Lab 5: Scan Matching}{Due Date: 05.05.2020}{GROSU}{}{TEAM 3}{}
+	\homework {Lab 5: Scan Matching}{Due Date: 05.05.2020}{GROSU}{}{\textbf{TEAM 3} (S. Adelmann, H. Brantner, D. Lukitsch, T. Pintaric)}{}
 	\thispagestyle{empty}
 	% -------- DO NOT REMOVE THIS LICENSE PARAGRAPH	----------------%
 	\begin{table}[h]
@@ -265,6 +268,15 @@
  	}
  	
  	\lstinputlisting{lab5.m}
+
+	 \section{Approach and implementation details}
+	 
+	 See \code{README.md} in the submitted archive \code{team3\_lab5.zip}.
+	 
+	 \section{Analysis of results}
+	 
+	 See \code{README.md} in the submitted archive \code{team3\_lab5.zip}.
+
  
 		
 \end{document} 
