@@ -1,11 +1,10 @@
 **VU Autonomous Racing Cars (2020S) - TU Wien**
 
-**Group 3**
+**Team 3**
 
-Stefan  Adelmann (01633044)
-Hannes  Brantner (e01614466)
-Daniel  Lukitsch (01634053)
-Thomas Pintaric (09620608)
+Stefan Adelmann | Hannes  Brantner | Daniel Lukitsch | Thomas Pintaric
+
+------
 
 # Lab 5: Scan Matching
 
@@ -14,6 +13,14 @@ Thomas Pintaric (09620608)
 The submitted ROS package is named **group3_lab5** and contains the node `scan_matcher`.
 
 <!-- TODO: Short description... -->
+
+![](media/labeled_screenshot.svg)
+
+
+
+![](media/demo.gif)
+
+​	
 
 ------
 
