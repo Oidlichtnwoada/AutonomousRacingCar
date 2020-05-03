@@ -124,6 +124,7 @@ void ScanMatcher::groundTruthPoseCallback(ScanMatcher::PoseStampedMessage pose_m
 
     geometry_msgs::TransformStamped transform_msg;
     transform_msg.header.stamp = pose_msg->header.stamp;
+    transform_msg.header.seq = pose_msg->header.seq;
     transform_msg.header.frame_id = "map";          // parent frame id
     transform_msg.child_frame_id = "ground_truth/base_link";  // child frame id
 
@@ -278,7 +279,7 @@ void ScanMatcher::matchPointSets(
     std::lock_guard<std::mutex> scoped_lock(tf_broadcaster_mutex_);
     tf_broadcaster_->sendTransform(transform_msg);
 
-    points_viz_->addPoints(pts_t0, toColor(1.0, 0.0, 0.0));
+    points_viz_->addPoints(pts_t1, toColor(1.0, 0.0, 0.0));
     points_viz_->publishPoints();
 
 }
