@@ -2,7 +2,7 @@
 
 **Team 3**
 
-Stefan Adelmann | Hannes  Brantner | Daniel Lukitsch | Thomas Pintaric
+Stefan Adelmann | Hannes  Brantner | Daniel Lukitsch | David Lung | Thomas Pintaric
 
 ------
 
