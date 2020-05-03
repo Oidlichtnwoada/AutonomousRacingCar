@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="bag_file" default="$(find group3_lab5)/bags/free.bag" />
+    <arg name="bag_file" default="free.bag" />
     <node pkg="rosbag"
           type="play"
           name="playback"
           output="screen"
-          args="--loop --clock $(arg bag_file)"/>
+          args="--loop --clock $(find group3_lab5)/bags/$(arg bag_file)"/>
     <node name="plotjuggler" 
           pkg="plotjuggler"
           type="PlotJuggler"
