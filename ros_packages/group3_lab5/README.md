@@ -26,7 +26,7 @@ For the transform estimation, we replaced the provided "homebrew" polynomial sol
 We further altered the provided template code in the following ways:
 
 - The ground truth pose (`/gt_pose`) published by the F1tenth simulator gets republished into the TF tree as `/tf/ground_truth/base_link`.
-- Our `scan_matcher` node acts as a **stand-alone odometry estimator** by performing incremental laser scan matching (using PLICP). Each laser scan is compared to a previous scan. The transformation  between the two scans is aggregated over time to calculate the position of the racecar in the fixed frame. The result is published by the node as `/tf/ground_truth/base_link`.
+- Our `scan_matcher` node acts as a **stand-alone odometry estimator** by performing incremental laser scan matching (using PLICP). Each laser scan is compared to a previous scan. The transformation  between the two scans is aggregated over time to calculate the position of the racecar in the fixed frame. The result is published by our `scan_matcher` node as `/tf/base_link`.
 - In `RViz`, the racecar model is drawn at the estimated (not the ground-truth) position, as shown in the annotated screenshot below:
 
 <img src="media/labeled_screenshot.svg" style="zoom: 67%;" />
