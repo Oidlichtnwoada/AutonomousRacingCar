@@ -1,8 +1,0 @@
-prefix=/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/install
-
-Name: wall_follow
-Description: Description of wall_follow
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

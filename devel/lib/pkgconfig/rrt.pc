@@ -1,8 +1,0 @@
-prefix=/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/devel
-
-Name: rrt
-Description: Description of rrt
-Version: 0.0.0
-Cflags: -I/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/src/f110_ros/rrt/include
-Libs: -L${prefix}/lib -lrrt
-Requires: ackermann_msgs geometry_msgs roscpp rospy sensor_msgs std_msgs tf

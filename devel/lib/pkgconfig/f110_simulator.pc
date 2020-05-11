@@ -1,8 +1,0 @@
-prefix=/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/devel
-
-Name: f110_simulator
-Description: Description of f110_simulator
-Version: 0.0.1
-Cflags: -I/media/sf_OneDrive/TU/2020S_Semester/Autonomous_Racing_Cars_VU/AutonomousRacingCar/src/f110_ros/f110_simulator/include
-Libs: -L${prefix}/lib -lf110_simulator
-Requires: message_runtime
