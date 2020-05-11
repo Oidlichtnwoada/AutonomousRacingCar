@@ -1,4 +1,4 @@
-image: test_map.pgm
+image: cartographer_levine_loop.pgm
 resolution: 0.050000
 origin: [-18.601831, -10.459769, 0.000000]
 negate: 0
