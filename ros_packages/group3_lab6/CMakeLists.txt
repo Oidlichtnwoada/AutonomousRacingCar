@@ -1,54 +1,43 @@
 cmake_minimum_required(VERSION 2.8.3)
-
 project(group3_lab6)
 
-set(NODE_NAME "dummy" CACHE STRING "")
-
-set(CMAKE_CXX_STANDARD 17)
-
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
+  rospy
   std_msgs
-  std_srvs
-  sensor_msgs
-  geometry_msgs
+  nav_msgs
   tf2
   tf2_ros
-  tf2_eigen
-  tf2_geometry_msgs
-  tf2_sensor_msgs
+  sensor_msgs
+  geometry_msgs
+  visualization_msgs
+  ackermann_msgs
+  dynamic_reconfigure
 )
-find_package(cmake_modules REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(Boost REQUIRED)
+
+catkin_python_setup()
+
+generate_dynamic_reconfigure_options(
+  #cfg/drive_controller_params.cfg
+  cfg/pure_pursuit_params.cfg
+)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs std_srvs sensor_msgs geometry_msgs tf2 tf2_ros tf2_eigen tf2_geometry_msgs tf2_sensor_msgs
-  DEPENDS EIGEN3 Boost
+ CATKIN_DEPENDS rospy std_msgs nav_msgs tf2 tf2_ros sensor_msgs geometry_msgs visualization_msgs ackermann_msgs dynamic_reconfigure
 )
 
-include_directories(
-        include
-        ${EIGEN3_INCLUDE_DIR}
-        ${Boost_INCLUDE_DIRS}
-        ${catkin_INCLUDE_DIRS}
+catkin_install_python(
+  PROGRAMS src/pure_pursuit.py src/drive_controller.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+install(FILES
+  launch/simple_simulator.launch
+  launch/simple_simulator.yaml
+  launch/simple_simulator.rviz
+
+  #launch/follow_the_gap.launch
+  #launch/simulator.launch
+  #params/follow_the_gap.perspective
+  #params/reactive_driving_params.yaml
+  #params/simulator.rviz
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
-
-add_executable(${NODE_NAME}
-  src/${NODE_NAME}.cpp
-)
-
-target_link_libraries(${NODE_NAME} ${catkin_LIBRARIES})
-
-install(TARGETS ${NODE_NAME}
-        ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-        RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(FILES 
-        launch/simulator.launch
-        launch/simulator.rviz
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
