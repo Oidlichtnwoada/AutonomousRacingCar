@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_python_setup()
 
 generate_dynamic_reconfigure_options(
-  #cfg/drive_controller_params.cfg
+  cfg/drive_controller_params.cfg
   cfg/pure_pursuit_params.cfg
 )
 
@@ -33,11 +33,10 @@ install(FILES
   launch/simple_simulator.launch
   launch/simple_simulator.yaml
   launch/simple_simulator.rviz
-
-  #launch/follow_the_gap.launch
-  #launch/simulator.launch
-  #params/follow_the_gap.perspective
-  #params/reactive_driving_params.yaml
-  #params/simulator.rviz
+  launch/pure_pursuit.launch
+  launch/drive_controller.yaml
+  waypoint_logs/waypoint_log.csv
+  waypoint_logs/waypoints_resampled.csv
+  waypoint_logs/waypoints_lowpass_filtered.csv
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

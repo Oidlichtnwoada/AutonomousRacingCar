@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import os
 import sys
 import rospy
 import roslib
@@ -45,13 +46,14 @@ class PurePursuit:
         self.dt_threshold = 1.0 / 50.0 # run at 50 Hz (max.)
         self.last_processing_timestamp = rospy.Time()
 
-        if rospy.has_param('tracked_path'):
-            try:
-                self.tracked_path = np.genfromtxt(rospy.get_param('tracked_path'), delimiter=',')
-            except:
-                raise
-        else:
-            raise Exception("Required parameter \"{}\" not found.".format('tracked_path'))
+        DEFAULT_WHEELBASE = 0.3302 # see simulator.yaml
+        # The distance between the front and rear axle of the racecar
+        self.wheelbase = rospy.get_param('wheelbase', DEFAULT_WHEELBASE)
+
+        default_tracked_path = os.path.realpath("{}/../waypoint_logs/waypoints_lowpass_filtered.csv".format( \
+            os.path.dirname(sys.argv[0])))
+        self.tracked_path = np.genfromtxt(rospy.get_param('tracked_path', default_tracked_path), delimiter=',')
+        #self.tracked_path = np.genfromtxt(rospy.get_param('tracked_path'), delimiter=',')
 
         if rospy.has_param('lookahead_distance'):
             raise Exception("Required parameter \"{}\" not found.".format('lookahead_distance'))
@@ -264,55 +266,45 @@ class PurePursuit:
                 y = rho * np.sin(theta)
                 return x,y
 
-            theta_rel, rho = cartesian_to_polar(goal[0:2] - self.car_position[0:2])
-            theta = (theta_rel - self.car_heading)
-            if theta > np.pi:
-                theta -= 2*np.pi # make sure that theta is in the range [-pi,pi]
+            # ==========================================================================================================
+            # Pure Pursuit Control Law
+            # ==========================================================================================================
+            # Variable names:
+            # ---------------
+            # alpha  ...  angle between the vehicle's heading vector and the look-ahead vector
+            # l_d    ...  look-ahead distance (=length of the look-ahead vector) from the current rear axle
+            #             position to the desired goal point location on the path
+            # delta  ...  steering angle of the front wheel
+            # L      ...  distance between the front axle and rear axle (wheelbase)
+            # R      ...  radius of the circle that the rear axle will travel along at the given steering angle
 
-            # theta is the goal's heading in the car's coordinate frame, in polar coordinates, in the range [-pi,+pi]
-            # rho is the goal's distance ("lookahead" distance) from the car
+            theta, l_d = cartesian_to_polar(goal[0:2] - self.car_position[0:2])
+            alpha = (theta - self.car_heading)
+            if alpha > np.pi:
+                alpha -= 2*np.pi # ensure that alpha is in the range [-pi,pi]
 
-            gx, gy = polar_to_cartesian(theta, rho)
-            # (gx, gy) is goal's position in the car's coordinate frame, in cartesian coordinates
+            L = self.wheelbase
+            delta = np.arctan((2.0 * L * np.sin(alpha)) / l_d)
 
-            assert(np.abs((rho**2) - (gx**2 + gy**2)) <= np.finfo(np.float32).eps) # rho^2 == gx^2 + gy^2
+            # (g_x, g_y) ... goal point in the car's coordinate frame
+            g_x, g_y = polar_to_cartesian(alpha, l_d)
 
-            L = rho # lookahead distance
-            R = (rho**2) / np.abs(2*gy) # arc radius
-            kappa = 1.0/R # curvature
+            assert(np.abs((l_d**2) - (g_x**2 + g_y**2)) <= np.finfo(np.float16).eps) # rho^2 == g_x^2 + g_y^2
 
-            # The commanded hearing rate (omega) is determined by the curvature (kappa) and the
-            # velocity of the vehicle
-            omega = self.linear_velocity * kappa * np.sign(gy)
-            commanded_heading_angle = omega
+            R = (l_d**2) / np.abs(2*g_y)
+            R_test = np.abs(l_d / (2.0 * np.sin(alpha)))
 
-            # Publish commanded_heading (for the drive controller)
-            float_msg = Float32()
-            float_msg.data = omega
-            self.commanded_heading_angle_pub.publish(float_msg)
+            assert(np.abs(R-R_test) <= np.finfo(np.float16).eps)
 
-            # Publish commanded_heading (for RViz)
-            pose_msg = PoseStamped()
-            pose_msg.header.stamp = rospy.Time.now()
-            pose_msg.header.frame_id = "base_link"
-            pose_msg.pose.position.x = 0
-            pose_msg.pose.position.y = 0
-            rotation = Rotation.from_euler('z', omega, degrees=False).as_quat()
-            pose_msg.pose.orientation.x = rotation[0]
-            pose_msg.pose.orientation.y = rotation[1]
-            pose_msg.pose.orientation.z = rotation[2]
-            pose_msg.pose.orientation.w = rotation[3]
-            self.commanded_heading_pub.publish(pose_msg)
+            delta = np.arctan((2.0 * L * np.sin(alpha)) / l_d)
 
-            def angle_from_three_side_lengths(a,b,c):
+            def sss_angle(a,b,c):
                 alpha = np.arccos((b**2 + c**2 - a**2) / (2 * b * c))
                 return alpha
 
-            central_angle = angle_from_three_side_lengths(L,R,R)
+            central_angle = sss_angle(l_d,R,R)
             central_angle_threshold = np.deg2rad(1) # don't draw the arc if it is almost a straight line
-            circle_center = np.array((0.0, np.sign(gy) * R), dtype=np.float)
-            circle_radius = R
-            circle_curvature = kappa
+            circle_center = np.array((0.0, np.sign(g_y) * R), dtype=np.float)
 
             if not np.isnan(central_angle):
                 # Publish marker message
@@ -323,8 +315,8 @@ class PurePursuit:
                 marker_msg.color = ColorRGBA(0, 1, 1, 1)  # NOTE: color must be set here, not in rviz
                 marker_msg.action = Marker.ADD
                 marker_msg.scale.x = 0.033
-                marker_msg.scale.y = 0.033
-                #marker_msg.scale.z = 1
+                #marker_msg.scale.y = 0 # <-- ignored (any value!=0 will generate warnings in RViz)
+                #marker_msg.scale.z = 0 # <-- ignored (any value!=0 will generate warnings in RViz)
                 #marker_msg.pose.orientation.w = 1.0
                 marker_msg.pose.position = transform.transform.translation
                 marker_msg.pose.orientation = transform.transform.rotation
@@ -334,17 +326,36 @@ class PurePursuit:
 
                 if central_angle < central_angle_threshold:
                     marker_msg.points.append(Vector3(0, 0, 0))
-                    marker_msg.points.append(Vector3(gx, gy, 0))
+                    marker_msg.points.append(Vector3(g_x, g_y, 0))
                 else:
                     for k in range(circle_arc_steps-1):
-                        offset0 = -np.pi + float(k+0) / float(circle_arc_steps-1) * (central_angle) * np.sign(gy)
-                        offset1 = -np.pi + float(k+1) / float(circle_arc_steps-1) * (central_angle) * np.sign(gy)
+                        offset0 = -np.pi + float(k+0) / float(circle_arc_steps-1) * (central_angle) * np.sign(g_y)
+                        offset1 = -np.pi + float(k+1) / float(circle_arc_steps-1) * (central_angle) * np.sign(g_y)
                         cx0, cy0 = polar_to_cartesian(circle_theta + offset0, circle_rho)
                         cx1, cy1 = polar_to_cartesian(circle_theta + offset1, circle_rho)
                         marker_msg.points.append(Vector3(circle_center[0] + cx0, circle_center[1] + cy0,0))
                         marker_msg.points.append(Vector3(circle_center[0] + cx1, circle_center[1] + cy1,0))
 
                 self.track_arc_pub.publish(marker_msg)
+
+            # Publish commanded_heading (for the drive controller)
+            float_msg = Float32()
+            float_msg.data = delta
+            self.commanded_heading_angle_pub.publish(float_msg)
+
+            # Publish commanded_heading (for RViz)
+            pose_msg = PoseStamped()
+            pose_msg.header.stamp = rospy.Time.now()
+            pose_msg.header.frame_id = "base_link"
+            pose_msg.pose.position.x = 0
+            pose_msg.pose.position.y = 0
+            rotation = Rotation.from_euler('z', delta, degrees=False).as_quat()
+            pose_msg.pose.orientation.x = rotation[0]
+            pose_msg.pose.orientation.y = rotation[1]
+            pose_msg.pose.orientation.z = rotation[2]
+            pose_msg.pose.orientation.w = rotation[3]
+            self.commanded_heading_pub.publish(pose_msg)
+
 
     def message_loop(self):
         while not rospy.is_shutdown():
@@ -356,32 +367,7 @@ class PurePursuit:
             rospy.sleep(0.1)
 
 def main(args):
-
-    def do_transform_point(point, transform):
-
-        v = np.array((point.point.x, point.point.y, point.point.z))
-        rotation = Rotation.from_quat([transform.transform.rotation.x,
-                                       transform.transform.rotation.y,
-                                       transform.transform.rotation.z,
-                                       transform.transform.rotation.w])
-        translation = np.array((transform.transform.translation.x,
-                                transform.transform.translation.y,
-                                transform.transform.translation.z))
-        v = rotation.apply(v) + translation
-        res = PointStamped()
-        res.point.x = v[0]
-        res.point.y = v[1]
-        res.point.z = v[2]
-        res.header = transform.header
-        return res
-    tf2_ros.TransformRegistration().add(PointStamped, do_transform_point)
-
     rospy.init_node("pure_pursuit", anonymous=False)
-
-    if not rospy.has_param('tracked_path'):
-        #rospy.set_param('tracked_path','../waypoint_logs/waypoints_resampled.csv')
-        rospy.set_param('tracked_path','../waypoint_logs/waypoints_lowpass_filtered.csv')
-
     pure_pursuit = PurePursuit()
     try:
         pure_pursuit.message_loop()
