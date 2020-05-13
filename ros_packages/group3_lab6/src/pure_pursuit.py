@@ -42,7 +42,7 @@ class PurePursuit:
         self.lookahead_distance = 5.0 # will be overwritten by self.reconfigure()
         self.dyn_reconf_server = DynamicReconfigureServer(Configuration, self.reconfigure)
 
-        self.dt_threshold = 1.0 / 100.0 # run at 100 Hz (max.)
+        self.dt_threshold = 1.0 / 50.0 # run at 50 Hz (max.)
         self.last_processing_timestamp = rospy.Time()
 
         if rospy.has_param('tracked_path'):
@@ -84,10 +84,11 @@ class PurePursuit:
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        self.closest_waypoint_pub = rospy.Publisher('/pure_pursuit/closest_waypoint', PoseStamped, queue_size=1000)
-        self.goal_pub = rospy.Publisher('/pure_pursuit/goal', PoseStamped, queue_size=1000)
-
-        self.track_arc_pub = rospy.Publisher('/pure_pursuit/track_arc', Marker, queue_size=1000)
+        self.closest_waypoint_pub = rospy.Publisher('/pure_pursuit/closest_waypoint', PoseStamped, queue_size=1000) # for RViz
+        self.goal_pub = rospy.Publisher('/pure_pursuit/goal', PoseStamped, queue_size=1000) # for RViz
+        self.track_arc_pub = rospy.Publisher('/pure_pursuit/track_arc', Marker, queue_size=1000) # for RViz
+        self.commanded_heading_pub = rospy.Publisher('/pure_pursuit/commanded_heading', PoseStamped, queue_size=1000) # for RViz
+        self.commanded_heading_angle_pub = rospy.Publisher('/pure_pursuit/commanded_heading_angle', Float32, queue_size=1000) # for the drive controller
 
 
     def generate_tracked_path_msg(self, tracked_path, forward_direction=True):
@@ -246,8 +247,12 @@ class PurePursuit:
             closest_waypoint_index, _, _ = self.compute_closest_waypoint()
             goal = self.compute_goal(closest_waypoint_index)
 
-            # Compute steering angle
-            # See: https://f1tenth-coursekit.readthedocs.io/en/stable/lectures/ModuleD/lecture13.html (Slide 17)
+            #  The control law is based on fitting a semi-circle through the vehicle's current configuration
+            #  to a point on the reference path ahead of the vehicle by a distance L called the lookahead distance.
+            #  The circle is defined as passing through the position of the car and the point on the path ahead of
+            #  the car by one lookahead distance with the circle tangent to the car's heading. [Paden et al., 2016]
+            #
+            #  For details, see: https://arxiv.org/abs/1604.07446
 
             def cartesian_to_polar(xy):
                 theta = np.arctan2(xy[1], xy[0])
@@ -259,8 +264,11 @@ class PurePursuit:
                 y = rho * np.sin(theta)
                 return x,y
 
-            theta, rho = cartesian_to_polar(goal[0:2] - self.car_position[0:2])
-            theta = (theta-self.car_heading) if (theta-self.car_heading) <= np.pi else (2*np.pi - (theta-self.car_heading))
+            theta_rel, rho = cartesian_to_polar(goal[0:2] - self.car_position[0:2])
+            theta = (theta_rel - self.car_heading)
+            if theta > np.pi:
+                theta -= 2*np.pi # make sure that theta is in the range [-pi,pi]
+
             # theta is the goal's heading in the car's coordinate frame, in polar coordinates, in the range [-pi,+pi]
             # rho is the goal's distance ("lookahead" distance) from the car
 
@@ -269,20 +277,44 @@ class PurePursuit:
 
             assert(np.abs((rho**2) - (gx**2 + gy**2)) <= np.finfo(np.float32).eps) # rho^2 == gx^2 + gy^2
 
-            L = rho
-            R = (rho**2) / np.abs(2*gy) # track radius
+            L = rho # lookahead distance
+            R = (rho**2) / np.abs(2*gy) # arc radius
+            kappa = 1.0/R # curvature
 
-            def angle_from_three_sides(a,b,c):
+            # The commanded hearing rate (omega) is determined by the curvature (kappa) and the
+            # velocity of the vehicle
+            omega = self.linear_velocity * kappa * np.sign(gy)
+            commanded_heading_angle = omega
+
+            # Publish commanded_heading (for the drive controller)
+            float_msg = Float32()
+            float_msg.data = omega
+            self.commanded_heading_angle_pub.publish(float_msg)
+
+            # Publish commanded_heading (for RViz)
+            pose_msg = PoseStamped()
+            pose_msg.header.stamp = rospy.Time.now()
+            pose_msg.header.frame_id = "base_link"
+            pose_msg.pose.position.x = 0
+            pose_msg.pose.position.y = 0
+            rotation = Rotation.from_euler('z', omega, degrees=False).as_quat()
+            pose_msg.pose.orientation.x = rotation[0]
+            pose_msg.pose.orientation.y = rotation[1]
+            pose_msg.pose.orientation.z = rotation[2]
+            pose_msg.pose.orientation.w = rotation[3]
+            self.commanded_heading_pub.publish(pose_msg)
+
+            def angle_from_three_side_lengths(a,b,c):
                 alpha = np.arccos((b**2 + c**2 - a**2) / (2 * b * c))
                 return alpha
 
-            sss = (2* R**2 - L**2)/(2*L**2)
-            beta = angle_from_three_sides(L,R,R)
-            beta_threshold = np.deg2rad(1) # don't draw the arc if it is almost a straight line
+            central_angle = angle_from_three_side_lengths(L,R,R)
+            central_angle_threshold = np.deg2rad(1) # don't draw the arc if it is almost a straight line
+            circle_center = np.array((0.0, np.sign(gy) * R), dtype=np.float)
+            circle_radius = R
+            circle_curvature = kappa
 
-            #print("gx: {:.4f}, gy: {:.4f}, theta: {:.2f}, R: {:.2f}".format(gx, gy, np.rad2deg(theta), R))
-
-            if not np.isnan(beta):
+            if not np.isnan(central_angle):
                 # Publish marker message
                 marker_msg = Marker()
                 marker_msg.header.stamp = rospy.Time.now()
@@ -297,27 +329,22 @@ class PurePursuit:
                 marker_msg.pose.position = transform.transform.translation
                 marker_msg.pose.orientation = transform.transform.rotation
 
-                circle_center = np.array((0.0, np.sign(gy) * R), dtype=np.float)
-                circle_radius = R
                 circle_theta, circle_rho = cartesian_to_polar(circle_center)
-                circle_arc_steps = int(np.abs(np.rad2deg(beta)) / 3) + 3
+                circle_arc_steps = int(np.abs(np.rad2deg(central_angle)) / 3) + 3
 
-                if beta < beta_threshold:
+                if central_angle < central_angle_threshold:
                     marker_msg.points.append(Vector3(0, 0, 0))
                     marker_msg.points.append(Vector3(gx, gy, 0))
                 else:
                     for k in range(circle_arc_steps-1):
-                        offset0 = -np.pi + float(k+0) / float(circle_arc_steps-1) * (beta) * np.sign(gy)
-                        offset1 = -np.pi + float(k+1) / float(circle_arc_steps-1) * (beta) * np.sign(gy)
+                        offset0 = -np.pi + float(k+0) / float(circle_arc_steps-1) * (central_angle) * np.sign(gy)
+                        offset1 = -np.pi + float(k+1) / float(circle_arc_steps-1) * (central_angle) * np.sign(gy)
                         cx0, cy0 = polar_to_cartesian(circle_theta + offset0, circle_rho)
                         cx1, cy1 = polar_to_cartesian(circle_theta + offset1, circle_rho)
                         marker_msg.points.append(Vector3(circle_center[0] + cx0, circle_center[1] + cy0,0))
                         marker_msg.points.append(Vector3(circle_center[0] + cx1, circle_center[1] + cy1,0))
 
                 self.track_arc_pub.publish(marker_msg)
-
-    def dummy_callback(self, data):
-        print("blah")
 
     def message_loop(self):
         while not rospy.is_shutdown():
