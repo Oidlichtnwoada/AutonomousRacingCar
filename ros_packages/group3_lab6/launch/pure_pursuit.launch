@@ -9,4 +9,8 @@
     <node pkg="dynamic_reconfigure" name="$(anon dynparam)" type="dynparam"
         args="load /drive_controller $(find group3_lab6)/launch/drive_controller.yaml.yaml"
         launch-prefix="bash -c 'sleep $(arg dynparam_delay); $0 $@' "/>
+    <node name="plotjuggler"
+          pkg="plotjuggler"
+          type="PlotJuggler"
+          args="--layout $(find group3_lab6)/launch/plotjuggler_layout.xml"/>
 </launch>

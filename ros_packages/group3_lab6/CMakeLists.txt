@@ -35,6 +35,7 @@ install(FILES
   launch/simple_simulator.rviz
   launch/pure_pursuit.launch
   launch/drive_controller.yaml
+  launch/plotjuggler_layout.xml
   waypoint_logs/waypoint_log.csv
   waypoint_logs/waypoints_resampled.csv
   waypoint_logs/waypoints_lowpass_filtered.csv
