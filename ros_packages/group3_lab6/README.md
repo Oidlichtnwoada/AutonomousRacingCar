@@ -90,7 +90,70 @@ source ${ROS_LAB_WORKSPACE}/devel/setup.bash
 
 #### Mapping (with Cartographer)
 
-**TODO:** Description here...
+For the installation follow the instructions here:
+<https://google-cartographer-ros.readthedocs.io/en/latest/compilation.html>
+
+##### After the installation is complete do the following steps:
+
+**Source the** `setup.bash` **file of the cartographers workspace**
+
+```bash
+source ~/catkin_ws/install_isolated/setup.bash
+```
+
+** Copy the folder ** `f110_description` ** to the folder ** `~/catkin_ws/install_isolated/share"`
+
+This step is not needed if you intend to use the topic `/tf` directly, else you need this folder as it includes the definition of the tf-tree and the detailled robot description to recalculate the tf-tree.
+
+```bash
+cp -r f110_description ~/catkin_ws/install_isolated/share
+```
+
+** Copy the two launch-files to ** `~/catkin_ws/install_isolated/share/cartographer_ros/launch` ** and adjust the paths inside of them for your system.**
+
+The launch-files are using bag-files as input for the cartographer, 
+so you need to provide a bagfile with the suiting topics **/scan** and **/tf** (without transformations from the frame "base_link" to "map", therefore, the broadcast of /tf in the simulator has to be disabled in the `params.yaml` file of the simulator)
+You will also have to adjust the path to the configuration-directory inside the launch files, so it is correct for your system.
+
+```bash
+cp  *.launch ~/catkin_ws/install_isolated/share/cartographer_ros/launch
+```
+
+** Copy the **`f110_2d.lua` file to the folder configured in the launch-files, for example**
+
+```bash
+cp f110_2d.lua ~/catkin_ws/src/cartographer_ros/cartographer_ros/configuration_files
+```
+
+**Then you can record the bagfile which will be replayed as input for the cartographer**
+
+```bash
+rosbag record /tf /scan
+```
+
+** With the following command you can check if your bagfile is suitable for the cartographer**
+
+```bash
+cartographer_rosbag_validate -bag_filename your_bag.bag
+```
+
+** Then simply call roslaunch and provide the path to the bagfile like**
+
+```bash
+roslaunch cartographer_ros f110_2d.launch bag_filename:=your_bag.bag
+```
+
+** Now we can save the maps published by the cartographer at the topic **`/map` **with**
+
+```bash
+rosrun map_server map_saver  -f map_name
+```
+
+And then convert it to different colors to see all the details better than in the original one
+
+```bash
+convert map_name.pgm -fuzz 34% -fill black -opaque gray converted_map_name.pgm
+```
 
 #### Localization (with a Particle Filter) & Waypoint Logging
 
