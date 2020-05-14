@@ -26,7 +26,7 @@ catkin_package(
 )
 
 catkin_install_python(
-  PROGRAMS src/pure_pursuit.py src/drive_controller.py
+  PROGRAMS src/pure_pursuit.py src/drive_controller.py src/waypoint_logger.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 install(FILES

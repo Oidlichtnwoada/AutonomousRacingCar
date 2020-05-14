@@ -3,7 +3,7 @@ clear all;
 
 show_figures = true;
 
-csv_data = load('waypoint_log.csv');
+csv_data = load('recorded_trajectory.csv');
 csv_data = [csv_data(2:end,:);csv_data(1,:)];
 x = csv_data(:,1);
 y = csv_data(:,2);
@@ -14,7 +14,7 @@ if show_figures
     daspect([1 1 1])
     scatter(x,y)
     axis equal
-    title('original path');
+    title('original recorded trajectory');
 end
 
 % =========================================================================
@@ -42,10 +42,10 @@ if show_figures
     hold on
     daspect([1 1 1])
     arrow3(xy(:,1:2),xy(:,1:2)+[u,v],'-r',r/2)
-    title('low-pass filtered path');
+    title('low-pass filtered trajectory');
 end
 
-writematrix([xy deg2rad(yaw)], 'waypoints_lowpass_filtered.csv');
+writematrix([xy deg2rad(yaw)], 'lowpass_filtered_trajectory.csv');
 
 n = 1000; % desired number of interpolated waypoints
 
@@ -87,7 +87,7 @@ if show_figures
     hold on
     daspect([1 1 1])
     arrow3(new_xy(:,1:2),new_xy(:,1:2)+[new_u,new_v],'-r',new_r/2)
-    title('resampled path');
+    title('resampled trajectory');
 end
 
-writematrix([new_xy deg2rad(new_yaw)], 'waypoints_resampled.csv');
+writematrix([new_xy deg2rad(new_yaw)], 'resampled_trajectory.csv');
