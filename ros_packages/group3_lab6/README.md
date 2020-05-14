@@ -101,7 +101,7 @@ For the installation follow the instructions here:
 source ~/catkin_ws/install_isolated/setup.bash
 ```
 
-** Copy the folder ** `f110_description` ** to the folder ** `~/catkin_ws/install_isolated/share"`
+**Copy the folder** `f110_description` **to the folder** `~/catkin_ws/install_isolated/share"`
 
 This step is not needed if you intend to use the topic `/tf` directly, else you need this folder as it includes the definition of the tf-tree and the detailled robot description to recalculate the tf-tree.
 
@@ -109,7 +109,7 @@ This step is not needed if you intend to use the topic `/tf` directly, else you 
 cp -r f110_description ~/catkin_ws/install_isolated/share
 ```
 
-** Copy the two launch-files to ** `~/catkin_ws/install_isolated/share/cartographer_ros/launch` ** and adjust the paths inside of them for your system.**
+**Copy the two launch-files to** `~/catkin_ws/install_isolated/share/cartographer_ros/launch` **and adjust the paths inside of them for your system.**
 
 The launch-files are using bag-files as input for the cartographer, 
 so you need to provide a bagfile with the suiting topics **/scan** and **/tf** (without transformations from the frame "base_link" to "map", therefore, the broadcast of /tf in the simulator has to be disabled in the `params.yaml` file of the simulator)
@@ -119,7 +119,7 @@ You will also have to adjust the path to the configuration-directory inside the 
 cp  *.launch ~/catkin_ws/install_isolated/share/cartographer_ros/launch
 ```
 
-** Copy the **`f110_2d.lua` file to the folder configured in the launch-files, for example**
+**Copy the**`f110_2d.lua` **file to the folder configured in the launch-files, for example**
 
 ```bash
 cp f110_2d.lua ~/catkin_ws/src/cartographer_ros/cartographer_ros/configuration_files
@@ -131,19 +131,19 @@ cp f110_2d.lua ~/catkin_ws/src/cartographer_ros/cartographer_ros/configuration_f
 rosbag record /tf /scan
 ```
 
-** With the following command you can check if your bagfile is suitable for the cartographer**
+**With the following command you can check if your bagfile is suitable for the cartographer**
 
 ```bash
 cartographer_rosbag_validate -bag_filename your_bag.bag
 ```
 
-** Then simply call roslaunch and provide the path to the bagfile like**
+**Then simply call roslaunch and provide the path to the bagfile like**
 
 ```bash
 roslaunch cartographer_ros f110_2d.launch bag_filename:=your_bag.bag
 ```
 
-** Now we can save the maps published by the cartographer at the topic **`/map` **with**
+**Now we can save the maps published by the cartographer at the topic**`/map` **with**
 
 ```bash
 rosrun map_server map_saver  -f map_name
