@@ -11,7 +11,7 @@ Stefan Adelmann | Hannes  Brantner | Daniel Lukitsch | Thomas Pintaric
 The sixth lab assignment had three distinct parts:
 
 1. We used [Google Cartographer](https://opensource.google/projects/cartographer) (an implementation of the [GraphSLAM](https://en.wikipedia.org/wiki/GraphSLAM) algorithm) to **generate a map** of an indoor environment from laser range scans. (Not on a physical racecar, but from simulated data. In our case, we re-mapped ["Levine loop"](https://github.com/f1tenth/f1tenth_labs/blob/master/f110_simulator/maps/levine.yaml), which is provided as part of the [F1tenth simulator](https://github.com/f1tenth/f1tenth_labs/tree/master/f110_simulator).)
-2. We used an existing [Particle Filter implementation](https://github.com/mit-racecar/particle_filter) to localize our (simulated) vehicle inside the re-mapped "Levine loop", then drove the racecar around the track using keyboard/gamepad controls and **logged the driven trajectory** into a CSV file.  (All of this was done entirely in simulation as well.)
+2. We used an existing [Particle Filter implementation](https://github.com/mit-racecar/particle_filter) to localize our (simulated) vehicle inside the re-mapped "Levine loop", then drove the racecar around the track using keyboard/gamepad controls and **logged the driven trajectory** into a `.csv` file.  (All of this was done entirely in simulation as well.)
 3. We implemented the Pure Pursuit Control Law (as described in [[Snider 2009]](https://www.ri.cmu.edu/pub_files/2009/2/Automatic_Steering_Methods_for_Autonomous_Automobile_Path_Tracking.pdf)) as a Python ROS node and created a **trajectory-following demo** (from the logged trajectory of the previous step).
 
 
@@ -36,27 +36,27 @@ The following screenshots show our particle filter-based self-localization demo.
 
 ![](media/pf_localization_detail.png)
 
-The red arrows in the RViz screenshot above represent 60 randomly selected particles from the entire distribution of particles, which are published by our `particle_filter` node to the topic `\pf\viz\particles `. (This number can be changed by altering the node parameter `max_viz_particles`).
+The <span style="color:red">**red arrows**</span> in the RViz screenshot (see above) represent 60 randomly selected particles from the entire distribution of particles, which are published by our `particle_filter` node to the topic `\pf\viz\particles `. (This number can be changed by altering the node parameter `max_viz_particles`).
 
 ![](media/pf_localization.gif)
 
-We drove our simulated racecar around "Levine loop" using keyboard/gamepad controls and **logged the driven trajectory** into a `.csv` file (using a slightly modified copy of the `waypoint_logger.py` node provided as part of the F1tenth repository). The entire ROS node graph of our application look as follows:
+We drove our simulated racecar around "Levine loop" using keyboard/gamepad controls and **logged the driven trajectory** into a `.csv` file (using a slightly modified copy of the `waypoint_logger.py` node, which is provided as part of the F1tenth repository). The entire ROS node graph of our application look as follows:
 
 ![](media/pf_rosgraph.svg)
 
-The recorded trajectory (series of [x, y, yaw] waypoints) can be visualized with the MATLAB script `waypoint_logs/convert_raw_path.m`, which will also trim the path to remove any overlap:
+The recorded trajectory (series of [<img src="https://render.githubusercontent.com/render/math?math=x,y,\theta">] waypoints) can be visualized with the MATLAB script `waypoint_logs/convert_raw_path.m`, which will also trim the path to remove any overlap:
 
 ![](media/original_recorded_trajectory.png)
 
 ### Pure Pursuit
 
-The ROS node `pure_pursuit.py` is a Python implementation of the **Pure Pursuit Control Law** (as described in [[Snider 2009]](https://www.ri.cmu.edu/pub_files/2009/2/Automatic_Steering_Methods_for_Autonomous_Automobile_Path_Tracking.pdf), in fact, we use the same variable naming scheme in our code) , which is summarized below:
+The ROS node `pure_pursuit.py` is a Python implementation of the **Pure Pursuit Control Law** (described in [[Snider 2009]](https://www.ri.cmu.edu/pub_files/2009/2/Automatic_Steering_Methods_for_Autonomous_Automobile_Path_Tracking.pdf); in fact, we use the same variable naming scheme in our code) , which is summarized below:
 
 ![Pure Pursuit Control Law](media/pure_pursuit_control_law.svg)
 
-The only input to the algorithm is a goal position on the tracked trajectory (in the vehicle's coordinate frame), denoted by (<img src="https://render.githubusercontent.com/render/math?math=g_{x},g_{y}">) in cartesian coordinates, or  (<img src="https://render.githubusercontent.com/render/math?math=l_{d},\alpha">) in polar coordinates. The **commanded heading angle** (as a function of time) as computed by the Pure Pursuit Control Law is denoted by<img src="https://render.githubusercontent.com/render/math?math=\delta(t)">.
+The input to the Pure Pursuit control law is a **goal position on the tracked trajectory** (in the vehicle's coordinate frame), denoted by (<img src="https://render.githubusercontent.com/render/math?math=g_{x},g_{y}">) in cartesian coordinates, or  (<img src="https://render.githubusercontent.com/render/math?math=l_{d},\alpha">) in polar coordinates. The output is the **commanded heading angle** (as a function of time t), denoted by <img src="https://render.githubusercontent.com/render/math?math=\delta(t)">.
 
-We feed this heading angle into a PID-based steering controller (`drive_controller.py`, which was adapted from an earlier lab assignment) to generate `AckermannDriveStamped` cCSVommands.
+We feed this heading angle into a PID-based steering controller (`drive_controller.py`, which was adapted from an earlier lab assignment) to generate `AckermannDriveStamped` commands.
 
 ![](media/pure_pursuit_detail.png)
 
