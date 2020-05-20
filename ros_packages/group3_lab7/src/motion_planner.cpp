@@ -84,25 +84,43 @@ private:
     MotionPlanner::OccupancyGridMessage map_;
     cv::Mat static_occupancy_grid_; // just a thin wrapper around map_->data.data()
     cv::Mat dynamic_occupancy_grid_;
-    cv::Vec2i static_occupancy_grid_origin_;
-    cv::Vec2i dynamic_occupancy_grid_origin_;
+    cv::Vec2i static_occupancy_grid_center_;
+    cv::Vec2i dynamic_occupancy_grid_center_;
     Eigen::Isometry3f dynamic_occupancy_grid_transform_; // dynamic-->static occupancy grid transform
+
+    // Affine transformations from dynamic_occupancy_grid pixel coordinates [u,v] to other frames
+    //
+    // Eigen::Vector3f v_laser = T_dynamic_oc_pixels_to_laser_frame_ * Eigen::Vector3f(u, v, 0);
+    // [v_laser(0),  v_laser(1)] are the cartesian coordinates in the laser frame (units: meters)
+
+    Eigen::Affine3f T_dynamic_oc_pixels_to_laser_frame_;
+
+    // Eigen::Vector3f v_map = T_dynamic_oc_pixels_to_map_frame_ * Eigen::Vector3f(u, v, 0);
+    // [v_map(0),  v_map(1)] are the cartesian coordinates in the map frame (units: meters)
+
+    Eigen::Affine3f T_dynamic_oc_pixels_to_map_frame_;
+
+    // Eigen::Vector3f v_static_oc = T_dynamic_oc_pixels_to_static_oc_pixels_ * Eigen::Vector3f(u, v, 0);
+    // [v_static_oc(0),  v_static_oc(1)] are the pixel coordinates [u',v'] in the static occupancy grid
+
+    Eigen::Affine3f T_dynamic_oc_pixels_to_static_oc_pixels_;
+
     void dilateOccupancyGrid(cv::Mat& grid);
 
     nav_msgs::GridCells convertToGridCellsMessage(
-            cv::Mat& grid, const cv::Vec2i grid_origin, const std::string frame_id) const;
+            cv::Mat& grid, const cv::Vec2i grid_center, const std::string frame_id) const;
 };
 
 MotionPlanner::MotionPlanner()
-    : node_handle_(ros::NodeHandle())
-    , laser_scan_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_SCAN, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::laserScanSubscriberCallback, this)))
-    , odometry_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_ODOM, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::odomSubscriberCallback, this)))
-    , goal_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_GOAL, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::goalSubscriberCallback, this)))
-    , map_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_MAP, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::mapSubscriberCallback, this)))
-    , tf_listener_(new tf2_ros::TransformListener(tf_buffer_, true))
-    , debug_service_(new ros::ServiceServer(node_handle_.advertiseService("debug", &MotionPlanner::debugServiceCallback, this)))
-    , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
-    , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        : node_handle_(ros::NodeHandle())
+        , laser_scan_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_SCAN, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::laserScanSubscriberCallback, this)))
+        , odometry_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_ODOM, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::odomSubscriberCallback, this)))
+        , goal_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_GOAL, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::goalSubscriberCallback, this)))
+        , map_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_MAP, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::mapSubscriberCallback, this)))
+        , tf_listener_(new tf2_ros::TransformListener(tf_buffer_, true))
+        , debug_service_(new ros::ServiceServer(node_handle_.advertiseService("debug", &MotionPlanner::debugServiceCallback, this)))
+        , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
 {
     node_handle_.param<float>("vehicle_wheelbase", vehicle_wheelbase_, DEFAULT_VEHICLE_WHEELBASE);
     node_handle_.param<float>("vehicle_width", vehicle_width_, DEFAULT_VEHICLE_WIDTH);
@@ -165,6 +183,37 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     const float pixels_per_meter = 1.0f / map_->info.resolution;
     const float meters_per_pixel = map_->info.resolution;
 
+    // =================================================================================================================
+    // Compute coordinate frame transformation matrices
+    // =================================================================================================================
+
+    const Eigen::Vector3f dynamic_occupancy_grid_pixel_center((float)dynamic_occupancy_grid_center_(0),
+                                                              (float)dynamic_occupancy_grid_center_(1),
+                                                              0.0f);
+
+    Eigen::Affine3f A = Eigen::Affine3f::Identity();
+
+    A.pretranslate((-1.0f) * Eigen::Vector3f((float) dynamic_occupancy_grid_center_(0),
+                                   (float) dynamic_occupancy_grid_center_(1),
+                                   0.0f));
+
+    A.prescale(meters_per_pixel); // pixels to meters
+
+    T_dynamic_oc_pixels_to_laser_frame_ = A.matrix();
+
+    A = dynamic_occupancy_grid_transform_.matrix() * A.matrix();
+
+    T_dynamic_oc_pixels_to_map_frame_ = A.matrix();
+
+    A.prescale(pixels_per_meter); // meters to pixels
+    A.pretranslate(Eigen::Vector3f((float) static_occupancy_grid_center_(0),
+                                   (float) static_occupancy_grid_center_(1),
+                                   0.0f));
+
+    T_dynamic_oc_pixels_to_static_oc_pixels_ = A.matrix();
+
+    // =================================================================================================================
+
     dynamic_occupancy_grid_.setTo(cv::Scalar(0.0)); // clear the grid
 
     const float angle_min = scan_msg->angle_min;
@@ -179,8 +228,8 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
             const float x = range * std::sin(angle); // units: meters
 
             // [u,v] are the pixel coordinates in the dynamic occupancy grid
-            const unsigned int u = static_cast<unsigned int>(x * pixels_per_meter) - dynamic_occupancy_grid_origin_(0);
-            const unsigned int v = static_cast<unsigned int>(y * pixels_per_meter) - dynamic_occupancy_grid_origin_(1);
+            const unsigned int u = static_cast<unsigned int>(x * pixels_per_meter) + dynamic_occupancy_grid_center_(0);
+            const unsigned int v = static_cast<unsigned int>(y * pixels_per_meter) + dynamic_occupancy_grid_center_(1);
 
             assert(u >= 0 && v >= 0 && u < dynamic_occupancy_grid_.rows && v < dynamic_occupancy_grid_.cols);
             dynamic_occupancy_grid_.at<uint8_t>(u,v) = 255;
@@ -190,7 +239,7 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     // Dilate the dynamic occupancy grid
     dilateOccupancyGrid(dynamic_occupancy_grid_);
     dynamic_occupancy_grid_publisher_->publish(convertToGridCellsMessage(
-            dynamic_occupancy_grid_, dynamic_occupancy_grid_origin_, "laser"));
+            dynamic_occupancy_grid_, dynamic_occupancy_grid_center_, "laser"));
 }
 
 void MotionPlanner::odomSubscriberCallback(MotionPlanner::OdometryMessage odom_msg) {
@@ -219,15 +268,15 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     if((info.height * info.width) > (1000 * 1000)) {
         std::ostringstream o;
         o << "Map dimensions (" << info.height << "x" << info.width <<
-            ") are quite large. Consider reducing the resolution.";
+          ") are quite large. Consider reducing the resolution.";
         ROS_WARN("%s",o.str().c_str());
     }
 
     // Create static occupancy grid
     const float pixels_per_meter = 1.0f / map_->info.resolution;
-    static_occupancy_grid_origin_ = cv::Vec2i(
-            static_cast<int>(map_->info.origin.position.x * pixels_per_meter),
-            static_cast<int>(map_->info.origin.position.y * pixels_per_meter));
+    static_occupancy_grid_center_ = cv::Vec2i(
+            static_cast<int>(-map_->info.origin.position.x * pixels_per_meter),
+            static_cast<int>(-map_->info.origin.position.y * pixels_per_meter));
     static_occupancy_grid_ = cv::Mat(info.height, info.width, CV_8UC1, (void*) map_->data.data());
 
     // Binarize static occupancy grid (unoccupied: 0, occupied: 255).
@@ -238,7 +287,7 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
 
     // Publish static occupancy grid (for RViz)
     static_occupancy_grid_publisher_->publish(convertToGridCellsMessage(
-            static_occupancy_grid_, static_occupancy_grid_origin_, "map"));
+            static_occupancy_grid_, static_occupancy_grid_center_, "map"));
 
     // Create dynamic occupancy grid
     const float laser_scan_diameter_in_pixels = 2.0f * max_laser_scan_distance_ * pixels_per_meter;
@@ -246,7 +295,7 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     if (dynamic_occupancy_grid_width % 2 == 0) {
         dynamic_occupancy_grid_width++;
     }
-    dynamic_occupancy_grid_origin_ = -cv::Vec2i((dynamic_occupancy_grid_width-1)/2, (dynamic_occupancy_grid_width-1)/2);
+    dynamic_occupancy_grid_center_ = cv::Vec2i((dynamic_occupancy_grid_width - 1) / 2, (dynamic_occupancy_grid_width - 1) / 2);
     const cv::Scalar unoccupied_cell(0.0);
     dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_width, dynamic_occupancy_grid_width, CV_8UC1, unoccupied_cell);
 }
@@ -263,7 +312,7 @@ void MotionPlanner::dilateOccupancyGrid(cv::Mat& occupancy_grid) {
 }
 
 nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
-        cv::Mat& grid, const cv::Vec2i grid_origin, const std::string frame_id) const {
+        cv::Mat& grid, const cv::Vec2i grid_center, const std::string frame_id) const {
 
     nav_msgs::GridCells grid_msg;
     grid_msg.header.stamp = ros::Time::now();
@@ -279,8 +328,8 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
                 continue;
             }
             geometry_msgs::Point p;
-            p.x = (float) (col + grid_origin(0)) * meters_per_pixel;
-            p.y = (float) (row + grid_origin(1)) * meters_per_pixel;
+            p.x = (float) (col - grid_center(0)) * meters_per_pixel;
+            p.y = (float) (row - grid_center(1)) * meters_per_pixel;
             p.z = 0.0;
             grid_msg.cells.push_back(p);
         }
@@ -293,8 +342,8 @@ int main(int argc, char **argv) {
 #if !defined(NDEBUG)
     std::cerr << "WARNING: Debug build." << std::endl;
 #endif
-  ros::init(argc, argv, "motion_planner");
-  MotionPlanner motion_planner;
-  ros::spin();
-  return 0;
+    ros::init(argc, argv, "motion_planner");
+    MotionPlanner motion_planner;
+    ros::spin();
+    return 0;
 }
