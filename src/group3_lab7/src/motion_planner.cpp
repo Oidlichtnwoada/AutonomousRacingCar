@@ -25,6 +25,9 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
+#include <utility>
+#include <limits>
+#include <stack>
 
 #include <motion_planner/rrt.h>
 
@@ -44,10 +47,18 @@
 #define DEFAULT_MAX_LASER_SCAN_DISTANCE 5.0 // units: m
 #define DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY 20 // units: Hz
 
+#define LOOKAHEAD_DISTANCE_FORWARD 2
+#define LOOKAHEAD_DISTANCE_SIDEWARD 2
+#define MAX_SAMPLES 2000
+#define MAX_EXPANSION_DISTANCE 1
+#define CELLS_EPSILON_GOAL 2
+#define CELLS_TARGET_NODE_DISTANCE 0.5
+
 class MotionPlanner {
 
 public:
     MotionPlanner();
+
     typedef boost::shared_ptr<sensor_msgs::LaserScan const> LaserScanMessage;
     typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseStampedMessage;
     typedef boost::shared_ptr<nav_msgs::Odometry const> OdometryMessage;
@@ -60,10 +71,17 @@ private:
     float dynamic_occupancy_grid_update_frequency_; // units: Hz
 
     void laserScanSubscriberCallback(LaserScanMessage);
+
     void odomSubscriberCallback(OdometryMessage);
+
     void goalSubscriberCallback(PoseStampedMessage);
+
     void mapSubscriberCallback(OccupancyGridMessage);
-    bool debugServiceCallback(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
+
+    bool debugServiceCallback(std_srvs::Empty::Request &, std_srvs::Empty::Response &);
+
+    Node getSampleNode(Node root);
+
     ros::NodeHandle node_handle_;
 
     boost::shared_ptr<ros::Subscriber> laser_scan_subscriber_;
@@ -104,10 +122,29 @@ private:
 
     Eigen::Affine3f T_dynamic_oc_pixels_to_static_oc_pixels_;
 
-    void dilateOccupancyGrid(cv::Mat& grid);
+    void dilateOccupancyGrid(cv::Mat &grid);
 
     nav_msgs::GridCells convertToGridCellsMessage(
-            cv::Mat& grid, const cv::Vec2i grid_center, const std::string frame_id) const;
+            cv::Mat &grid, const cv::Vec2i grid_center, const std::string frame_id) const;
+
+    // RRT
+    geometry_msgs::PoseStamped current_goal;
+    nav_msgs::Odometry current_odometry;
+    std::mt19937 random_generator;
+    std::uniform_real_distribution<> x_distribution;
+    std::uniform_real_distribution<> y_distribution;
+
+    static Node getNearestNode(Node sample_node, std::vector <Node> vector, int *nearest_node_index);
+
+    static Node getSteerNode(Node node, Node node1, int nearest_node_index);
+
+    bool isObstacleFree(Node first_node, Node second_node);
+
+    bool isGoal(Node node);
+
+    double distance(Node& first_node, Node& second_node);
+
+    void drive_towards_node(Node node);
 };
 
 MotionPlanner::MotionPlanner()
@@ -131,7 +168,7 @@ MotionPlanner::MotionPlanner()
             std::ostringstream o;
             o << "Requirement violated: (" << s << " > 0)";
             ROS_ERROR("%s", o.str().c_str());
-            throw(std::runtime_error(o.str()));
+            throw (std::runtime_error(o.str()));
         }
     };
     check_value(vehicle_wheelbase_, "vehicle_wheelbase");
@@ -140,6 +177,12 @@ MotionPlanner::MotionPlanner()
     check_value(dynamic_occupancy_grid_update_frequency_, "dynamic_occupancy_grid_update_frequency");
 
     scan_dt_threshold_ = 1.0f / dynamic_occupancy_grid_update_frequency_;
+
+    // setting up the two distribution where the points in the free space for the RRT are sampled from
+    std::uniform_real_distribution<>::param_type x_param(0, LOOKAHEAD_DISTANCE_FORWARD);
+    std::uniform_real_distribution<>::param_type y_param(-LOOKAHEAD_DISTANCE_SIDEWARD, LOOKAHEAD_DISTANCE_SIDEWARD);
+    x_distribution.param(x_param);
+    y_distribution.param(y_param);
 }
 
 bool MotionPlanner::debugServiceCallback(std_srvs::Empty::Request& request,
@@ -242,16 +285,79 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 }
 
 void MotionPlanner::odomSubscriberCallback(MotionPlanner::OdometryMessage odom_msg) {
-    // ...
+    current_odometry = *odom_msg;
+    std::vector <Node> random_tree;
+    int goal_index = -1;
+    Node root = {.x=dynamic_occupancy_grid_center_(0), .y=dynamic_occupancy_grid_center_(
+            1), .cost=0, .parent=-1, .is_root=true};
+    random_tree.push_back(root);
+    for (int i = 0; i < MAX_SAMPLES; i++) {
+        Node sample_node = getSampleNode(root);
+        int nearest_node_index;
+        Node nearest_node = getNearestNode(sample_node, random_tree, &nearest_node_index);
+        Node steer_node = getSteerNode(nearest_node, sample_node, nearest_node_index);
+        if (isObstacleFree(nearest_node, steer_node)) {
+            random_tree.push_back(steer_node);
+        }
+    }
+    for (int i = 0; i < random_tree.size(); i++) {
+        Node current_node = random_tree[i];
+        Eigen::Vector3f static_pixel_coordinates =
+                T_dynamic_oc_pixels_to_static_oc_pixels_ * Eigen::Vector3f(current_node.x, current_node.y, 0);
+        current_node.x = static_pixel_coordinates(0);
+        current_node.y = static_pixel_coordinates(1);
+        random_tree[i] = current_node;
+        if (isGoal(random_tree[i])) {
+            goal_index = i;
+            break;
+        }
+    }
+    std::stack <Node> pure_pursuit_nodes;
+    if (goal_index < 0) goal_index = (int) random_tree.size() - 1; // set last added node as goal node
+    Node current_node = random_tree[goal_index];
+    pure_pursuit_nodes.push(current_node);
+    do {
+        current_node = random_tree[current_node.parent];
+        pure_pursuit_nodes.push(current_node);
+    } while (!current_node.is_root);
+    Node steer_target_node;
+    Node current_target_node;
+    bool target_found = false;
+    while (!pure_pursuit_nodes.empty()) {
+        current_target_node = pure_pursuit_nodes.top();
+        pure_pursuit_nodes.pop();
+        if (distance(random_tree[0], current_target_node) > CELLS_TARGET_NODE_DISTANCE * CELLS_TARGET_NODE_DISTANCE) {
+            steer_target_node = current_target_node;
+            target_found = true;
+        }
+    }
+    if (!target_found) steer_target_node = current_target_node;
+    drive_towards_node(steer_target_node);
+}
+
+double MotionPlanner::distance(Node& first_node, Node& second_node) {
+    int delta_x = first_node.x - second_node.x;
+    int delta_y = first_node.y - second_node.y;
+    return pow(delta_x, 2) + pow(delta_y, 2);
+}
+
+Node MotionPlanner::getSampleNode(Node root) {
+    Node sample_node = root;
+    sample_node.x += x_distribution(random_generator);
+    sample_node.y += y_distribution(random_generator);
+    sample_node.cost = 0;
+    sample_node.parent = -1;
+    sample_node.is_root = false;
+    return sample_node;
 }
 
 void MotionPlanner::goalSubscriberCallback(MotionPlanner::PoseStampedMessage goal_msg) {
-    // ...
+    current_goal = *goal_msg;
 }
 
 void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage map_msg) {
 
-    if(!static_occupancy_grid_.empty()) {
+    if (!static_occupancy_grid_.empty()) {
         ROS_ERROR("Overwriting the occupancy grid is untested and may lead to undefined behavior.");
         //throw(std::runtime_error("Overwriting the occupancy grid is untested and may lead to undefined behavior."));
     }
@@ -333,9 +439,80 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
             grid_msg.cells.push_back(p);
         }
     }
-    return(grid_msg);
+    return (grid_msg);
 }
 
+Node MotionPlanner::getNearestNode(Node sample_node, std::vector <Node> random_tree, int *nearest_node_index) {
+    double smallest_distance = std::numeric_limits<double>::max();
+    int smallest_index = -1;
+    for (int i = 0; i < random_tree.size(); i++) {
+        Node compare_node = random_tree[i];
+        double current_distance = pow(sample_node.x - compare_node.x, 2) + pow(sample_node.y - compare_node.y, 2);
+        if (current_distance < smallest_distance) {
+            smallest_distance = current_distance;
+            smallest_index = i;
+        }
+    }
+    *nearest_node_index = smallest_index;
+    return random_tree[smallest_index];
+}
+
+Node MotionPlanner::getSteerNode(Node nearest_node, Node sample_node, int nearest_node_index) {
+    double delta_x = sample_node.x - nearest_node.x;
+    double delta_y = sample_node.y - nearest_node.y;
+    double distance = pow(delta_x, 2) + pow(delta_y, 2);
+    Node steer_node = sample_node;
+    steer_node.parent = nearest_node_index;
+    if (distance >= MAX_EXPANSION_DISTANCE) {
+        double theta = atan2(delta_y, delta_x);
+        steer_node.x = nearest_node.x + (int) (cos(theta) * MAX_EXPANSION_DISTANCE);
+        steer_node.y = nearest_node.y + (int) (sin(theta) * MAX_EXPANSION_DISTANCE);
+    }
+    return steer_node;
+}
+
+bool MotionPlanner::isObstacleFree(Node first_node, Node second_node) {
+    int x0 = first_node.x;
+    int y0 = first_node.y;
+    int x1 = second_node.x;
+    int y1 = second_node.y;
+
+    // Bresenham Algorithmus
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2; /* error value e_xy */
+    while (true) {
+        if (dynamic_occupancy_grid_.at<unsigned>(x0, y0) > 0) return false;
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 > dy) {
+            err += dy;
+            x0 += sx;
+        } /* e_xy+e_x > 0 */
+        if (e2 < dx) {
+            err += dx;
+            y0 += sy;
+        } /* e_xy+e_y < 0 */
+    }
+    return true;
+}
+
+bool MotionPlanner::isGoal(Node node) {
+    Node goal_node;
+    Eigen::Vector3f static_pixel_coordinates =
+            T_dynamic_oc_pixels_to_static_oc_pixels_ * (T_dynamic_oc_pixels_to_map_frame_.inverse() *
+                                                        Eigen::Vector3f(current_goal.pose.position.x,
+                                                                        current_goal.pose.position.y, 0));
+    goal_node.x = static_pixel_coordinates(0);
+    goal_node.y = static_pixel_coordinates(1);
+    int delta_x = goal_node.x - node.x;
+    int delta_y = goal_node.y - node.y;
+    return pow(delta_x, 2) + pow(delta_y, 2) <= CELLS_EPSILON_GOAL * CELLS_EPSILON_GOAL;
+}
+
+void MotionPlanner::drive_towards_node(Node node) {
+    return;
+}
 
 int main(int argc, char **argv) {
 #if !defined(NDEBUG)

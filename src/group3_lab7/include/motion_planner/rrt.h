@@ -32,13 +32,12 @@
 // Struct defining the Node object in the RRT tree.
 // More fields could be added to thiis struct if more info needed.
 // You can choose to use this or not
-typedef struct Node {
-    double x, y;
+struct Node {
+    int x, y;
     double cost; // only used for RRT*
     int parent; // index of parent node in the tree vector
     bool is_root = false;
-} Node;
-
+};
 
 class RRT {
 public:
