@@ -1,11 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
-    <generated />
+    <generated>
+      <config projectName="group3_lab7" targetName="tf_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="gmock" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="motion_planner" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="tests" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="download_extra_data" />
+      <config projectName="group3_lab7" targetName="doxygen" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="gmock_main" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="gtest" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="run_tests" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="gtest_main" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="clean_test_results" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_py" />
+    </generated>
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
     <configurations>
-      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCATKIN_DEVEL_PREFIX:PATH=/home/linux/AutonomousRacingCar/devel" GENERATION_DIR="../../build" />
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" GENERATION_DIR="../../build" />
     </configurations>
   </component>
   <component name="ChangeListManager">
@@ -20,6 +86,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
   </component>
@@ -483,7 +550,7 @@
       <workItem from="1589973973337" duration="1018000" />
       <workItem from="1589975327618" duration="748000" />
       <workItem from="1589976095431" duration="11000" />
-      <workItem from="1589977721741" duration="832000" />
+      <workItem from="1589977721741" duration="1216000" />
     </task>
     <task id="LOCAL-00001" summary="added clion configurations for launchfiles">
       <created>1589978277250</created>
@@ -536,10 +603,10 @@
       <screen x="67" y="27" width="1853" height="887" />
     </state>
     <state width="1807" height="152" key="GridCell.Tab.0.right/67.27.1853.887@67.27.1853.887" timestamp="1589962843632" />
-    <state x="376" y="154" width="1402" height="730" key="SettingsEditor" timestamp="1589978555677">
+    <state x="376" y="154" width="1402" height="730" key="SettingsEditor" timestamp="1589978863800">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state x="376" y="154" width="1402" height="730" key="SettingsEditor/67.27.1853.887@67.27.1853.887" timestamp="1589978555677" />
+    <state x="376" y="154" width="1402" height="730" key="SettingsEditor/67.27.1853.887@67.27.1853.887" timestamp="1589978863800" />
     <state x="792" y="186" width="392" height="566" key="com.intellij.openapi.vcs.changes.SpecificFilesViewDialog" timestamp="1589974307715">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
