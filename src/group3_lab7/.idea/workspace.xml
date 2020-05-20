@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated />
+  </component>
+  <component name="CMakeSettings" AUTO_RELOAD="true">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCATKIN_DEVEL_PREFIX:PATH=/home/linux/AutonomousRacingCar/devel" GENERATION_DIR="$PROJECT_DIR$/../../build" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="42daaf15-3700-4213-99e3-ddbc5c8ffb92" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/include/motion_planner/rrt.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/launch/headless_simulator.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/launch/motion_planner.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/launch/occupancy_grids.rviz" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/launch/rviz.launch" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/package.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/motion_planner.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/motion_planner/rrt.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.catkin_workspace" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../../.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.gitmodules" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/README.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/bags/circle.bag" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/bags/free.bag" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/bags/line.bag" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/include/scan_matcher/correspond.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/include/scan_matcher/transform.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/include/scan_matcher/visualization.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/offline_analysis.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/plotjuggler.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/plotjuggler_layout.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/scan_matcher.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/sim_low_res.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator.rviz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator_other_conf.rviz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/labeled_screenshot.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plot_circle.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plot_free.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plot_line.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plotjuggler_prompt.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/rviz_screenshot.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/test_results.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_circle.gif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_circle.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_free.gif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_free.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_line.gif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_line.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/package.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/scripts/record_bagfile.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/scripts/show_tf_tree.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher/correspond.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher/transform.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher/visualization.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/test/fake_laser_scan.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/test/fake_laser_scan_example.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/test/test_icp_algorithm.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/README.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_2d.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_2d.lua" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_2d_viz.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_description/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_description/package.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cfg/drive_controller_params.cfg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cfg/pure_pursuit_params.cfg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/drive_controller.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/plotjuggler.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/plotjuggler_layout.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit.rviz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit_simulator.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit_simulator.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/simulate_remapped_environment.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/simulate_remapped_environment.rviz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/simulate_remapped_environment.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/adjust_remapped_levine_loop.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/adjusted_remapped_levine_loop.pgm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/adjusted_remapped_levine_loop.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/original_levine_loop.pgm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/original_levine_loop.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/remapped_levine_loop.pgm" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/remapped_levine_loop.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/remapped_levine_loop.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/adjusted_remapped_levine_loop.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/lowpass_filtered_trajectory.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/original_recorded_trajectory.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_localization.gif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_localization.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_localization_detail.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_rosgraph.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_tf_frames.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit.mp4" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_animated.gif" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_control_law.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_detail.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_rosgraph.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_still.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/resampled_trajectory.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/package.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/setup.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/src/drive_controller.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/src/pure_pursuit.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/src/waypoint_logger.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/arrow3.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/convert_raw_path.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/generate_simplified_path.m" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/lowpass_filtered_trajectory.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/recorded_trajectory.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/resampled_trajectory.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/wp-2020-05-14-07-25-57.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/x,y,yaw,speed.headerinfo" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/include/motion_planner/rrt.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/headless_simulator.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/motion_planner.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/occupancy_grids.rviz" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/rviz.launch" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/package.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/src/motion_planner.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/src/motion_planner/rrt.cpp" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectId" id="1cA3f39s0n1gtAr0gJsmrOMTt1p" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="settings.editor.selected.configurable" value="CMakeSettings" />
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="42daaf15-3700-4213-99e3-ddbc5c8ffb92" name="Default Changelist" comment="" />
+      <created>1589957669655</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1589957669655</updated>
+      <workItem from="1589957674250" duration="272000" />
+      <workItem from="1589957960167" duration="705000" />
+      <workItem from="1589958702995" duration="116000" />
+      <workItem from="1589958854713" duration="362000" />
+      <workItem from="1589959287786" duration="261000" />
+      <workItem from="1589959578623" duration="385000" />
+      <workItem from="1589959989218" duration="520000" />
+      <workItem from="1589960675181" duration="25000" />
+      <workItem from="1589960760882" duration="582000" />
+      <workItem from="1589961371411" duration="368000" />
+      <workItem from="1589961870311" duration="1325000" />
+      <workItem from="1589963696110" duration="6197000" />
+      <workItem from="1589973973337" duration="1018000" />
+      <workItem from="1589975327618" duration="748000" />
+      <workItem from="1589976095431" duration="11000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="451" y="127" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1589962086606">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state x="451" y="127" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1853.887@67.27.1853.887" timestamp="1589962086606" />
+    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog" timestamp="1589974308193">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog/67.27.1853.887@67.27.1853.887" timestamp="1589974308193" />
+    <state width="1807" height="152" key="GridCell.Tab.0.bottom" timestamp="1589962843636">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="1807" height="152" key="GridCell.Tab.0.bottom/67.27.1853.887@67.27.1853.887" timestamp="1589962843636" />
+    <state width="1807" height="152" key="GridCell.Tab.0.center" timestamp="1589962843630">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="1807" height="152" key="GridCell.Tab.0.center/67.27.1853.887@67.27.1853.887" timestamp="1589962843630" />
+    <state width="1807" height="152" key="GridCell.Tab.0.left" timestamp="1589962843627">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="1807" height="152" key="GridCell.Tab.0.left/67.27.1853.887@67.27.1853.887" timestamp="1589962843627" />
+    <state width="1807" height="152" key="GridCell.Tab.0.right" timestamp="1589962843632">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="1807" height="152" key="GridCell.Tab.0.right/67.27.1853.887@67.27.1853.887" timestamp="1589962843632" />
+    <state x="340" y="27" width="1402" height="730" key="SettingsEditor" timestamp="1589976028526">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state x="340" y="27" width="1402" height="730" key="SettingsEditor/67.27.1853.887@67.27.1853.887" timestamp="1589976028526" />
+    <state x="792" y="186" width="392" height="566" key="com.intellij.openapi.vcs.changes.SpecificFilesViewDialog" timestamp="1589974307715">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state x="792" y="186" width="392" height="566" key="com.intellij.openapi.vcs.changes.SpecificFilesViewDialog/67.27.1853.887@67.27.1853.887" timestamp="1589974307715" />
+  </component>
+</project>
