@@ -297,8 +297,8 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     // Create static occupancy grid
     const float pixels_per_meter = 1.0f / map_->info.resolution;
     static_occupancy_grid_center_ = cv::Vec2i(
-            static_cast<int>(-map_->info.origin.position.x * pixels_per_meter),
-            static_cast<int>(-map_->info.origin.position.y * pixels_per_meter));
+            static_cast<int>(-map_->info.origin.position.y * pixels_per_meter),  // rows <--> y
+            static_cast<int>(-map_->info.origin.position.x * pixels_per_meter)); // cols <--> x
     static_occupancy_grid_ = cv::Mat(info.height, info.width, CV_8UC1, (void*) map_->data.data());
 
     // Binarize static occupancy grid (unoccupied: 0, occupied: 255).
