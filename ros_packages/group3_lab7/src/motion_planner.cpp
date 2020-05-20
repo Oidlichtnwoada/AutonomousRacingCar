@@ -86,7 +86,6 @@ private:
     cv::Mat dynamic_occupancy_grid_;
     cv::Vec2i static_occupancy_grid_center_;
     cv::Vec2i dynamic_occupancy_grid_center_;
-    Eigen::Isometry3f dynamic_occupancy_grid_transform_; // dynamic-->static occupancy grid transform
 
     // Affine transformations from dynamic_occupancy_grid pixel coordinates [u,v] to other frames
     //
@@ -176,8 +175,8 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     }
     last_scan_timestamp_ = current_timestamp;
 
-    // Compute laser-->map transform (same as dynamic-->static occupancy grid transform)
-    dynamic_occupancy_grid_transform_ = tf2::transformToEigen(tf_buffer_.lookupTransform(
+    // Obtain laser-->map transform
+    Eigen::Isometry3f T_laser_to_map = tf2::transformToEigen(tf_buffer_.lookupTransform(
             FRAME_MAP, scan_msg->header.frame_id, ros::Time(0)).transform).cast<float>();
 
     const float pixels_per_meter = 1.0f / map_->info.resolution;
@@ -201,7 +200,7 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
     T_dynamic_oc_pixels_to_laser_frame_ = A.matrix();
 
-    A = dynamic_occupancy_grid_transform_.matrix() * A.matrix();
+    A = T_laser_to_map.matrix() * A.matrix();
 
     T_dynamic_oc_pixels_to_map_frame_ = A.matrix();
 
