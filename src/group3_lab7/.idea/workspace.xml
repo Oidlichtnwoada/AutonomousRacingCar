@@ -1,7 +1,73 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
-    <generated />
+    <generated>
+      <config projectName="group3_lab7" targetName="tf_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="gmock" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="motion_planner" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="tests" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="download_extra_data" />
+      <config projectName="group3_lab7" targetName="doxygen" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="gmock_main" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="gtest" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="run_tests" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="gtest_main" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="clean_test_results" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_py" />
+    </generated>
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
     <configurations>
@@ -10,127 +76,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="42daaf15-3700-4213-99e3-ddbc5c8ffb92" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/include/motion_planner/rrt.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/launch/headless_simulator.launch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/launch/motion_planner.launch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/launch/occupancy_grids.rviz" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/launch/rviz.launch" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/package.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/motion_planner.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/motion_planner/rrt.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../.catkin_workspace" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../../.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../.gitmodules" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/README.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/bags/circle.bag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/bags/free.bag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/bags/line.bag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/include/scan_matcher/correspond.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/include/scan_matcher/transform.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/include/scan_matcher/visualization.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/offline_analysis.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/plotjuggler.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/plotjuggler_layout.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/scan_matcher.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/sim_low_res.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator.rviz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/launch/simulator_other_conf.rviz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/labeled_screenshot.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plot_circle.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plot_free.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plot_line.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/plotjuggler_prompt.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/rviz_screenshot.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/test_results.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_circle.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_circle.mp4" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_free.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_free.mp4" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_line.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/media/video_line.mp4" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/package.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/scripts/record_bagfile.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/scripts/show_tf_tree.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher/correspond.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher/transform.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/src/scan_matcher/visualization.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/test/fake_laser_scan.m" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/test/fake_laser_scan_example.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab5/test/test_icp_algorithm.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/README.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_2d.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_2d.lua" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_2d_viz.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_description/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cartographer_files/f110_description/package.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cfg/drive_controller_params.cfg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/cfg/pure_pursuit_params.cfg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/drive_controller.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/plotjuggler.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/plotjuggler_layout.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit.rviz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit_simulator.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/pure_pursuit_simulator.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/simulate_remapped_environment.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/simulate_remapped_environment.rviz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/launch/simulate_remapped_environment.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/adjust_remapped_levine_loop.m" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/adjusted_remapped_levine_loop.pgm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/adjusted_remapped_levine_loop.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/original_levine_loop.pgm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/original_levine_loop.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/remapped_levine_loop.pgm" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/remapped_levine_loop.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/maps/remapped_levine_loop.yaml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/adjusted_remapped_levine_loop.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/lowpass_filtered_trajectory.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/original_recorded_trajectory.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_localization.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_localization.mp4" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_localization_detail.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_rosgraph.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pf_tf_frames.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit.mp4" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_animated.gif" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_control_law.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_detail.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_rosgraph.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/pure_pursuit_still.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/media/resampled_trajectory.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/package.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/setup.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/src/drive_controller.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/src/pure_pursuit.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/src/waypoint_logger.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/arrow3.m" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/convert_raw_path.m" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/generate_simplified_path.m" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/lowpass_filtered_trajectory.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/recorded_trajectory.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/resampled_trajectory.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/wp-2020-05-14-07-25-57.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab6/waypoint_logs/x,y,yaw,speed.headerinfo" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/include/motion_planner/rrt.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/headless_simulator.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/motion_planner.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/occupancy_grids.rviz" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/launch/rviz.launch" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/package.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/src/motion_planner.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../ros_packages/group3_lab7/src/motion_planner/rrt.cpp" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/headless_simulator.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/rviz.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/group3_lab7.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/group3_lab7.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -140,6 +90,7 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
   </component>
@@ -157,7 +108,426 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="cf.first.check.clang-format" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/scripts/rviz.sh" />
     <property name="settings.editor.selected.configurable" value="CMakeSettings" />
+  </component>
+  <component name="RunManager" selected="Shell Script.rviz">
+    <configuration name="actionlib_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_msgs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_msgs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_msgs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_msgs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_msgs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_msgs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_msgs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_msgs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="actionlib_msgs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="actionlib_msgs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="clean_test_results" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="clean_test_results" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="download_extra_data" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="download_extra_data" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="doxygen" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="doxygen" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="geometry_msgs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="geometry_msgs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="geometry_msgs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="geometry_msgs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="geometry_msgs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="geometry_msgs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="geometry_msgs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="geometry_msgs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="geometry_msgs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="geometry_msgs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gmock" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="gmock" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gmock_main" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="gmock_main" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gtest" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="gtest" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="gtest_main" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="gtest_main" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="motion_planner" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="motion_planner" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="group3_lab7" RUN_TARGET_NAME="motion_planner">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="nav_msgs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="nav_msgs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="nav_msgs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="nav_msgs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="nav_msgs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="nav_msgs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="nav_msgs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="nav_msgs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="nav_msgs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="nav_msgs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="roscpp_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="roscpp_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="roscpp_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="roscpp_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="roscpp_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="roscpp_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="roscpp_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="roscpp_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="roscpp_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="roscpp_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="rosgraph_msgs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="rosgraph_msgs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="rosgraph_msgs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="rosgraph_msgs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="rosgraph_msgs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="rosgraph_msgs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="rosgraph_msgs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="rosgraph_msgs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="rosgraph_msgs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="rosgraph_msgs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="run_tests" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="run_tests" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="sensor_msgs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="sensor_msgs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="sensor_msgs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="sensor_msgs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="sensor_msgs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="sensor_msgs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="sensor_msgs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="sensor_msgs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="sensor_msgs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="sensor_msgs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_msgs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_msgs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_msgs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_msgs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_msgs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_msgs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_msgs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_msgs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_msgs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_msgs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_srvs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_srvs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_srvs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_srvs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_srvs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_srvs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_srvs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_srvs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="std_srvs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="std_srvs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tests" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tests" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf2_msgs_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf2_msgs_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf2_msgs_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf2_msgs_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf2_msgs_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf2_msgs_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf2_msgs_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf2_msgs_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf2_msgs_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf2_msgs_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf_generate_messages_cpp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf_generate_messages_cpp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf_generate_messages_eus" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf_generate_messages_eus" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf_generate_messages_lisp" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf_generate_messages_lisp" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf_generate_messages_nodejs" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf_generate_messages_nodejs" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="tf_generate_messages_py" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="group3_lab7" TARGET_NAME="tf_generate_messages_py" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="headless_simulator" type="ShConfigurationType">
+      <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+      <option name="SCRIPT_PATH" value="$PROJECT_DIR$/scripts/headless_simulator.sh" />
+      <option name="SCRIPT_OPTIONS" value="" />
+      <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+      <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+      <option name="INTERPRETER_PATH" value="/bin/bash" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="rviz" type="ShConfigurationType">
+      <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+      <option name="SCRIPT_PATH" value="$PROJECT_DIR$/scripts/rviz.sh" />
+      <option name="SCRIPT_OPTIONS" value="" />
+      <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+      <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+      <option name="INTERPRETER_PATH" value="/bin/bash" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.actionlib_generate_messages_cpp" />
+      <item itemvalue="CMake Application.actionlib_generate_messages_eus" />
+      <item itemvalue="CMake Application.actionlib_generate_messages_lisp" />
+      <item itemvalue="CMake Application.actionlib_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.actionlib_generate_messages_py" />
+      <item itemvalue="CMake Application.actionlib_msgs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.actionlib_msgs_generate_messages_eus" />
+      <item itemvalue="CMake Application.actionlib_msgs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.actionlib_msgs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.actionlib_msgs_generate_messages_py" />
+      <item itemvalue="CMake Application.clean_test_results" />
+      <item itemvalue="CMake Application.download_extra_data" />
+      <item itemvalue="CMake Application.doxygen" />
+      <item itemvalue="CMake Application.geometry_msgs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.geometry_msgs_generate_messages_eus" />
+      <item itemvalue="CMake Application.geometry_msgs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.geometry_msgs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.geometry_msgs_generate_messages_py" />
+      <item itemvalue="CMake Application.motion_planner" />
+      <item itemvalue="CMake Application.nav_msgs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.nav_msgs_generate_messages_eus" />
+      <item itemvalue="CMake Application.nav_msgs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.nav_msgs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.nav_msgs_generate_messages_py" />
+      <item itemvalue="CMake Application.roscpp_generate_messages_cpp" />
+      <item itemvalue="CMake Application.roscpp_generate_messages_eus" />
+      <item itemvalue="CMake Application.roscpp_generate_messages_lisp" />
+      <item itemvalue="CMake Application.roscpp_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.roscpp_generate_messages_py" />
+      <item itemvalue="CMake Application.rosgraph_msgs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.rosgraph_msgs_generate_messages_eus" />
+      <item itemvalue="CMake Application.rosgraph_msgs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.rosgraph_msgs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.rosgraph_msgs_generate_messages_py" />
+      <item itemvalue="CMake Application.run_tests" />
+      <item itemvalue="CMake Application.sensor_msgs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.sensor_msgs_generate_messages_eus" />
+      <item itemvalue="CMake Application.sensor_msgs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.sensor_msgs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.sensor_msgs_generate_messages_py" />
+      <item itemvalue="CMake Application.std_msgs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.std_msgs_generate_messages_eus" />
+      <item itemvalue="CMake Application.std_msgs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.std_msgs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.std_msgs_generate_messages_py" />
+      <item itemvalue="CMake Application.std_srvs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.std_srvs_generate_messages_eus" />
+      <item itemvalue="CMake Application.std_srvs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.std_srvs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.std_srvs_generate_messages_py" />
+      <item itemvalue="CMake Application.tests" />
+      <item itemvalue="CMake Application.tf2_msgs_generate_messages_cpp" />
+      <item itemvalue="CMake Application.tf2_msgs_generate_messages_eus" />
+      <item itemvalue="CMake Application.tf2_msgs_generate_messages_lisp" />
+      <item itemvalue="CMake Application.tf2_msgs_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.tf2_msgs_generate_messages_py" />
+      <item itemvalue="CMake Application.tf_generate_messages_cpp" />
+      <item itemvalue="CMake Application.tf_generate_messages_eus" />
+      <item itemvalue="CMake Application.tf_generate_messages_lisp" />
+      <item itemvalue="CMake Application.tf_generate_messages_nodejs" />
+      <item itemvalue="CMake Application.tf_generate_messages_py" />
+      <item itemvalue="CMake Application.gmock" />
+      <item itemvalue="CMake Application.gmock_main" />
+      <item itemvalue="CMake Application.gtest" />
+      <item itemvalue="CMake Application.gtest_main" />
+      <item itemvalue="Shell Script.rviz" />
+      <item itemvalue="Shell Script.headless_simulator" />
+    </list>
   </component>
   <component name="SvnConfiguration">
     <configuration />
@@ -184,6 +554,7 @@
       <workItem from="1589973973337" duration="1018000" />
       <workItem from="1589975327618" duration="748000" />
       <workItem from="1589976095431" duration="11000" />
+      <workItem from="1589977721741" duration="464000" />
     </task>
     <servers />
   </component>
@@ -194,14 +565,18 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
   </component>
   <component name="WindowStateProjectService">
-    <state x="451" y="127" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1589962086606">
+    <state x="321" y="197" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1589978167785">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state x="451" y="127" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1853.887@67.27.1853.887" timestamp="1589962086606" />
+    <state x="321" y="197" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1853.887@67.27.1853.887" timestamp="1589978167785" />
     <state x="167" y="125" width="1653" height="689" key="DiffContextDialog" timestamp="1589974308193">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
     <state x="167" y="125" width="1653" height="689" key="DiffContextDialog/67.27.1853.887@67.27.1853.887" timestamp="1589974308193" />
+    <state x="796" y="397" width="424" height="484" key="FileChooserDialogImpl" timestamp="1589978111929">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state x="796" y="397" width="424" height="484" key="FileChooserDialogImpl/67.27.1853.887@67.27.1853.887" timestamp="1589978111929" />
     <state width="1807" height="152" key="GridCell.Tab.0.bottom" timestamp="1589962843636">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
@@ -218,10 +593,10 @@
       <screen x="67" y="27" width="1853" height="887" />
     </state>
     <state width="1807" height="152" key="GridCell.Tab.0.right/67.27.1853.887@67.27.1853.887" timestamp="1589962843632" />
-    <state x="340" y="27" width="1402" height="730" key="SettingsEditor" timestamp="1589976028526">
+    <state x="474" y="55" width="1402" height="730" key="SettingsEditor" timestamp="1589977758513">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state x="340" y="27" width="1402" height="730" key="SettingsEditor/67.27.1853.887@67.27.1853.887" timestamp="1589976028526" />
+    <state x="474" y="55" width="1402" height="730" key="SettingsEditor/67.27.1853.887@67.27.1853.887" timestamp="1589977758513" />
     <state x="792" y="186" width="392" height="566" key="com.intellij.openapi.vcs.changes.SpecificFilesViewDialog" timestamp="1589974307715">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
