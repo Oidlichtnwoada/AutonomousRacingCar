@@ -1,0 +1,237 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<root version="2.3.8">
+ <tabbed_widget parent="main_window" name="Main Window">
+  <plotmatrix columns="2" rows="2" tab_name="p&amp;lot">
+   <plot col="0" row="0">
+    <range bottom="-2.500000" left="-1.033959" top="0.000000" right="3.266234"/>
+    <limitY max="0" min="-2.5"/>
+    <curve G="39" B="40" custom_transform="XYPlot" name="/gt_pose/pose/position/[x;y]" R="214" curve_y="/gt_pose/pose/position/y" curve_x="/gt_pose/pose/position/x"/>
+    <curve G="119" B="180" custom_transform="XYPlot" name="/tf/base_link/translation/[x;y]" R="31" curve_y="/tf/base_link/translation/y" curve_x="/tf/base_link/translation/x"/>
+    <transform value="XYPlot"/>
+   </plot>
+   <plot col="0" row="1">
+    <range bottom="0.000000" left="31.790651" top="180.000000" right="61.790416"/>
+    <limitY max="180" min="0"/>
+    <curve G="127" B="14" custom_transform="noTransform" name="orientation_error" R="255"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot col="1" row="0">
+    <range bottom="0.000000" left="31.790651" top="2.000000" right="61.790416"/>
+    <limitY max="2" min="0"/>
+    <curve G="76" B="193" custom_transform="noTransform" name="x_translation_error" R="241"/>
+    <curve G="103" B="189" custom_transform="noTransform" name="y_translation_error" R="148"/>
+    <transform value="noTransform"/>
+   </plot>
+   <plot col="1" row="1">
+    <range bottom="-0.036460" left="31.790651" top="1.721606" right="61.790416"/>
+    <limitY/>
+    <curve G="201" B="56" custom_transform="noTransform" name="translation_error" R="26"/>
+    <transform value="noTransform"/>
+   </plot>
+  </plotmatrix>
+  <currentPlotMatrix index="0"/>
+ </tabbed_widget>
+ <use_relative_time_offset enabled="1"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <!-- - - - - - - - - - - - - - - -->
+ <Plugins>
+  <plugin ID="DataLoad CSV">
+   <default time_axis=""/>
+  </plugin>
+  <plugin ID="DataLoad ROS bags">
+   <use_header_stamp value="false"/>
+   <use_renaming_rules value="true"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+  </plugin>
+  <plugin ID="DataLoad ULog"/>
+  <plugin ID="ROS Topic Subscriber">
+   <use_header_stamp value="false"/>
+   <use_renaming_rules value="true"/>
+   <discard_large_arrays value="true"/>
+   <max_array_size value="100"/>
+  </plugin>
+  <plugin status="idle" ID="ROS /rosout Visualization"/>
+  <plugin status="idle" ID="ROS Topic Re-Publisher"/>
+ </Plugins>
+ <!-- - - - - - - - - - - - - - - -->
+ <previouslyLoaded_Datafiles/>
+ <previouslyLoaded_Streamer name="ROS Topic Subscriber"/>
+ <!-- - - - - - - - - - - - - - - -->
+ <customMathEquations>
+  <snippet language="JS" name="x_translation_error">
+   <linkedPlot>/tf/_MSG_INDEX_</linkedPlot>
+   <global>// source: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+
+function quaternionToYaw(x, y, z, w)
+{
+  // yaw (z-axis rotation)
+  t1 = 2.0 * (w * z + x * y);
+  t2 = 1.0 - 2.0 * (y * y + z * z);
+  yaw = Math.atan2(t1, t2);
+
+  return yaw
+}</global>
+   <equation>var tx = $$/tf/base_link/translation/x$$;
+var gt_tx = $$/tf/ground_truth/base_link/translation/x$$;
+var diff_x = (tx-gt_tx);
+return Math.abs(diff_x);</equation>
+  </snippet>
+  <snippet language="JS" name="y_translation_error">
+   <linkedPlot>/tf/_MSG_INDEX_</linkedPlot>
+   <global>// source: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+
+function quaternionToYaw(x, y, z, w)
+{
+  // yaw (z-axis rotation)
+  t1 = 2.0 * (w * z + x * y);
+  t2 = 1.0 - 2.0 * (y * y + z * z);
+  yaw = Math.atan2(t1, t2);
+
+  return yaw
+}</global>
+   <equation>var ty = $$/tf/base_link/translation/y$$;
+var gt_ty = $$/tf/ground_truth/base_link/translation/y$$;
+var diff_y = (ty-gt_ty);
+return Math.abs(diff_y);</equation>
+  </snippet>
+  <snippet language="JS" name="orientation_error">
+   <linkedPlot>/tf/_MSG_INDEX_</linkedPlot>
+   <global>// source: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+
+function quaternionToYaw(x, y, z, w)
+{
+  // yaw (z-axis rotation)
+  t1 = 2.0 * (w * z + x * y);
+  t2 = 1.0 - 2.0 * (y * y + z * z);
+  yaw = Math.atan2(t1, t2);
+
+  return yaw
+}</global>
+   <equation>var qw = $$/tf/base_link/rotation/w$$;
+var qx = $$/tf/base_link/rotation/x$$;
+var qy = $$/tf/base_link/rotation/y$$;
+var qz = $$/tf/base_link/rotation/z$$;
+var tx = $$/tf/base_link/translation/x$$;
+var ty = $$/tf/base_link/translation/y$$;
+var gt_qw = $$/tf/ground_truth/base_link/rotation/w$$;
+var gt_qx = $$/tf/ground_truth/base_link/rotation/x$$;
+var gt_qy = $$/tf/ground_truth/base_link/rotation/y$$;
+var gt_qz = $$/tf/ground_truth/base_link/rotation/z$$;
+var gt_tx = $$/tf/ground_truth/base_link/translation/x$$;
+var gt_ty = $$/tf/ground_truth/base_link/translation/y$$;
+var diff_x = (tx-gt_tx);
+var diff_y = (ty-gt_ty);
+
+var yaw = quaternionToYaw(qx,qy,qz,qw);
+var gt_yaw = quaternionToYaw(gt_qx,gt_qy,gt_qz,gt_qw);
+
+var diff_yaw = Math.abs(yaw-gt_yaw);
+
+var diff_yaw_deg = diff_yaw * 180.0 / 3.1415926535898;
+
+if(diff_yaw_deg > 180.0) {
+  diff_yaw_deg = 360.0 - diff_yaw_deg;
+}
+
+return diff_yaw_deg;</equation>
+  </snippet>
+  <snippet language="JS" name="translation_error">
+   <linkedPlot>/tf/_MSG_INDEX_</linkedPlot>
+   <global></global>
+   <equation>var qw = $$/tf/base_link/rotation/w$$;
+var qx = $$/tf/base_link/rotation/x$$;
+var qy = $$/tf/base_link/rotation/y$$;
+var qz = $$/tf/base_link/rotation/z$$;
+var tx = $$/tf/base_link/translation/x$$;
+var ty = $$/tf/base_link/translation/y$$;
+var gt_qw = $$/tf/ground_truth/base_link/rotation/w$$;
+var gt_qx = $$/tf/ground_truth/base_link/rotation/x$$;
+var gt_qy = $$/tf/ground_truth/base_link/rotation/y$$;
+var gt_qz = $$/tf/ground_truth/base_link/rotation/z$$;
+var gt_tx = $$/tf/ground_truth/base_link/translation/x$$;
+var gt_ty = $$/tf/ground_truth/base_link/translation/y$$;
+var diff_x = (tx-gt_tx);
+var diff_y = (ty-gt_ty);
+return Math.sqrt(diff_x*diff_x + diff_y*diff_y);</equation>
+  </snippet>
+ </customMathEquations>
+ <snippets>
+  <snippet language="JS" name="1st_derivative">
+   <global>var prevX = 0
+var prevY = 0</global>
+   <equation>dx = time - prevX
+dy = value - prevY
+prevX = time
+prevY = value
+
+return dy/dx</equation>
+  </snippet>
+  <snippet language="JS" name="1st_order_lowpass">
+   <global>var prevY = 0
+var alpha = 0.1</global>
+   <equation>prevY = alpha * value + (1.-alpha) * prevY
+
+return prevY</equation>
+  </snippet>
+  <snippet language="JS" name="2D_velocity">
+   <global>var prev_x = 0
+var prev_y = 0
+var prev_t = 0</global>
+   <equation>X = $$your_odometry/position/x$$
+Y = $$your_odometry/position/y$$
+
+var dist = sqrt( (X-prev_x)*(X-prev_x) + (Y-prev_y)*(Y-prev_y) )
+var dT = time - prev_t
+
+prev_x = X
+prev_y = Y
+prev_t = time
+
+return dist / dT</equation>
+  </snippet>
+  <snippet language="JS" name="average_two_curves">
+   <global></global>
+   <equation>a = $$PLOT_A$$
+b = $$PLOT_B$$
+
+return (a+b)/2</equation>
+  </snippet>
+  <snippet language="JS" name="integral">
+   <global>var integral = 0</global>
+   <equation>integral += value
+return integral</equation>
+  </snippet>
+  <snippet language="JS" name="rad_to_deg">
+   <global></global>
+   <equation>return value*180/3.1417</equation>
+  </snippet>
+  <snippet language="JS" name="remove_offset">
+   <global>var is_first = true
+var first_value = 0</global>
+   <equation>if (is_first)
+{
+  is_first = false
+  first_value = value
+}
+
+return value - first_value</equation>
+  </snippet>
+  <snippet language="JS" name="yaw_from_quaternion">
+   <global>// source: https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+
+function quaternionToYaw(x, y, z, w)
+{
+  // yaw (z-axis rotation)
+  t1 = 2.0 * (w * z + x * y);
+  t2 = 1.0 - 2.0 * (y * y + z * z);
+  yaw = Math.atan2(t1, t2);
+
+  return yaw
+}</global>
+   <equation>return quaternionToYaw(x, y, z, w);</equation>
+  </snippet>
+ </snippets>
+ <!-- - - - - - - - - - - - - - - -->
+</root>
+

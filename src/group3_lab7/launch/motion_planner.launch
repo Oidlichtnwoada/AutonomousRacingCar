@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+    <param name="vehicle_wheelbase" type="double" value="0.3302" />
+    <param name="vehicle_width" type="double" value="0.2032" />
+    <param name="max_laser_scan_distance" type="double" value="5.0" />
+    <param name="dynamic_occupancy_grid_update_frequency" type="double" value="20" />
+    <node pkg="group3_lab7" name="motion_planner" type="motion_planner" output="screen"/>
+</launch>

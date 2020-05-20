@@ -1,0 +1,7 @@
+\subsubsection parameters ROS parameters
+
+Reads and maintains the following parameters on the ROS server
+
+- \b "~lookahead_distance" : \b [double] Lookahead distance. min: 0.2, default: 1.0, max: 4.0
+- \b "~forward_direction" : \b [bool] Follow the path in the forward direction. min: False, default: True, max: True
+

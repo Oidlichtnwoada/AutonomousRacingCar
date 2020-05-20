@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>group3_lab6</name>
+  <version>0.0.1</version>
+  <description>Lab 6: Pure Pursuit</description>
+  <maintainer email="thomas.pintaric@student.tuwien.ac.at">Thomas Pintaric</maintainer>
+  <license>BSD</license>
+  <author email="thomas.pintaric@student.tuwien.ac.at">Thomas Pintaric</author>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>ackermann_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
+  <exec_depend>python-scipy</exec_depend>
+  <exec_depend>python-numpy</exec_depend>
+  <export>
+  </export>
+</package>
