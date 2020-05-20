@@ -8,6 +8,10 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <random>
+#include <thread>
+#include <atomic>
+#include <mutex>
 
 #include <ros/ros.h>
 
@@ -51,6 +55,7 @@ class MotionPlanner {
 
 public:
     MotionPlanner();
+    ~MotionPlanner();
     typedef boost::shared_ptr<sensor_msgs::LaserScan const> LaserScanMessage;
     typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseStampedMessage;
     typedef boost::shared_ptr<nav_msgs::Odometry const> OdometryMessage;
@@ -83,8 +88,14 @@ private:
     ros::Time last_scan_timestamp_;
     float scan_dt_threshold_;
 
+    // =================================================================================================================
+    // Occupancy grids (static and dynamic)
+    // =================================================================================================================
+
     // Map
     MotionPlanner::OccupancyGridMessage map_;
+
+    std::mutex occupancy_grid_mutex_;
     cv::Mat static_occupancy_grid_; // just a thin wrapper around map_->data.data()
     cv::Mat dynamic_occupancy_grid_;
     cv::Vec2i static_occupancy_grid_center_;
@@ -111,7 +122,33 @@ private:
 
     nav_msgs::GridCells convertToGridCellsMessage(
             cv::Mat& grid, const cv::Vec2i grid_center, const std::string frame_id) const;
+
+    // =================================================================================================================
+    // RRT
+    // =================================================================================================================
+
+    boost::shared_ptr<std::thread> path_planner_thread_;
+    void runPathPlanner();
+    void runRRT(const nav_msgs::Odometry& odometry, const geometry_msgs::PoseStamped& goal);
+
+    std::mutex odometry_mutex_;
+    geometry_msgs::PoseStamped current_goal_;
+    nav_msgs::Odometry current_odometry_;
+
+    std::atomic<bool> should_plan_path_;
+
+    std::mt19937 random_generator_;
+    static constexpr std::mt19937::result_type random_seed_ = 1234UL; // fixed seed for reproducibility
+    //std::uniform_real_distribution<float> x_distribution_;
+    //std::uniform_real_distribution<float> y_distribution_;
+
+
+
 };
+
+MotionPlanner::~MotionPlanner() {
+    path_planner_thread_->join();
+}
 
 MotionPlanner::MotionPlanner()
         : node_handle_(ros::NodeHandle())
@@ -123,7 +160,9 @@ MotionPlanner::MotionPlanner()
         , debug_service_(new ros::ServiceServer(node_handle_.advertiseService("debug", &MotionPlanner::debugServiceCallback, this)))
         , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , random_generator_(std::mt19937(MotionPlanner::random_seed_))
 {
+    should_plan_path_.store(false);
     node_handle_.param<float>("vehicle_wheelbase", vehicle_wheelbase_, DEFAULT_VEHICLE_WHEELBASE);
     node_handle_.param<float>("vehicle_width", vehicle_width_, DEFAULT_VEHICLE_WIDTH);
     node_handle_.param<float>("max_laser_scan_distance", max_laser_scan_distance_, DEFAULT_MAX_LASER_SCAN_DISTANCE);
@@ -143,6 +182,8 @@ MotionPlanner::MotionPlanner()
     check_value(dynamic_occupancy_grid_update_frequency_, "dynamic_occupancy_grid_update_frequency");
 
     scan_dt_threshold_ = 1.0f / dynamic_occupancy_grid_update_frequency_;
+
+    path_planner_thread_ = boost::shared_ptr<std::thread>(new std::thread(&MotionPlanner::runPathPlanner, this));
 }
 
 bool MotionPlanner::debugServiceCallback(std_srvs::Empty::Request& request,
@@ -158,13 +199,18 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
     static unsigned int messages_skipped = 0; // for debugging only
 
+    std::unique_lock<std::mutex> lock(occupancy_grid_mutex_, std::try_to_lock);
+    if(!lock.owns_lock()){
+        messages_skipped++;
+        return;
+    }
+
     if(!tf_buffer_.canTransform(FRAME_MAP, scan_msg->header.frame_id,ros::Time(0))) {
         messages_skipped++;
         return;
     }
 
     // Enforce max. update frequency
-
     const bool has_previous_timestamp = not last_scan_timestamp_.isZero();
     const ros::Time& current_timestamp = scan_msg->header.stamp;
     if(!has_previous_timestamp) {
@@ -263,17 +309,26 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     dilateOccupancyGrid(dynamic_occupancy_grid_);
     dynamic_occupancy_grid_publisher_->publish(convertToGridCellsMessage(
             dynamic_occupancy_grid_, dynamic_occupancy_grid_center_, "laser"));
+
+    should_plan_path_.store(true);
 }
 
 void MotionPlanner::odomSubscriberCallback(MotionPlanner::OdometryMessage odom_msg) {
-    // ...
+    std::lock_guard<std::mutex> scoped_lock(odometry_mutex_);
+    current_odometry_ = *odom_msg;
+    // TODO: compute conditions for triggering: should_plan_path_.store(true);
+    //       (based either on elapsed time or driven distance)
 }
 
 void MotionPlanner::goalSubscriberCallback(MotionPlanner::PoseStampedMessage goal_msg) {
-    // ...
+    std::lock_guard<std::mutex> scoped_lock(odometry_mutex_);
+    current_goal_ = *goal_msg;
+    should_plan_path_.store(true);
 }
 
 void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage map_msg) {
+
+    std::lock_guard<std::mutex> scoped_lock(occupancy_grid_mutex_);
 
     if(!static_occupancy_grid_.empty()) {
         ROS_ERROR("Overwriting the occupancy grid is untested and may lead to undefined behavior.");
@@ -335,6 +390,7 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     dynamic_occupancy_grid_center_ = cv::Vec2i(center_col, center_row); // NOTE: grid is transposed w.r.t. vehicle's local coordinate system
     const cv::Scalar unoccupied_cell(0.0);
     dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_cols, dynamic_occupancy_grid_rows, CV_8UC1, unoccupied_cell);
+    should_plan_path_.store(true);
 }
 
 void MotionPlanner::dilateOccupancyGrid(cv::Mat& occupancy_grid) {
@@ -379,13 +435,51 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
     return(grid_msg);
 }
 
+void MotionPlanner::runPathPlanner() {
+
+    ROS_INFO("Path planner is starting...");
+
+    static unsigned int number_of_computations = 0; // for debugging only
+
+    ros::Rate sampling_rate(1000); // 1000 hz
+    while (!ros::isShuttingDown()) {
+        bool expected = true;
+        if(should_plan_path_.compare_exchange_strong(expected, false)) {
+
+            std::lock_guard<std::mutex> scoped_lock(occupancy_grid_mutex_);
+            geometry_msgs::PoseStamped goal;
+            nav_msgs::Odometry odometry;
+            {
+                std::lock_guard<std::mutex> scoped_lock(odometry_mutex_);
+                goal = current_goal_;
+                odometry = current_odometry_;
+            }
+            number_of_computations++;
+
+            // TODO: Choose between RRT and alternative algorithms (RRT*, ...) here...
+            runRRT(odometry, goal);
+
+        } else {
+            sampling_rate.sleep();
+        }
+    }
+
+    ROS_INFO("Path planner is shutting down...");
+}
+
+void MotionPlanner::runRRT(const nav_msgs::Odometry& odometry, const geometry_msgs::PoseStamped& goal) {
+
+    // TODO: Implement RRT here...
+}
+
 
 int main(int argc, char **argv) {
 #if !defined(NDEBUG)
     std::cerr << "WARNING: Debug build." << std::endl;
 #endif
     ros::init(argc, argv, "motion_planner");
-    MotionPlanner motion_planner;
+    boost::shared_ptr<MotionPlanner> motion_planner(new MotionPlanner());
     ros::spin();
+    motion_planner.reset();
     return 0;
 }
