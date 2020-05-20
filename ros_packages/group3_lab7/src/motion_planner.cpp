@@ -15,6 +15,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GridCells.h>
 #include <std_srvs/Empty.h>
 
@@ -26,7 +27,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
 
-#include <motion_planner/rrt.h>
+#include <nanoflann/nanoflann.hpp> // https://github.com/jlblancoc/nanoflann
 
 #define LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION
 

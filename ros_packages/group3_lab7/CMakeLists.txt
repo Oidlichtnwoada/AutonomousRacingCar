@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   nav_msgs
   geometry_msgs
-  tf # <--- remove me later!!
   tf2
   tf2_ros
   tf2_eigen
@@ -40,7 +39,6 @@ include_directories(
 
 add_executable(${NODE_NAME}
   src/motion_planner.cpp
-  src/motion_planner/rrt.cpp
 )
 
 target_link_libraries(${NODE_NAME} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
