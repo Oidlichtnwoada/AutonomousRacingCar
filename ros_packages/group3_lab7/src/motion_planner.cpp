@@ -28,6 +28,8 @@
 
 #include <motion_planner/rrt.h>
 
+#define LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION
+
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
 #define GRID_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 
@@ -220,15 +222,36 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     for(auto const& element : scan_msg->ranges | boost::adaptors::indexed()) {
         const float range = element.value();
         const float angle = angle_min + (float) element.index() * angle_increment;
+
+#ifdef LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION
+        if(angle < -M_PI_2 || angle > M_PI_2) {
+            continue;
+        }
+#endif
+
         if(std::isfinite(range) && range <= max_laser_scan_distance_) {
 
-            // 4 polar to cartesian coordinates [x,y]
-            const float y = range * std::cos(angle); // units: meters
-            const float x = range * std::sin(angle); // units: meters
+            const float angle_in_degrees = angle * 180.0 / M_PI;
+
+            // polar to cartesian coordinates [x,y] in the laser frame
+            // +x vehicle forward direction
+            // +y pointing left
+            const float x = range * std::cos(angle); // units: meters
+#ifdef LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION
+            assert(x > 0.0);
+#endif
+            const float y = range * std::sin(angle); // units: meters
 
             // [u,v] are the pixel coordinates in the dynamic occupancy grid
-            const unsigned int u = static_cast<unsigned int>(x * pixels_per_meter) + dynamic_occupancy_grid_center_(0);
-            const unsigned int v = static_cast<unsigned int>(y * pixels_per_meter) + dynamic_occupancy_grid_center_(1);
+            // u ... row    (y in the laser frame)
+            // v ... column (x in the laser frame)
+            const int u = static_cast<int>(y * pixels_per_meter) + dynamic_occupancy_grid_center_(0);
+            const int v = static_cast<int>(x * pixels_per_meter) + dynamic_occupancy_grid_center_(1);
+
+            const int center_row = dynamic_occupancy_grid_center_(0);
+            const int center_col = dynamic_occupancy_grid_center_(1);
+            const int u_max = dynamic_occupancy_grid_.rows-1;
+            const int v_max = dynamic_occupancy_grid_.cols-1;
 
             assert(u >= 0 && v >= 0 && u < dynamic_occupancy_grid_.rows && v < dynamic_occupancy_grid_.cols);
             dynamic_occupancy_grid_.at<uint8_t>(u,v) = 255;
@@ -290,13 +313,27 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
 
     // Create dynamic occupancy grid
     const float laser_scan_diameter_in_pixels = 2.0f * max_laser_scan_distance_ * pixels_per_meter;
-    unsigned int dynamic_occupancy_grid_width = static_cast<unsigned int>(std::ceil(laser_scan_diameter_in_pixels)) + 2;
-    if (dynamic_occupancy_grid_width % 2 == 0) {
-        dynamic_occupancy_grid_width++;
+    unsigned int dynamic_occupancy_grid_cols = static_cast<unsigned int>(std::ceil(laser_scan_diameter_in_pixels)) + 2;
+    if (dynamic_occupancy_grid_cols % 2 == 0) {
+        dynamic_occupancy_grid_cols++;
     }
-    dynamic_occupancy_grid_center_ = cv::Vec2i((dynamic_occupancy_grid_width - 1) / 2, (dynamic_occupancy_grid_width - 1) / 2);
+
+    // Coordinate system:
+    // +x (forward) <--> laser frame row <--> grid col
+    // +y (left)    <--> laser frame col <--> grid row
+
+    const int center_col = (dynamic_occupancy_grid_cols - 1) / 2;
+
+#ifdef LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION
+    const int center_row = 0;
+    const unsigned int dynamic_occupancy_grid_rows = ((dynamic_occupancy_grid_cols- 1 ) / 2) + 1;
+#else
+    const int center_row = center_col;
+    const unsigned int dynamic_occupancy_grid_rows = dynamic_occupancy_grid_cols;
+#endif
+    dynamic_occupancy_grid_center_ = cv::Vec2i(center_col, center_row); // NOTE: grid is transposed w.r.t. vehicle's local coordinate system
     const cv::Scalar unoccupied_cell(0.0);
-    dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_width, dynamic_occupancy_grid_width, CV_8UC1, unoccupied_cell);
+    dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_cols, dynamic_occupancy_grid_rows, CV_8UC1, unoccupied_cell);
 }
 
 void MotionPlanner::dilateOccupancyGrid(cv::Mat& occupancy_grid) {
@@ -326,9 +363,14 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
             if(grid.at<uint8_t>(row,col) == 0) {
                 continue;
             }
+
+            // Coordinate system:
+            // +x (forward) <--> laser frame row <--> grid col
+            // +y (left)    <--> laser frame col <--> grid row
+
             geometry_msgs::Point p;
-            p.x = (float) (col - grid_center(0)) * meters_per_pixel;
-            p.y = (float) (row - grid_center(1)) * meters_per_pixel;
+            p.x = (float) (col - grid_center(1)) * meters_per_pixel;
+            p.y = (float) (row - grid_center(0)) * meters_per_pixel;
             p.z = 0.0;
             grid_msg.cells.push_back(p);
         }
