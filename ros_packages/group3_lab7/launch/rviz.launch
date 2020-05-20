@@ -1,4 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find group3_lab7)/launch/occupancy_grids.rviz" output="screen"/>
-</launch>

@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node name="plotjuggler" 
-          pkg="plotjuggler"
-          type="PlotJuggler"
-          args="--layout $(find group3_lab5)/launch/plotjuggler_layout.xml"/>
-</launch>
