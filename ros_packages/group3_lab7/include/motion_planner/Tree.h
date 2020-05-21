@@ -27,12 +27,23 @@ namespace motion_planner {
         typedef Eigen::Matrix<T, 2, 1> Vector2;
 
         struct Node {
-            Node(Vector2 position, size_t parent) : position_(position), parent_(parent) {}
 
-            Node(T x, T y, size_t parent) : position_(Vector2(x, y)), parent_(parent) {}
+            Node(Vector2 position, size_t parent, T path_length = static_cast<T>(0))
+                : position_(position)
+                , parent_(parent)
+                , path_length_(path_length)
+                {}
+
+            Node(T x, T y, size_t parent, T path_length = static_cast<T>(0))
+                : position_(Vector2(x, y))
+                , parent_(parent)
+                , path_length_(path_length)
+                {}
 
             Vector2 position_;
             size_t parent_;
+            T path_length_; // accumulated path length from the root to this node,
+                            // a.k.a. "cost", only relevant for RRT*
         };
 
         std::vector<Node> nodes_;
