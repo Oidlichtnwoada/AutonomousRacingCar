@@ -26,12 +26,15 @@
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_ros/transform_listener.h>
 #include <boost/range/adaptor/indexed.hpp>
+#include <Eigen/Dense>
 #include <Eigen/Geometry>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
 
 #include <nanoflann/nanoflann.hpp> // https://github.com/jlblancoc/nanoflann
+
+#include <motion_planner/Tree.h>
 
 #define LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION
 
@@ -40,7 +43,7 @@
 
 #define TOPIC_SCAN "/scan"
 #define TOPIC_ODOM "/odom"
-#define TOPIC_GOAL "/mode_base_simple/goal"
+#define TOPIC_GOAL "/move_base_simple/goal"
 #define TOPIC_MAP  "/map"
 #define TOPIC_DYNAMIC_OCCUPANCY_GRID "/motion_planner/dynamic_occupancy_grid"
 #define TOPIC_STATIC_OCCUPANCY_GRID  "/motion_planner/static_occupancy_grid"
@@ -129,7 +132,10 @@ private:
 
     boost::shared_ptr<std::thread> path_planner_thread_;
     void runPathPlanner();
-    void runRRT(const nav_msgs::Odometry& odometry, const geometry_msgs::PoseStamped& goal);
+
+    template<typename T, bool USE_L1_DISTANCE_METRIC>
+    std::tuple<motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>, std::deque<Eigen::Vector2f> >
+    runRRT(const nav_msgs::Odometry& odometry, const geometry_msgs::PoseStamped& goal);
 
     std::mutex odometry_mutex_;
     geometry_msgs::PoseStamped current_goal_;
@@ -323,6 +329,7 @@ void MotionPlanner::odomSubscriberCallback(MotionPlanner::OdometryMessage odom_m
 void MotionPlanner::goalSubscriberCallback(MotionPlanner::PoseStampedMessage goal_msg) {
     std::lock_guard<std::mutex> scoped_lock(odometry_mutex_);
     current_goal_ = *goal_msg;
+    ROS_INFO("Received new goal: [%f, %f]", current_goal_.pose.position.x, current_goal_.pose.position.y);
     should_plan_path_.store(true);
 }
 
@@ -437,6 +444,9 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
 
 void MotionPlanner::runPathPlanner() {
 
+    constexpr bool USE_L1_DISTANCE_METRIC = true;
+    constexpr float goal_proximity_threshold = 0.2; // units: meters // TODO: this is an arbitrary choice for testing...
+
     ROS_INFO("Path planner is starting...");
 
     static unsigned int number_of_computations = 0; // for debugging only
@@ -449,15 +459,30 @@ void MotionPlanner::runPathPlanner() {
             std::lock_guard<std::mutex> scoped_lock(occupancy_grid_mutex_);
             geometry_msgs::PoseStamped goal;
             nav_msgs::Odometry odometry;
+            bool already_near_goal = false;
             {
                 std::lock_guard<std::mutex> scoped_lock(odometry_mutex_);
                 goal = current_goal_;
                 odometry = current_odometry_;
             }
-            number_of_computations++;
 
-            // TODO: Choose between RRT and alternative algorithms (RRT*, ...) here...
-            runRRT(odometry, goal);
+            if(goal.header.stamp.isZero()) {
+                // no goal has been set
+                continue;
+            }
+
+            const Eigen::Vector2f odom_to_goal(goal.pose.position.x - odometry.pose.pose.position.x,
+                                               goal.pose.position.y - odometry.pose.pose.position.y);
+
+            if(odom_to_goal.squaredNorm() < (goal_proximity_threshold * goal_proximity_threshold)) {
+                already_near_goal = true;
+            }
+
+            if(!already_near_goal) {
+                number_of_computations++;
+                // TODO: Choose between RRT and alternative algorithms (RRT*, ...) here...
+                auto [tree, path] = runRRT<int, USE_L1_DISTANCE_METRIC>(odometry, goal);
+            }
 
         } else {
             sampling_rate.sleep();
@@ -467,9 +492,192 @@ void MotionPlanner::runPathPlanner() {
     ROS_INFO("Path planner is shutting down...");
 }
 
-void MotionPlanner::runRRT(const nav_msgs::Odometry& odometry, const geometry_msgs::PoseStamped& goal) {
+bool ExpandPath(
+        const cv::Vec2i start,
+        const cv::Vec2i destination,
+        cv::Vec2i& end,
+        float max_expansion_distance,
+        const cv::Mat& grid) {
 
-    // TODO: Implement RRT here...
+    int x0 = start(0);
+    int y0 = start(1);
+    int x1 = destination(0);
+    int y1 = destination(1);
+    int expansion_distance = 0;
+
+    // Bresenham algorithm
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy, e2; /* error value e_xy */
+    while (true) {
+        if (expansion_distance >= max_expansion_distance) {
+            end = cv::Vec2i(x0,y0);
+            return true;
+        }
+        if (grid.at<unsigned>(x0, y0) > 0) {
+            end = cv::Vec2i(x0,y0);
+            return false;
+        }
+        if (x0 == x1 && y0 == y1) break;
+        e2 = 2 * err;
+        if (e2 > dy) {
+            err += dy;
+            x0 += sx;
+            expansion_distance += sx;
+        } /* e_xy+e_x > 0 */
+        if (e2 < dx) {
+            err += dx;
+            y0 += sy;
+            expansion_distance += sy;
+        } /* e_xy+e_y < 0 */
+    }
+    end = cv::Vec2i(x0,y0);
+    return true;
+}
+
+template<typename T, bool USE_L1_DISTANCE_METRIC>
+std::tuple<motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>, std::deque<Eigen::Vector2f> >
+MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
+                           const geometry_msgs::PoseStamped& goal) {
+
+    constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
+
+    constexpr unsigned int maximum_rrt_samples = 2000;  // TODO: expose this as a ROS node parameter
+    constexpr float maximum_rrt_expansion_distance = 2; // TODO: expose this as a ROS node parameter
+    constexpr float rrt_goal_proximity_threshold = 2;   // TODO: expose this as a ROS node parameter
+
+    using Tree = typename motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>;
+    using Node = typename Tree::Node;
+    using KDTree = typename Tree::KDTree;
+    using KNNResultSet = typename Tree::KNNResultSet;
+    using UniformDistribution = typename Tree::UniformDistribution;
+    Tree tree;
+    KDTree index(2, tree, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_max_leaf_size));
+
+    // Goal
+    assert(goal.header.frame_id.compare("map") == 0); // we expect a goal in the "map" frame
+    const auto goal_in_grid_frame = T_dynamic_oc_pixels_to_map_frame_.inverse() *
+            Eigen::Vector3f(goal.pose.position.x, goal.pose.position.y, 0.0f);
+    const T goal_row = goal_in_grid_frame(0); // <---- CHECK ROW/COL!!!!!
+    const T goal_col = goal_in_grid_frame(1); // <---- CHECK ROW/COL!!!!!
+
+    // Randomly distribute samples across the entire grid
+    UniformDistribution uniform_row_distribution(static_cast<T>(0), static_cast<T>(dynamic_occupancy_grid_.rows - 1));
+    UniformDistribution uniform_col_distribution(static_cast<T>(0), static_cast<T>(dynamic_occupancy_grid_.cols - 1));
+
+    // Root node is the origin in the laser frame (= center of the dynamic occupancy grid)
+    const T root_row = dynamic_occupancy_grid_center_(0);
+    const T root_col = dynamic_occupancy_grid_center_(1);
+    tree.nodes_.push_back(Node(root_row,root_col,0)); // insert the root node
+    index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
+
+    for(unsigned int n=0; n<maximum_rrt_samples; n++) {
+        const T random_row = uniform_row_distribution(random_generator_);
+        const T random_col = uniform_col_distribution(random_generator_);
+
+        // run a knn-search (k=1)
+        const size_t k = 1;
+        size_t nn_index;
+        T nn_distance;
+        KNNResultSet nn_results(k);
+        nn_results.init(&nn_index, &nn_distance);
+        T query_position[2] = { random_row, random_col };
+        index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
+        assert(nn_index < tree.nodes_.size());
+
+        // The nearest node is our new parent
+        const size_t parent_node_index = nn_index;
+        const Node& parent_node = tree.nodes_[parent_node_index];
+        const T parent_row = static_cast<T>(parent_node.position_(0));
+        const T parent_col = static_cast<T>(parent_node.position_(1));
+
+        cv::Vec2i leaf_position;
+        const bool expansion_has_no_obstacles =
+                ExpandPath(cv::Vec2i(parent_row, parent_col),
+                           cv::Vec2i(random_row, random_col),
+                           leaf_position,
+                           maximum_rrt_expansion_distance,
+                           dynamic_occupancy_grid_);
+
+        if(expansion_has_no_obstacles) {
+            const T leaf_row = leaf_position(0);
+            const T leaf_col = leaf_position(1);
+            tree.nodes_.push_back(Node(leaf_row, leaf_col, parent_node_index)); // insert new leaf
+            index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
+            const Node& leaf_node = tree.nodes_.back();
+
+            // Check if we are within reach of the goal
+            Eigen::Vector2i parent_to_leaf(goal_row - leaf_node.position_(0),
+                                           goal_col - leaf_node.position_(1));
+            const auto distance_from_goal =
+                    USE_L1_DISTANCE_METRIC ?
+                    parent_to_leaf.lpNorm<1>() :
+                    parent_to_leaf.squaredNorm();
+
+            if(distance_from_goal <= rrt_goal_proximity_threshold) {
+                // we reached the goal
+                break;
+            }
+        }
+    }
+
+    // NOTE: Here, we could re-check if we reached the goal (within some proximity threshold) or not.
+    //       If not, there are two possibilities: Return with an error, or choose the closest leaf in our
+    //       tree and construct the path backwards from that. Let's go with the second option...
+
+    // Trace the path back from the goal to the parent node
+
+    std::deque<Eigen::Vector2f> path; // path in the "map" coordinate frame
+    std::deque<Node> nodes_on_path;   // nodes on path (in the grid coordinate frame)
+
+    // Run a knn-search (k=1), to find the closest node to our goal
+    const size_t k = 1;
+    size_t nn_index;
+    T nn_distance;
+    KNNResultSet nn_results(k);
+    nn_results.init(&nn_index, &nn_distance);
+    T query_position[2] = { goal_row, goal_col };
+    index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
+    assert(nn_index < tree.nodes_.size());
+    nodes_on_path.push_front(Node(goal_row, goal_col, nn_index)); // insert the goal as the last node in the path
+
+    while(nodes_on_path.front().parent_ != 0) {
+        const size_t parent_node_index = nodes_on_path.front().parent_;
+        nodes_on_path.push_front(tree.nodes_[parent_node_index]);
+
+        const T node_row = nodes_on_path.front().position_(0);
+        const T node_col = nodes_on_path.front().position_(1);
+
+        const auto node_in_map_frame =
+                T_dynamic_oc_pixels_to_map_frame_ *
+                Eigen::Vector3f(node_row, node_col, 0.0f);
+
+        path.push_front(Eigen::Vector2f(node_in_map_frame(0), node_in_map_frame(1)));
+    }
+
+#if 0 // Debug checks...
+
+    std::cout << "PATH (GRID): ";
+    for(unsigned int j=0; j<nodes_on_path.size(); j++) {
+        if(j>0) {
+            std::cout << " --> ";
+        }
+        std::cout << "[" << nodes_on_path[j].position_(0) << ", " << nodes_on_path[j].position_(1) << "]";
+    }
+    std::cout << std::endl;
+
+    std::cout << "PATH (MAP): ";
+    for(unsigned int j=0; j<path.size(); j++) {
+        if(j>0) {
+            std::cout << " --> ";
+        }
+        std::cout << "[" << path[j](0) << ", " << path[j](1) << "]";
+    }
+    std::cout << std::endl;
+
+#endif
+
+    return {tree, path};
 }
 
 
