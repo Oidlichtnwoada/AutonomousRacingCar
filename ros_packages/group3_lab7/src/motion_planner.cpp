@@ -644,7 +644,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     unsigned int number_of_relinked_nodes = 0; // for debugging only
 #endif
 
-    constexpr bool enable_early_stopping = false; // TODO: expose this as a ROS node parameter
+    constexpr bool enable_early_stopping = true; // TODO: expose this as a ROS node parameter
 
     constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
 
@@ -916,10 +916,10 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         marker.scale.y = 0.0; // must be zero for LINE_LIST
         marker.scale.z = 0.0; // must be zero for LINE_LIST
 
-        marker.color.r = 0.00f;
-        marker.color.g = 1.00f;
-        marker.color.b = 0.00f;
-        marker.color.a = 1.0;
+        marker.color.r = 0.0f;
+        marker.color.g = 1.0f;
+        marker.color.b = 0.0f;
+        marker.color.a = 0.33f;
 
         marker.lifetime = ros::Duration();
 
