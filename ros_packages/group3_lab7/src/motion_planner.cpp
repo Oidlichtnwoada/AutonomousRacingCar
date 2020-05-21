@@ -21,6 +21,7 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GridCells.h>
+#include <visualization_msgs/Marker.h>
 #include <std_srvs/Empty.h>
 
 #include <tf2_eigen/tf2_eigen.h>
@@ -40,6 +41,7 @@
 
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
 #define GRID_PUBLISHER_MESSAGE_QUEUE_SIZE 10
+#define MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 
 #define TOPIC_SCAN "/scan"
 #define TOPIC_ODOM "/odom"
@@ -47,6 +49,7 @@
 #define TOPIC_MAP  "/map"
 #define TOPIC_DYNAMIC_OCCUPANCY_GRID "/motion_planner/dynamic_occupancy_grid"
 #define TOPIC_STATIC_OCCUPANCY_GRID  "/motion_planner/static_occupancy_grid"
+#define TOPIC_RRT_VISUALIZATION      "/motion_planner/rrt_visualization"
 #define FRAME_MAP  "map"
 
 #define DEFAULT_VEHICLE_WHEELBASE 0.3302 // units: m (see f110_simulator/params.yaml)
@@ -84,6 +87,7 @@ private:
     boost::shared_ptr<ros::ServiceServer> debug_service_;
     boost::shared_ptr<ros::Publisher> dynamic_occupancy_grid_publisher_;
     boost::shared_ptr<ros::Publisher> static_occupancy_grid_publisher_;
+    boost::shared_ptr<ros::Publisher> rrt_visualization_publisher_;
 
     tf2_ros::Buffer tf_buffer_;
     boost::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -135,7 +139,9 @@ private:
 
     template<typename T, bool USE_L1_DISTANCE_METRIC>
     std::tuple<motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>, std::deque<Eigen::Vector2f> >
-    runRRT(const nav_msgs::Odometry& odometry, const geometry_msgs::PoseStamped& goal);
+    runRRT(const nav_msgs::Odometry& odometry,
+           const geometry_msgs::PoseStamped& goal,
+           visualization_msgs::Marker* vis_msg = nullptr);
 
     std::mutex odometry_mutex_;
     geometry_msgs::PoseStamped current_goal_;
@@ -167,6 +173,7 @@ MotionPlanner::MotionPlanner()
         , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , random_generator_(std::mt19937(MotionPlanner::random_seed_))
+        , rrt_visualization_publisher_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION, MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE)))
 {
     should_plan_path_.store(false);
     node_handle_.param<float>("vehicle_wheelbase", vehicle_wheelbase_, DEFAULT_VEHICLE_WHEELBASE);
@@ -538,7 +545,8 @@ bool ExpandPath(
 template<typename T, bool USE_L1_DISTANCE_METRIC>
 std::tuple<motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>, std::deque<Eigen::Vector2f> >
 MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
-                           const geometry_msgs::PoseStamped& goal) {
+                      const geometry_msgs::PoseStamped& goal,
+                      visualization_msgs::Marker* vis_msg) {
 
     constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
 
@@ -654,6 +662,11 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
         path.push_front(Eigen::Vector2f(node_in_map_frame(0), node_in_map_frame(1)));
     }
+
+    if(vis_msg != nullptr) {
+        // ...
+    }
+
 
 #if 0 // Debug checks...
 
