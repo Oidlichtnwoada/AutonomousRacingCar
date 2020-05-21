@@ -12,6 +12,7 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <future>
 
 #include <ros/ros.h>
 
@@ -56,6 +57,9 @@
 #define DEFAULT_VEHICLE_WIDTH     0.2032 // units: m (see f110_simulator/params.yaml)
 #define DEFAULT_MAX_LASER_SCAN_DISTANCE 5.0 // units: m
 #define DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY 20 // units: Hz
+
+#define GRID_CELL_IS_FREE        0
+#define GRID_CELL_IS_OCCUPIED  255
 
 class MotionPlanner {
 
@@ -138,10 +142,14 @@ private:
     void runPathPlanner();
 
     template<typename T, bool USE_L1_DISTANCE_METRIC>
-    std::tuple<motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>, std::deque<Eigen::Vector2f> >
+    std::tuple<
+            bool, // success
+            motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>,
+            std::deque<Eigen::Vector2f>,
+            std::vector<visualization_msgs::Marker> >
     runRRT(const nav_msgs::Odometry& odometry,
            const geometry_msgs::PoseStamped& goal,
-           visualization_msgs::Marker* vis_msg = nullptr);
+           bool generate_marker_messages = false);
 
     std::mutex odometry_mutex_;
     geometry_msgs::PoseStamped current_goal_;
@@ -150,7 +158,7 @@ private:
     std::atomic<bool> should_plan_path_;
 
     std::mt19937 random_generator_;
-    static constexpr std::mt19937::result_type random_seed_ = 1234UL; // fixed seed for reproducibility
+    static constexpr std::mt19937::result_type random_seed_ = 9876543210UL; // fixed seed for reproducibility
     //std::uniform_real_distribution<float> x_distribution_;
     //std::uniform_real_distribution<float> y_distribution_;
 
@@ -260,6 +268,9 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
     A.prescale(meters_per_pixel); // pixels to meters
 
+    A.prescale(Eigen::Vector3f(-1.0, 1.0, 1.0)); // <--- NOTE!
+    A.prerotate(Eigen::AngleAxisf(-M_PI_2, Eigen::Vector3f::UnitZ())); // <--- NOTE!
+
     T_dynamic_oc_pixels_to_laser_frame_ = A.matrix();
 
     A = T_laser_to_map.matrix() * A.matrix();
@@ -298,13 +309,27 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
             // +y pointing left
             const float x = range * std::cos(angle); // units: meters
 #ifdef LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION
-            assert(x > 0.0);
+            assert(x >= 0.0);
 #endif
             const float y = range * std::sin(angle); // units: meters
 
+            // Coordinate system conventions:
+            //
+            // [x,y] are cartesian coordinates in the laser frame
             // [u,v] are the pixel coordinates in the dynamic occupancy grid
-            // u ... row    (y in the laser frame)
-            // v ... column (x in the laser frame)
+            //
+            // +u ... grid row    (+y in the laser frame)
+            // +v ... grid column (+x in the laser frame)
+            //
+            // Laser frame:      Grid frame:
+            // ------------      -----------
+            //
+            //        (+x)
+            //           ^        0 ----> (+x) = (+v)
+            //           |        |
+            // (+y) <----0        v
+            //                    (+y) = (+u)
+
             const int u = static_cast<int>(y * pixels_per_meter) + dynamic_occupancy_grid_center_(0);
             const int v = static_cast<int>(x * pixels_per_meter) + dynamic_occupancy_grid_center_(1);
 
@@ -314,7 +339,7 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
             const int v_max = dynamic_occupancy_grid_.cols-1;
 
             assert(u >= 0 && v >= 0 && u < dynamic_occupancy_grid_.rows && v < dynamic_occupancy_grid_.cols);
-            dynamic_occupancy_grid_.at<uint8_t>(u,v) = 255;
+            dynamic_occupancy_grid_.at<uint8_t>(u,v) = GRID_CELL_IS_OCCUPIED;
         }
     }
 
@@ -372,7 +397,7 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     static_occupancy_grid_ = cv::Mat(info.height, info.width, CV_8UC1, (void*) map_->data.data());
 
     // Binarize static occupancy grid (unoccupied: 0, occupied: 255).
-    cv::threshold(static_occupancy_grid_, static_occupancy_grid_ /* in-place */, 1.0, 255.0, cv::THRESH_BINARY);
+    cv::threshold(static_occupancy_grid_, static_occupancy_grid_ /* in-place */, 1.0, GRID_CELL_IS_OCCUPIED, cv::THRESH_BINARY);
 
     // Dilate static occupancy grid
     dilateOccupancyGrid(static_occupancy_grid_);
@@ -388,9 +413,9 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
         dynamic_occupancy_grid_cols++;
     }
 
-    // Coordinate system:
-    // +x (forward) <--> laser frame row <--> grid col
-    // +y (left)    <--> laser frame col <--> grid row
+    // Coordinate system conventions:
+    // +x (forward) <--> laser frame row <--> grid col (+v)
+    // +y (left)    <--> laser frame col <--> grid row (+u)
 
     const int center_col = (dynamic_occupancy_grid_cols - 1) / 2;
 
@@ -431,13 +456,13 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
 
     for(int row=0; row<grid.rows; row++) {
         for(int col=0; col<grid.cols; col++) {
-            if(grid.at<uint8_t>(row,col) == 0) {
+            if(grid.at<uint8_t>(row,col) == GRID_CELL_IS_FREE) {
                 continue;
             }
 
-            // Coordinate system:
-            // +x (forward) <--> laser frame row <--> grid col
-            // +y (left)    <--> laser frame col <--> grid row
+            // Coordinate system conventions:
+            // +x (forward) <--> laser frame row <--> grid col (+v)
+            // +y (left)    <--> laser frame col <--> grid row (+u)
 
             geometry_msgs::Point p;
             p.x = (float) (col - grid_center(1)) * meters_per_pixel;
@@ -452,7 +477,9 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
 void MotionPlanner::runPathPlanner() {
 
     constexpr bool USE_L1_DISTANCE_METRIC = true;
-    constexpr float goal_proximity_threshold = 0.2; // units: meters // TODO: this is an arbitrary choice for testing...
+    constexpr float goal_proximity_threshold = 0.1; // units: meters // TODO: this is an arbitrary choice for testing...
+
+    std::future<void> async_marker_publishing_task;
 
     ROS_INFO("Path planner is starting...");
 
@@ -487,8 +514,42 @@ void MotionPlanner::runPathPlanner() {
 
             if(!already_near_goal) {
                 number_of_computations++;
-                // TODO: Choose between RRT and alternative algorithms (RRT*, ...) here...
-                auto [tree, path] = runRRT<int, USE_L1_DISTANCE_METRIC>(odometry, goal);
+
+                bool should_generate_marker_messages = true;
+
+                // TODO: throttle marker message generation to some maximum frequency
+                //       (by setting should_generate_marker_messages=false if some delta_t has not yet elapsed).
+
+#if 0
+                // EXAMPLE:
+
+                if(number_of_computations % 20 != 0) {
+                    // generate message every 20th computation
+                    should_generate_marker_messages = false;
+                    }
+#endif
+
+                if(should_generate_marker_messages &&
+                   async_marker_publishing_task.valid() &&
+                   async_marker_publishing_task.wait_for(
+                           std::chrono::nanoseconds(0)) != std::future_status::ready) {
+                    should_generate_marker_messages = false;
+                }
+
+                // TODO: Choose between RRT and alternative algorithms (RRT*, ...)
+
+                auto [success, tree, path, marker_messages] = runRRT<int, USE_L1_DISTANCE_METRIC>(
+                        odometry, goal, should_generate_marker_messages);
+
+                if(!marker_messages.empty()) {
+                    async_marker_publishing_task = std::async(
+                            std::launch::async,
+                            [](const std::vector<visualization_msgs::Marker>& marker_messages,
+                                          boost::shared_ptr<ros::Publisher> publisher) {
+                                for(auto message : marker_messages) {
+                                    publisher->publish(message);
+                                } }, marker_messages, rrt_visualization_publisher_);
+                }
             }
 
         } else {
@@ -499,60 +560,87 @@ void MotionPlanner::runPathPlanner() {
     ROS_INFO("Path planner is shutting down...");
 }
 
+// This is a modified version of
+// Bresenham's line algorithm
+//
+// Source: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C
+
 bool ExpandPath(
         const cv::Vec2i start,
         const cv::Vec2i destination,
         cv::Vec2i& end,
         float max_expansion_distance,
-        const cv::Mat& grid) {
-
+        const cv::Mat& grid)
+{
     int x0 = start(0);
     int y0 = start(1);
-    int x1 = destination(0);
-    int y1 = destination(1);
+    const int &x1 = destination(0);
+    const int &y1 = destination(1);
     int expansion_distance = 0;
 
-    // Bresenham algorithm
-    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy, e2; /* error value e_xy */
-    while (true) {
-        if (expansion_distance >= max_expansion_distance) {
-            end = cv::Vec2i(x0,y0);
-            return true;
+    const int dx = std::abs(x1-x0);
+    const int sx = x0<x1 ? 1 : -1;
+    const int dy = std::abs(y1-y0);
+    const int sy = y0<y1 ? 1 : -1;
+    int err = (dx>dy ? dx : -dy)/2, e2;
+
+    for(;;){
+        if (grid.at<uint8_t>(x0, y0) != GRID_CELL_IS_FREE) {
+            return(false);
         }
-        if (grid.at<unsigned>(x0, y0) > 0) {
-            end = cv::Vec2i(x0,y0);
-            return false;
+        if (x0==x1 && y0==y1) {
+            break;
         }
-        if (x0 == x1 && y0 == y1) break;
-        e2 = 2 * err;
-        if (e2 > dy) {
-            err += dy;
-            x0 += sx;
+        e2 = err;
+        if (e2 >-dx) {
+            if (grid.at<uint8_t>(x0 + sx, y0) != GRID_CELL_IS_FREE) {
+                end = cv::Vec2i(x0,y0);
+                return(false);
+            }
             expansion_distance += sx;
-        } /* e_xy+e_x > 0 */
-        if (e2 < dx) {
-            err += dx;
-            y0 += sy;
+            if (expansion_distance >= max_expansion_distance) {
+                break;
+            }
+            err -= dy; x0 += sx;
+        }
+        if (e2 < dy) {
+            if (grid.at<uint8_t>(x0, y0 + sy) != GRID_CELL_IS_FREE) {
+                end = cv::Vec2i(x0,y0);
+                return(false);
+            }
             expansion_distance += sy;
-        } /* e_xy+e_y < 0 */
+            if (expansion_distance >= max_expansion_distance) {
+                break;
+            }
+            err += dx; y0 += sy;
+        }
+        if (expansion_distance >= max_expansion_distance) {
+            break;
+        }
     }
     end = cv::Vec2i(x0,y0);
-    return true;
+    return(true);
 }
 
 template<typename T, bool USE_L1_DISTANCE_METRIC>
-std::tuple<motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>, std::deque<Eigen::Vector2f> >
+std::tuple<
+        bool,
+        motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>,
+        std::deque<Eigen::Vector2f>,
+        std::vector<visualization_msgs::Marker> >
 MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                       const geometry_msgs::PoseStamped& goal,
-                      visualization_msgs::Marker* vis_msg) {
+                      bool generate_marker_messages) {
 
     constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
 
     constexpr unsigned int maximum_rrt_samples = 2000;  // TODO: expose this as a ROS node parameter
-    constexpr float maximum_rrt_expansion_distance = 2; // TODO: expose this as a ROS node parameter
+    constexpr float maximum_rrt_expansion_distance = 5; // TODO: expose this as a ROS node parameter
     constexpr float rrt_goal_proximity_threshold = 2;   // TODO: expose this as a ROS node parameter
+
+    assert(maximum_rrt_samples > 0);
+    assert(maximum_rrt_expansion_distance > 1);
+    assert(rrt_goal_proximity_threshold > 0);
 
     using Tree = typename motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>;
     using Node = typename Tree::Node;
@@ -564,10 +652,25 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
     // Goal
     assert(goal.header.frame_id.compare("map") == 0); // we expect a goal in the "map" frame
+
     const auto goal_in_grid_frame = T_dynamic_oc_pixels_to_map_frame_.inverse() *
             Eigen::Vector3f(goal.pose.position.x, goal.pose.position.y, 0.0f);
-    const T goal_row = goal_in_grid_frame(0); // <---- CHECK ROW/COL!!!!!
-    const T goal_col = goal_in_grid_frame(1); // <---- CHECK ROW/COL!!!!!
+    const T goal_row = goal_in_grid_frame(0);
+    const T goal_col = goal_in_grid_frame(1);
+
+    // check if goal lies outside grid bounds
+    if(goal_row < 0 ||
+       goal_row >= dynamic_occupancy_grid_.rows ||
+       goal_col < 0 ||
+       goal_col >= dynamic_occupancy_grid_.cols) {
+
+        // goal lies outside grid bounds
+
+        // TODO: Is there a better way to handle such a case?
+        std::deque<Eigen::Vector2f> path;
+        std::vector<visualization_msgs::Marker> marker_messages;
+        return {false, tree, path, marker_messages};
+    }
 
     // Randomly distribute samples across the entire grid
     UniformDistribution uniform_row_distribution(static_cast<T>(0), static_cast<T>(dynamic_occupancy_grid_.rows - 1));
@@ -579,9 +682,14 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     tree.nodes_.push_back(Node(root_row,root_col,0)); // insert the root node
     index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
 
-    for(unsigned int n=0; n<maximum_rrt_samples; n++) {
+    while(tree.nodes_.size() < maximum_rrt_samples) {
         const T random_row = uniform_row_distribution(random_generator_);
         const T random_col = uniform_col_distribution(random_generator_);
+
+        if(dynamic_occupancy_grid_.at<uint8_t>(random_row, random_col) != GRID_CELL_IS_FREE) {
+            // grid cell is blocked
+            continue;
+        }
 
         // run a knn-search (k=1)
         const size_t k = 1;
@@ -599,7 +707,9 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         const T parent_row = static_cast<T>(parent_node.position_(0));
         const T parent_col = static_cast<T>(parent_node.position_(1));
 
-        cv::Vec2i leaf_position;
+        assert(dynamic_occupancy_grid_.at<uint8_t>(parent_row, parent_col) == GRID_CELL_IS_FREE);
+
+        cv::Vec2i leaf_position(0,0);
         const bool expansion_has_no_obstacles =
                 ExpandPath(cv::Vec2i(parent_row, parent_col),
                            cv::Vec2i(random_row, random_col),
@@ -607,26 +717,32 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                            maximum_rrt_expansion_distance,
                            dynamic_occupancy_grid_);
 
-        if(expansion_has_no_obstacles) {
-            const T leaf_row = leaf_position(0);
-            const T leaf_col = leaf_position(1);
-            tree.nodes_.push_back(Node(leaf_row, leaf_col, parent_node_index)); // insert new leaf
-            index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
-            const Node& leaf_node = tree.nodes_.back();
-
-            // Check if we are within reach of the goal
-            Eigen::Vector2i parent_to_leaf(goal_row - leaf_node.position_(0),
-                                           goal_col - leaf_node.position_(1));
-            const auto distance_from_goal =
-                    USE_L1_DISTANCE_METRIC ?
-                    parent_to_leaf.lpNorm<1>() :
-                    parent_to_leaf.squaredNorm();
-
-            if(distance_from_goal <= rrt_goal_proximity_threshold) {
-                // we reached the goal
-                break;
-            }
+        if(!expansion_has_no_obstacles) {
+            continue;
         }
+
+        const T leaf_row = leaf_position(0);
+        const T leaf_col = leaf_position(1);
+
+        assert(dynamic_occupancy_grid_.at<uint8_t>(leaf_row, leaf_col) == GRID_CELL_IS_FREE);
+
+        tree.nodes_.push_back(Node(leaf_row, leaf_col, parent_node_index)); // insert new leaf
+        index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
+        const Node& leaf_node = tree.nodes_.back();
+
+        // Check if we are within reach of the goal
+        Eigen::Vector2i parent_to_leaf(goal_row - leaf_node.position_(0),
+                                       goal_col - leaf_node.position_(1));
+        const auto distance_from_goal =
+                USE_L1_DISTANCE_METRIC ?
+                parent_to_leaf.lpNorm<1>() :
+                parent_to_leaf.squaredNorm();
+
+        if(distance_from_goal <= rrt_goal_proximity_threshold) {
+            // we reached the goal
+            break;
+        }
+
     }
 
     // NOTE: Here, we could re-check if we reached the goal (within some proximity threshold) or not.
@@ -649,7 +765,8 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     assert(nn_index < tree.nodes_.size());
     nodes_on_path.push_front(Node(goal_row, goal_col, nn_index)); // insert the goal as the last node in the path
 
-    while(nodes_on_path.front().parent_ != 0) {
+    while(true) {
+    //while(nodes_on_path.front().parent_ != 0) {
         const size_t parent_node_index = nodes_on_path.front().parent_;
         nodes_on_path.push_front(tree.nodes_[parent_node_index]);
 
@@ -661,14 +778,249 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                 Eigen::Vector3f(node_row, node_col, 0.0f);
 
         path.push_front(Eigen::Vector2f(node_in_map_frame(0), node_in_map_frame(1)));
+        if(parent_node_index==0) {
+            break;
+        }
     }
 
-    if(vis_msg != nullptr) {
-        // ...
+    int marker_message_id = 0;
+    std::vector<visualization_msgs::Marker> marker_messages;
+
+//#define SHOW_FULL_TREE
+#if defined(SHOW_FULL_TREE)
+    if(generate_marker_messages) {
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+
+        // Set the namespace and id for this marker. This serves to create a unique ID.
+        // Any marker sent with the same namespace and id will overwrite the old one.
+        marker.ns = "rrt";
+        marker.id = marker_message_id++;
+
+        marker.type = visualization_msgs::Marker::LINE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+
+        marker.scale.x = 1.0 / 100.0f;
+        marker.scale.y = 0.0; // must be zero for LINE_LIST
+        marker.scale.z = 0.0; // must be zero for LINE_LIST
+
+        marker.color.r = 0.00f;
+        marker.color.g = 1.00f;
+        marker.color.b = 0.00f;
+        marker.color.a = 1.0;
+
+        marker.lifetime = ros::Duration();
+
+        for(unsigned int j=0; j<tree.nodes_.size(); j++) {
+
+            const size_t i = tree.nodes_[j].parent_;
+            if(i==0) {
+                continue;
+            }
+
+            const auto &vertex0 = tree.nodes_[i].position_;
+            const auto &vertex1 = tree.nodes_[j].position_;
+
+            const auto vertex0_in_map_frame =
+                    T_dynamic_oc_pixels_to_map_frame_ *
+                    Eigen::Vector3f(vertex0(0), vertex0(1), 0.0f);
+
+            const auto vertex1_in_map_frame =
+                    T_dynamic_oc_pixels_to_map_frame_ *
+                    Eigen::Vector3f(vertex1(0), vertex1(1), 0.0f);
+
+            geometry_msgs::Point p0;
+            p0.x = vertex0_in_map_frame(0);
+            p0.y = vertex0_in_map_frame(1);
+            p0.z = 0.0;
+
+            geometry_msgs::Point p1;
+            p1.x = vertex1_in_map_frame(0);
+            p1.y = vertex1_in_map_frame(1);
+            p1.z = 0.0;
+
+            marker.points.push_back(p0);
+            marker.points.push_back(p1);
+        }
+
+        marker_messages.push_back(marker);
     }
+#endif
 
+//#define SHOW_OCCUPANCY_GRID_OUTLINE
+#if defined(SHOW_OCCUPANCY_GRID_OUTLINE)
+    if(generate_marker_messages) {
 
-#if 0 // Debug checks...
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "rrt";
+        marker.id = marker_message_id++;
+
+        marker.type = visualization_msgs::Marker::LINE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+
+        marker.scale.x = 1.0 / 100.0f;
+        marker.scale.y = 0.0; // must be zero for LINE_LIST
+        marker.scale.z = 0.0; // must be zero for LINE_LIST
+
+        marker.color.r = 0.0f;
+        marker.color.g = 1.0f;
+        marker.color.b = 1.0f;
+        marker.color.a = 1.0;
+
+        marker.lifetime = ros::Duration();
+
+        std::vector<Eigen::Vector3f> edges;
+
+        edges.push_back(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+        edges.push_back(Eigen::Vector3f(dynamic_occupancy_grid_.rows-1, 0.0f, 0.0f));
+        edges.push_back(Eigen::Vector3f(dynamic_occupancy_grid_.rows-1, dynamic_occupancy_grid_.cols-1, 0.0f));
+        edges.push_back(Eigen::Vector3f(0.0f, dynamic_occupancy_grid_.cols-1, 0.0f));
+
+        std::vector<geometry_msgs::Point> points;
+
+        for(auto &edge : edges) {
+            const auto p_in_map_frame = T_dynamic_oc_pixels_to_map_frame_ * edge;
+            geometry_msgs::Point p;
+            p.x = p_in_map_frame(0);
+            p.y = p_in_map_frame(1);
+            p.z = 0.0f;
+            points.push_back(p);
+        }
+
+        for(int i=0; i<points.size(); i++) {
+            marker.points.push_back(points[i]);
+            marker.points.push_back(points[(i+1) % points.size()]);
+        }
+        marker_messages.push_back(marker);
+    }
+#endif
+
+#define SHOW_PATH_TO_GOAL
+#if defined(SHOW_PATH_TO_GOAL)
+    if(generate_marker_messages) {
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "rrt";
+        marker.id = marker_message_id++;
+
+        marker.type = visualization_msgs::Marker::LINE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+
+        marker.scale.x = 4.0 / 100.0f;
+        marker.scale.y = 0.0; // must be zero for LINE_LIST
+        marker.scale.z = 0.0; // must be zero for LINE_LIST
+
+        marker.color.r = 0.0f;
+        marker.color.g = 1.0f;
+        marker.color.b = 0.0f;
+        marker.color.a = 1.0;
+
+        marker.lifetime = ros::Duration();
+
+        assert(path.size() > 1); // must include at least the root and the goal
+        for (unsigned int j = 1; j < path.size(); j++) {
+
+            const auto &v0_in_map_frame = path[j-1];
+            const auto &v1_in_map_frame = path[j];
+
+            geometry_msgs::Point p0;
+            p0.x = v0_in_map_frame(0); p0.y = v0_in_map_frame(1); p0.z = 0.0;
+            marker.points.push_back(p0);
+
+            geometry_msgs::Point p1;
+            p1.x = v1_in_map_frame(0); p1.y = v1_in_map_frame(1); p1.z = 0.0;
+            marker.points.push_back(p1);
+        }
+        marker_messages.push_back(marker);
+    }
+#endif
+
+//#define SHOW_BLOCKED_GRID_CELLS // Don't enable this, except for debugging
+                                  // (nav_msgs::GridCells does the same job, but is more efficient)
+
+#if defined(SHOW_BLOCKED_GRID_CELLS)
+    if(generate_marker_messages) {
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "rrt";
+        marker.id = marker_message_id++;
+
+        marker.type = visualization_msgs::Marker::SPHERE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+
+        marker.scale.x = map_->info.resolution;
+        marker.scale.y = map_->info.resolution;
+        marker.scale.z = map_->info.resolution;
+
+        marker.color.r = 1.0f;
+        marker.color.g = 0.0f;
+        marker.color.b = 0.0f;
+        marker.color.a = 1.0;
+
+        marker.lifetime = ros::Duration();
+
+        for(int row=0; row<dynamic_occupancy_grid_.rows; row++) {
+            for(int col=0; col<dynamic_occupancy_grid_.cols; col++) {
+                if(dynamic_occupancy_grid_.at<uint8_t>(row, col) != GRID_CELL_IS_FREE) {
+
+                    const auto point_in_map_frame =
+                            T_dynamic_oc_pixels_to_map_frame_ *
+                            Eigen::Vector3f(row, col, 0.0f);
+
+                    geometry_msgs::Point p;
+                    p.x = point_in_map_frame(0);
+                    p.y = point_in_map_frame(1);
+                    p.z = 0.0;
+
+                    marker.points.push_back(p);
+                }
+            }
+        }
+        marker_messages.push_back(marker);
+    }
+#endif
+
+#if 0 // Don't enable this, except for debugging...
 
     std::cout << "PATH (GRID): ";
     for(unsigned int j=0; j<nodes_on_path.size(); j++) {
@@ -690,9 +1042,8 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
 #endif
 
-    return {tree, path};
+    return {true, tree, path, marker_messages};
 }
-
 
 int main(int argc, char **argv) {
 #if !defined(NDEBUG)
