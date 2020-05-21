@@ -141,7 +141,7 @@ private:
     boost::shared_ptr<std::thread> path_planner_thread_;
     void runPathPlanner();
 
-    template<typename T, bool USE_L1_DISTANCE_METRIC>
+    template<typename T, bool USE_L1_DISTANCE_METRIC, bool USE_RRT_STAR = false>
     std::tuple<
             bool, // success
             motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>,
@@ -476,8 +476,14 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
 
 void MotionPlanner::runPathPlanner() {
 
-    constexpr bool USE_L1_DISTANCE_METRIC = true;
-    constexpr float goal_proximity_threshold = 0.1; // units: meters // TODO: this is an arbitrary choice for testing...
+    const bool use_rrt_star = true; // TODO: expose this as a ROS node parameter
+
+    constexpr bool USE_L1_DISTANCE_METRIC = true; // L1 has proven to work well enough and is faster than L2,
+                                                  // so there is really no good reason to switch back to L2.
+
+    // NOTE: goal_proximity_threshold is used only for performance reasons, nothing else.
+    // We don't want to repeatedly trigger the planner if we are already at (or near) the goal.
+    constexpr float goal_proximity_threshold = 0.1; // units: meters // TODO: this is an arbitrary choice for testing.
 
     std::future<void> async_marker_publishing_task;
 
@@ -485,7 +491,7 @@ void MotionPlanner::runPathPlanner() {
 
     static unsigned int number_of_computations = 0; // for debugging only
 
-    ros::Rate sampling_rate(1000); // 1000 hz
+    ros::Rate sampling_rate(1000); // 1000 hz (chosen to match the /odom update frequency)
     while (!ros::isShuttingDown()) {
         bool expected = true;
         if(should_plan_path_.compare_exchange_strong(expected, false)) {
@@ -538,8 +544,10 @@ void MotionPlanner::runPathPlanner() {
 
                 // TODO: Choose between RRT and alternative algorithms (RRT*, ...)
 
-                auto [success, tree, path, marker_messages] = runRRT<int, USE_L1_DISTANCE_METRIC>(
-                        odometry, goal, should_generate_marker_messages);
+                auto [success, tree, path, marker_messages] =
+                    use_rrt_star ?
+                    runRRT<int, USE_L1_DISTANCE_METRIC, true > (odometry, goal, should_generate_marker_messages) :
+                    runRRT<int, USE_L1_DISTANCE_METRIC, false> (odometry, goal, should_generate_marker_messages);
 
                 if(!marker_messages.empty()) {
                     async_marker_publishing_task = std::async(
@@ -569,7 +577,7 @@ bool ExpandPath(
         const cv::Vec2i start,
         const cv::Vec2i destination,
         cv::Vec2i& end,
-        float max_expansion_distance,
+        const int max_expansion_distance,
         const cv::Mat& grid)
 {
     int x0 = start(0);
@@ -622,7 +630,7 @@ bool ExpandPath(
     return(true);
 }
 
-template<typename T, bool USE_L1_DISTANCE_METRIC>
+template<typename T, bool USE_L1_DISTANCE_METRIC, bool USE_RRT_STAR>
 std::tuple<
         bool,
         motion_planner::Tree<T, USE_L1_DISTANCE_METRIC>,
@@ -632,11 +640,21 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                       const geometry_msgs::PoseStamped& goal,
                       bool generate_marker_messages) {
 
+#ifndef NDEBUG
+    unsigned int number_of_relinked_nodes = 0; // for debugging only
+#endif
+
+    constexpr bool enable_early_stopping = false; // TODO: expose this as a ROS node parameter
+
     constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
 
     constexpr unsigned int maximum_rrt_samples = 2000;  // TODO: expose this as a ROS node parameter
-    constexpr float maximum_rrt_expansion_distance = 5; // TODO: expose this as a ROS node parameter
+    constexpr int maximum_rrt_expansion_distance = 5; // TODO: expose this as a ROS node parameter
     constexpr float rrt_goal_proximity_threshold = 2;   // TODO: expose this as a ROS node parameter
+
+    // RRT* only:
+    constexpr unsigned int rrt_star_nn_k = 10; // size of the neighborhood for reconnection inspection
+
 
     assert(maximum_rrt_samples > 0);
     assert(maximum_rrt_expansion_distance > 1);
@@ -692,14 +710,33 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         }
 
         // run a knn-search (k=1)
-        const size_t k = 1;
-        size_t nn_index;
-        T nn_distance;
+        constexpr size_t k = USE_RRT_STAR ? rrt_star_nn_k : 1;
+        size_t nn_indices[k];
+        T nn_distances[k];
         KNNResultSet nn_results(k);
-        nn_results.init(&nn_index, &nn_distance);
+        nn_results.init(nn_indices, nn_distances);
         T query_position[2] = { random_row, random_col };
-        index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
-        assert(nn_index < tree.nodes_.size());
+        const bool neighbors_found = index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
+
+        size_t nn_index = nn_indices[0]; // for RRT (k=1)
+        T nn_distance = nn_distances[0]; // for RRT (k=1)
+
+        // RRT* only: inspect the k-neighborhood, choose minimum-cost link
+        if(neighbors_found && USE_RRT_STAR) {
+
+            std::vector<Node*> k_neighborhood;
+            for(unsigned int i=0; i<k; i++) {
+                const size_t j = nn_indices[i];
+                assert(j < tree.nodes_.size());
+                k_neighborhood.push_back(&tree.nodes_[j]);
+            }
+            const unsigned int argmin_cost = std::distance(k_neighborhood.begin(), std::min_element(
+                    k_neighborhood.begin(), k_neighborhood.end(), [](Node* node0, Node* node1) {
+                        return (node0->path_length_ < node1->path_length_); }));
+
+            nn_index = nn_indices[argmin_cost];
+            nn_distance = nn_distances[argmin_cost];
+        }
 
         // The nearest node is our new parent
         const size_t parent_node_index = nn_index;
@@ -709,6 +746,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
         assert(dynamic_occupancy_grid_.at<uint8_t>(parent_row, parent_col) == GRID_CELL_IS_FREE);
 
+        // Expand the path from the parent to the leaf, check if obstacles are in the way...
         cv::Vec2i leaf_position(0,0);
         const bool expansion_has_no_obstacles =
                 ExpandPath(cv::Vec2i(parent_row, parent_col),
@@ -726,21 +764,74 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
         assert(dynamic_occupancy_grid_.at<uint8_t>(leaf_row, leaf_col) == GRID_CELL_IS_FREE);
 
-        tree.nodes_.push_back(Node(leaf_row, leaf_col, parent_node_index)); // insert new leaf
-        index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
-        const Node& leaf_node = tree.nodes_.back();
-
-        // Check if we are within reach of the goal
-        Eigen::Vector2i parent_to_leaf(goal_row - leaf_node.position_(0),
-                                       goal_col - leaf_node.position_(1));
-        const auto distance_from_goal =
+        // Compute parent-->leaf distance.
+        Eigen::Vector2i parent_to_leaf(parent_row - leaf_row,
+                                       parent_col - leaf_col);
+        const auto parent_to_leaf_distance =
                 USE_L1_DISTANCE_METRIC ?
                 parent_to_leaf.lpNorm<1>() :
                 parent_to_leaf.squaredNorm();
 
-        if(distance_from_goal <= rrt_goal_proximity_threshold) {
-            // we reached the goal
-            break;
+        const auto accumulated_path_length_to_leaf = parent_node.path_length_ + parent_to_leaf_distance;
+
+        tree.nodes_.push_back(Node(leaf_row, leaf_col, parent_node_index, accumulated_path_length_to_leaf)); // insert new leaf
+        const Node& leaf_node = tree.nodes_.back();
+        const size_t leaf_node_index = tree.nodes_.size() - 1;
+
+        if(neighbors_found && USE_RRT_STAR) {
+
+            for(unsigned int i=0; i<k; i++) {
+                const size_t j = nn_indices[i];
+                assert(j < tree.nodes_.size());
+                Node& node = tree.nodes_[j];
+
+                Eigen::Vector2i node_to_leaf(node.position_(0) - leaf_row,
+                                             node.position_(1) - leaf_col);
+                const auto node_to_leaf_distance =
+                        USE_L1_DISTANCE_METRIC ?
+                        node_to_leaf.lpNorm<1>() :
+                        node_to_leaf.squaredNorm();
+
+                if(accumulated_path_length_to_leaf + node_to_leaf_distance < node.path_length_) {
+                    // re-link node to new parent (which is our leaf)
+
+                    // Check if obstacles are in the way...
+                    cv::Vec2i dummy_position;
+                    const bool expansion_has_no_obstacles =
+                            ExpandPath(cv::Vec2i(leaf_row, leaf_col),
+                                       cv::Vec2i(node.position_(0), node.position_(1)),
+                                       dummy_position,
+                                       std::numeric_limits<int>::max(),
+                                       dynamic_occupancy_grid_);
+
+                    if(!expansion_has_no_obstacles) {
+                        continue;
+                    }
+
+                    node.path_length_ = accumulated_path_length_to_leaf + node_to_leaf_distance;
+                    node.parent_ = leaf_node_index;
+
+                    #ifndef NDEBUG
+                    number_of_relinked_nodes++; // for debugging only
+                    #endif
+                }
+            }
+        }
+        index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
+
+        if(enable_early_stopping) {
+            // Check if we are within reach of the goal
+            Eigen::Vector2i goal_to_leaf(goal_row - leaf_node.position_(0),
+                                         goal_col - leaf_node.position_(1));
+            const auto leaf_to_goal_distance =
+                    USE_L1_DISTANCE_METRIC ?
+                    goal_to_leaf.lpNorm<1>() :
+                    goal_to_leaf.squaredNorm();
+
+            if(leaf_to_goal_distance <= rrt_goal_proximity_threshold) {
+                // we reached the goal
+                break;
+            }
         }
 
     }
@@ -763,7 +854,18 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     T query_position[2] = { goal_row, goal_col };
     index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
     assert(nn_index < tree.nodes_.size());
-    nodes_on_path.push_front(Node(goal_row, goal_col, nn_index)); // insert the goal as the last node in the path
+
+    Eigen::Vector2i goal_to_closest_leaf(goal_row - tree.nodes_[nn_index].position_(0),
+                                         goal_col - tree.nodes_[nn_index].position_(1));
+    const auto closest_leaf_to_goal_distance =
+            USE_L1_DISTANCE_METRIC ?
+            goal_to_closest_leaf.lpNorm<1>() :
+            goal_to_closest_leaf.squaredNorm();
+
+    const auto accumulated_path_length_to_goal =
+            tree.nodes_[nn_index].path_length_ + closest_leaf_to_goal_distance;
+
+    nodes_on_path.push_front(Node(goal_row, goal_col, nn_index, accumulated_path_length_to_goal)); // insert the goal as the last node in the path
 
     while(true) {
     //while(nodes_on_path.front().parent_ != 0) {
@@ -1016,6 +1118,48 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                 }
             }
         }
+        marker_messages.push_back(marker);
+    }
+#endif
+
+#define SHOW_GOAL
+#if defined(SHOW_GOAL)
+    if(generate_marker_messages) {
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "map";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "rrt";
+        marker.id = marker_message_id++;
+
+        marker.type = visualization_msgs::Marker::SPHERE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+
+        marker.scale.x = 0.2;
+        marker.scale.y = 0.2;
+        marker.scale.z = 0.2;
+
+        marker.color.r = 1.0f;
+        marker.color.g = 1.0f;
+        marker.color.b = 0.0f;
+        marker.color.a = 1.0;
+
+        marker.lifetime = ros::Duration();
+
+        geometry_msgs::Point p;
+        p.x = goal.pose.position.x;
+        p.y = goal.pose.position.y;
+        p.z = 0.0;
+
+        marker.points.push_back(p);
         marker_messages.push_back(marker);
     }
 #endif
