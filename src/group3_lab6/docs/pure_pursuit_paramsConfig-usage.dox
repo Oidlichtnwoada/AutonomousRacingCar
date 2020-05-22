@@ -1,8 +1,0 @@
-\subsubsection usage Usage
-\verbatim
-<node name="group3_lab6" pkg="group3_lab6" type="group3_lab6">
-  <param name="lookahead_distance" type="double" value="1.0" />
-  <param name="forward_direction" type="bool" value="True" />
-</node>
-\endverbatim
-

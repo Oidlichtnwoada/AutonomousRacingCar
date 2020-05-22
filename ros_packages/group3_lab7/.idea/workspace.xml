@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
+    <generated />
+  </component>
+  <component name="CMakeSettings" AUTO_RELOAD="true">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="69939ad2-4e8b-431e-b6b6-f0e26e8731d9" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/../../.catkin_tools/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../.gitmodules" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../build/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../devel/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../logs/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/f1tenth_labs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/README.html" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/README.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/bags/circle.bag" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/bags/circle.bag" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/bags/free.bag" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/bags/free.bag" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/bags/line.bag" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/bags/line.bag" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/include/scan_matcher/correspond.h" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/include/scan_matcher/correspond.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/include/scan_matcher/transform.h" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/include/scan_matcher/transform.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/include/scan_matcher/visualization.h" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/include/scan_matcher/visualization.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/offline_analysis.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/offline_analysis.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/plotjuggler.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/plotjuggler.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/plotjuggler_layout.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/plotjuggler_layout.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/scan_matcher.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/scan_matcher.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/sim_low_res.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/sim_low_res.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/simulator.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/simulator.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/simulator.rviz" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/simulator.rviz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/simulator.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/simulator.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/launch/simulator_other_conf.rviz" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/launch/simulator_other_conf.rviz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/labeled_screenshot.svg" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/labeled_screenshot.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/plot_circle.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/plot_circle.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/plot_free.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/plot_free.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/plot_line.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/plot_line.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/plotjuggler_prompt.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/plotjuggler_prompt.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/rviz_screenshot.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/rviz_screenshot.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/test_results.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/test_results.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/video_circle.gif" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/video_circle.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/video_circle.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/video_circle.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/video_free.gif" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/video_free.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/video_free.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/video_free.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/video_line.gif" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/video_line.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/media/video_line.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/media/video_line.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/package.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/scripts/record_bagfile.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/scripts/record_bagfile.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/scripts/show_tf_tree.sh" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/scripts/show_tf_tree.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/src/scan_matcher.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/src/scan_matcher.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/src/scan_matcher/correspond.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/src/scan_matcher/correspond.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/src/scan_matcher/transform.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/src/scan_matcher/transform.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/src/scan_matcher/visualization.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/src/scan_matcher/visualization.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/test/fake_laser_scan.m" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/test/fake_laser_scan.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/test/fake_laser_scan_example.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/test/fake_laser_scan_example.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab5/test/test_icp_algorithm.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab5/test/test_icp_algorithm.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/README.html" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/README.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cartographer_files/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cartographer_files/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cartographer_files/f110_2d.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cartographer_files/f110_2d.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cartographer_files/f110_2d.lua" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cartographer_files/f110_2d.lua" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cartographer_files/f110_2d_viz.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cartographer_files/f110_2d_viz.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cartographer_files/f110_description/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cartographer_files/f110_description/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cartographer_files/f110_description/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cartographer_files/f110_description/package.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cfg/cpp/group3_lab6/drive_controller_paramsConfig.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cfg/cpp/group3_lab6/pure_pursuit_paramsConfig.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cfg/drive_controller_params.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cfg/drive_controller_params.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/cfg/pure_pursuit_params.cfg" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/cfg/pure_pursuit_params.cfg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/docs/drive_controller_paramsConfig-usage.dox" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/docs/drive_controller_paramsConfig.dox" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/docs/drive_controller_paramsConfig.wikidoc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/docs/pure_pursuit_paramsConfig-usage.dox" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/docs/pure_pursuit_paramsConfig.dox" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/docs/pure_pursuit_paramsConfig.wikidoc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/drive_controller.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/drive_controller.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/plotjuggler.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/plotjuggler.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/plotjuggler_layout.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/plotjuggler_layout.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/pure_pursuit.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/pure_pursuit.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/pure_pursuit.rviz" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/pure_pursuit.rviz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/pure_pursuit_simulator.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/pure_pursuit_simulator.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/pure_pursuit_simulator.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/pure_pursuit_simulator.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/simulate_remapped_environment.launch" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/simulate_remapped_environment.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/simulate_remapped_environment.rviz" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/simulate_remapped_environment.rviz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/launch/simulate_remapped_environment.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/launch/simulate_remapped_environment.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/adjust_remapped_levine_loop.m" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/adjust_remapped_levine_loop.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/adjusted_remapped_levine_loop.pgm" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/adjusted_remapped_levine_loop.pgm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/adjusted_remapped_levine_loop.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/adjusted_remapped_levine_loop.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/original_levine_loop.pgm" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/original_levine_loop.pgm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/original_levine_loop.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/original_levine_loop.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/remapped_levine_loop.pgm" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/remapped_levine_loop.pgm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/remapped_levine_loop.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/remapped_levine_loop.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/maps/remapped_levine_loop.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/maps/remapped_levine_loop.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/adjusted_remapped_levine_loop.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/adjusted_remapped_levine_loop.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/lowpass_filtered_trajectory.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/lowpass_filtered_trajectory.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/original_recorded_trajectory.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/original_recorded_trajectory.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pf_localization.gif" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pf_localization.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pf_localization.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pf_localization.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pf_localization_detail.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pf_localization_detail.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pf_rosgraph.svg" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pf_rosgraph.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pf_tf_frames.svg" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pf_tf_frames.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pure_pursuit.mp4" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pure_pursuit.mp4" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pure_pursuit_animated.gif" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pure_pursuit_animated.gif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pure_pursuit_control_law.svg" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pure_pursuit_control_law.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pure_pursuit_detail.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pure_pursuit_detail.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pure_pursuit_rosgraph.svg" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pure_pursuit_rosgraph.svg" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/pure_pursuit_still.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/pure_pursuit_still.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/media/resampled_trajectory.png" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/media/resampled_trajectory.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/package.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/setup.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/src/drive_controller.py" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/src/drive_controller.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/src/group3_lab6/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/src/group3_lab6/cfg/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/src/group3_lab6/cfg/drive_controller_paramsConfig.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/src/group3_lab6/cfg/pure_pursuit_paramsConfig.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/src/pure_pursuit.py" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/src/pure_pursuit.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/src/waypoint_logger.py" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/src/waypoint_logger.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/arrow3.m" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/arrow3.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/convert_raw_path.m" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/convert_raw_path.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/generate_simplified_path.m" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/generate_simplified_path.m" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/lowpass_filtered_trajectory.csv" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/lowpass_filtered_trajectory.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/recorded_trajectory.csv" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/recorded_trajectory.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/resampled_trajectory.csv" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/resampled_trajectory.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/wp-2020-05-14-07-25-57.csv" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/wp-2020-05-14-07-25-57.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab6/waypoint_logs/x,y,yaw,speed.headerinfo" beforeDir="false" afterPath="$PROJECT_DIR$/../group3_lab6/waypoint_logs/x,y,yaw,speed.headerinfo" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/.idea/group3_lab7.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/.idea/workspace.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/include/motion_planner/rrt.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/launch/headless_simulator.launch" beforeDir="false" afterPath="$PROJECT_DIR$/launch/headless_simulator.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/launch/motion_planner.launch" beforeDir="false" afterPath="$PROJECT_DIR$/launch/motion_planner.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/launch/occupancy_grids.rviz" beforeDir="false" afterPath="$PROJECT_DIR$/launch/occupancy_grids.rviz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/launch/rviz.launch" beforeDir="false" afterPath="$PROJECT_DIR$/launch/rviz.launch" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/package.xml" beforeDir="false" afterPath="$PROJECT_DIR$/package.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/scripts/headless_simulator.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/scripts/rviz.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/src/motion_planner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/motion_planner.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/src/motion_planner/rrt.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../../src/group3_lab7/src/motion_planner/rrt_solution.cpp" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectId" id="1c5vGasOE8FXXLkxt3ny5p7iffd" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
+    <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="cf.first.check.clang-format" value="false" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/src" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/include/motion_planner" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src" />
+      <recent name="$PROJECT_DIR$/launch" />
+    </key>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="69939ad2-4e8b-431e-b6b6-f0e26e8731d9" name="Default Changelist" comment="" />
+      <created>1589831173892</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1589831173892</updated>
+      <workItem from="1589831175752" duration="15000" />
+      <workItem from="1589831918996" duration="68000" />
+      <workItem from="1589832005999" duration="57000" />
+      <workItem from="1589832086468" duration="33936000" />
+      <workItem from="1589923229112" duration="1314000" />
+      <workItem from="1589927003480" duration="264000" />
+      <workItem from="1589927309093" duration="224000" />
+      <workItem from="1589927586637" duration="447000" />
+      <workItem from="1589928085173" duration="4000" />
+      <workItem from="1589928123271" duration="4723000" />
+      <workItem from="1589938467568" duration="7354000" />
+      <workItem from="1589966066736" duration="7432000" />
+      <workItem from="1589976196906" duration="45607000" />
+      <workItem from="1590085779068" duration="18555000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="2" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state width="807" height="821" key="DebuggerActiveHint" timestamp="1590098763091">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="807" height="821" key="DebuggerActiveHint/0.0.2560.1390@0.0.2560.1390" timestamp="1590098763091" />
+    <state x="956" y="330" key="FileChooserDialogImpl" timestamp="1589893608488">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state x="956" y="330" key="FileChooserDialogImpl/0.0.2560.1390@0.0.2560.1390" timestamp="1589893608488" />
+    <state width="2560" height="454" key="GridCell.Tab.0.bottom" timestamp="1590104046457">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.0.bottom/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046457" />
+    <state width="2560" height="454" key="GridCell.Tab.0.center" timestamp="1590104046457">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.0.center/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046457" />
+    <state width="2560" height="454" key="GridCell.Tab.0.left" timestamp="1590104046456">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.0.left/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046456" />
+    <state width="2560" height="454" key="GridCell.Tab.0.right" timestamp="1590104046457">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.0.right/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046457" />
+    <state width="2560" height="454" key="GridCell.Tab.1.bottom" timestamp="1590104046458">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.1.bottom/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046458" />
+    <state width="2560" height="454" key="GridCell.Tab.1.center" timestamp="1590104046457">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.1.center/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046457" />
+    <state width="2560" height="454" key="GridCell.Tab.1.left" timestamp="1590104046457">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.1.left/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046457" />
+    <state width="2560" height="454" key="GridCell.Tab.1.right" timestamp="1590104046457">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state width="2560" height="454" key="GridCell.Tab.1.right/0.0.2560.1390@0.0.2560.1390" timestamp="1590104046457" />
+    <state x="775" y="313" key="run.anything.popup" timestamp="1590045762910">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state x="775" y="313" key="run.anything.popup/0.0.2560.1390@0.0.2560.1390" timestamp="1590045762910" />
+    <state x="775" y="0" width="1009" height="1386" key="search.everywhere.popup" timestamp="1590087607764">
+      <screen x="0" y="0" width="2560" height="1390" />
+    </state>
+    <state x="775" y="0" width="1009" height="1386" key="search.everywhere.popup/0.0.2560.1390@0.0.2560.1390" timestamp="1590087607764" />
+  </component>
+</project>
