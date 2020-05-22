@@ -693,7 +693,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
             continue;
         }
 
-        // run a knn-search (k=1)
+        // Run a knn-search (k=1 for RRT, k>1 for RRT*)
         constexpr size_t k = USE_RRT_STAR ? rrt_star_nn_k : 1;
         size_t nn_indices[k];
         T nn_distances[k];
@@ -705,7 +705,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         size_t nn_index = nn_indices[0]; // for RRT (k=1)
         T nn_distance = nn_distances[0]; // for RRT (k=1)
 
-        // RRT* only: inspect the k-neighborhood, choose minimum-cost link
+        // RRT* only: inspect the k-neighborhood, find minimum-cost link
         if(neighbors_found && USE_RRT_STAR) {
 
             std::vector<Node*> k_neighborhood;
@@ -730,7 +730,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
         assert(dynamic_occupancy_grid_.at<uint8_t>(parent_row, parent_col) == GRID_CELL_IS_FREE);
 
-        // Expand the path from the parent to the leaf, check if obstacles are in the way...
+        // Expand the path from the parent to the leaf, check if any obstacles are in the way...
         cv::Vec2i leaf_position(0,0);
         const bool expansion_has_no_obstacles =
                 ExpandPath(cv::Vec2i(parent_row, parent_col),
@@ -766,6 +766,9 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
             for(unsigned int i=0; i<k; i++) {
                 const size_t j = nn_indices[i];
+                if(j==nn_index) {
+                    continue; // we are only interested in the (k-1)-neighborhood
+                }
                 assert(j < tree.nodes_.size());
                 Node& node = tree.nodes_[j];
 
@@ -829,7 +832,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     std::deque<Eigen::Vector2f> path; // path in the "map" coordinate frame
     std::deque<Node> nodes_on_path;   // nodes on path (in the grid coordinate frame)
 
-    // Run a knn-search (k=1), to find the closest node to our goal
+    // Run a knn-search (k=1) to find the closest node to our goal.
     const size_t k = 1;
     size_t nn_index;
     T nn_distance;
@@ -852,7 +855,6 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     nodes_on_path.push_front(Node(goal_row, goal_col, nn_index, accumulated_path_length_to_goal)); // insert the goal as the last node in the path
 
     while(true) {
-    //while(nodes_on_path.front().parent_ != 0) {
         const size_t parent_node_index = nodes_on_path.front().parent_;
         nodes_on_path.push_front(tree.nodes_[parent_node_index]);
 
