@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <node pkg="group3_lab7" name="pure_pursuit" type="pure_pursuit.py" output="screen"/>
-    <node pkg="group3_lab7" name="drive_controller" type="drive_controller.py" output="screen"/>
-</launch>
-

@@ -59,8 +59,14 @@
 #define DEFAULT_MAX_LASER_SCAN_DISTANCE 5.0 // units: m
 #define DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY 20 // units: Hz
 
-#define GRID_CELL_IS_FREE        0
-#define GRID_CELL_IS_OCCUPIED  255
+#define GRID_CELL_IS_FREE      255
+#define GRID_CELL_IS_OCCUPIED    0
+
+#undef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM // <-- not enabled by default!
+
+constexpr bool USE_L1_DISTANCE_METRIC = true;
+// L1 has proven to work well enough and is faster than L2,
+// so there is really no good reason to switch back to L2.
 
 class MotionPlanner {
 
@@ -110,6 +116,10 @@ private:
     std::mutex occupancy_grid_mutex_;
     cv::Mat static_occupancy_grid_; // just a thin wrapper around map_->data.data()
     cv::Mat dynamic_occupancy_grid_;
+#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
+    cv::Mat dynamic_occupancy_grid_distances_;
+#endif
+
     cv::Vec2i static_occupancy_grid_center_;
     cv::Vec2i dynamic_occupancy_grid_center_;
 
@@ -194,10 +204,15 @@ MotionPlanner::MotionPlanner()
 bool MotionPlanner::debugServiceCallback(std_srvs::Empty::Request& request,
                                          std_srvs::Empty::Response& response) {
 
+    std::lock_guard<std::mutex> scoped_lock(occupancy_grid_mutex_);
     // Trigger with "rosservice call /debug"
     std::cout << "MotionPlanner::debugServiceCallback()" << std::endl;
     cv::imwrite("/tmp/static_occupancy_grid.png", static_occupancy_grid_);
     cv::imwrite("/tmp/dynamic_occupancy_grid.png", dynamic_occupancy_grid_);
+#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
+    cv::imwrite("/tmp/dynamic_occupancy_grid_distances.png", dynamic_occupancy_grid_distances_);
+#endif
+    return(true);
 }
 
 void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage scan_msg) {
@@ -270,7 +285,7 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
     // =================================================================================================================
 
-    dynamic_occupancy_grid_.setTo(cv::Scalar(0.0)); // clear the grid
+    dynamic_occupancy_grid_.setTo(cv::Scalar(GRID_CELL_IS_FREE)); // clear the grid
 
     const float angle_min = scan_msg->angle_min;
     const float angle_increment = scan_msg->angle_increment;
@@ -331,6 +346,23 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     dilateOccupancyGrid(dynamic_occupancy_grid_);
     dynamic_occupancy_grid_publisher_->publish(convertToGridCellsMessage(
             dynamic_occupancy_grid_, dynamic_occupancy_grid_center_, FRAME_LASER));
+
+#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
+
+    static_assert(GRID_CELL_IS_OCCUPIED == 0 && GRID_CELL_IS_FREE == 255, "Invalid GRID_CELL constants.");
+
+    // Calculate the distance to the closest blocked cell for each cell of the grid
+
+    // TODO: Do we want a 3x3 or a 5x5 mask for DIST_L2?
+    // NOTE: for DIST_L1, a 3x3 mask gives the same result as 5x5 or any larger
+    //       See: https://docs.opencv.org/master/d7/d1b/group__imgproc__misc.html
+    cv::distanceTransform(
+            dynamic_occupancy_grid_,
+            dynamic_occupancy_grid_distances_,
+            USE_L1_DISTANCE_METRIC ? cv::DIST_L1 : cv::DIST_L2,
+            USE_L1_DISTANCE_METRIC ? 3 : 5,
+            USE_L1_DISTANCE_METRIC ? CV_8U : CV_32F);
+#endif
 
     should_plan_path_.store(true);
 }
@@ -411,8 +443,18 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     const unsigned int dynamic_occupancy_grid_rows = dynamic_occupancy_grid_cols;
 #endif
     dynamic_occupancy_grid_center_ = cv::Vec2i(center_col, center_row); // NOTE: grid is transposed w.r.t. vehicle's local coordinate system
-    const cv::Scalar unoccupied_cell(0.0);
-    dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_cols, dynamic_occupancy_grid_rows, CV_8UC1, unoccupied_cell);
+    const cv::Scalar grid_cell_is_free(GRID_CELL_IS_FREE);
+    dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_cols, dynamic_occupancy_grid_rows, CV_8UC1, grid_cell_is_free);
+
+#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
+    const cv::Scalar zero(0.0);
+    dynamic_occupancy_grid_distances_ =
+            cv::Mat(dynamic_occupancy_grid_cols,
+                    dynamic_occupancy_grid_rows,
+                    USE_L1_DISTANCE_METRIC ? CV_8UC1 : CV_32F,
+                    zero);
+#endif
+
     should_plan_path_.store(true);
 }
 
@@ -423,8 +465,13 @@ void MotionPlanner::dilateOccupancyGrid(cv::Mat& occupancy_grid) {
     if (structuring_element_width % 2 == 0) {
         structuring_element_width++;
     }
-    cv::dilate(occupancy_grid, occupancy_grid /* in-place */ , cv::getStructuringElement(
-            cv::MORPH_ELLIPSE, cv::Size(structuring_element_width, structuring_element_width)));
+    if(GRID_CELL_IS_FREE < GRID_CELL_IS_OCCUPIED) {
+        cv::dilate(occupancy_grid, occupancy_grid /* in-place */ , cv::getStructuringElement(
+                cv::MORPH_ELLIPSE, cv::Size(structuring_element_width, structuring_element_width)));
+    } else {
+        cv::erode(occupancy_grid, occupancy_grid /* in-place */ , cv::getStructuringElement(
+                cv::MORPH_ELLIPSE, cv::Size(structuring_element_width, structuring_element_width)));
+    }
 }
 
 nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
@@ -461,9 +508,6 @@ nav_msgs::GridCells MotionPlanner::convertToGridCellsMessage(
 void MotionPlanner::runPathPlanner() {
 
     const bool use_rrt_star = true; // TODO: expose this as a ROS node parameter
-
-    constexpr bool USE_L1_DISTANCE_METRIC = true; // L1 has proven to work well enough and is faster than L2,
-                                                  // so there is really no good reason to switch back to L2.
 
     // NOTE: goal_proximity_threshold is used only for performance reasons, nothing else.
     // We don't want to repeatedly trigger the planner if we are already at (or near) the goal.
@@ -638,7 +682,6 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
     // RRT* only:
     constexpr unsigned int rrt_star_nn_k = 10; // size of the neighborhood for reconnection inspection
-
 
     assert(maximum_rrt_samples > 0);
     assert(maximum_rrt_expansion_distance > 1);
@@ -874,7 +917,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     int marker_message_id = 0;
     std::vector<visualization_msgs::Marker> marker_messages;
 
-//#define SHOW_FULL_TREE
+#define SHOW_FULL_TREE
 #if defined(SHOW_FULL_TREE)
     if(generate_marker_messages) {
 
@@ -945,7 +988,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     }
 #endif
 
-//#define SHOW_OCCUPANCY_GRID_OUTLINE
+#define SHOW_OCCUPANCY_GRID_OUTLINE
 #if defined(SHOW_OCCUPANCY_GRID_OUTLINE)
     if(generate_marker_messages) {
 
