@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find group3_lab7)/launch/headless_simulator.launch"/>
+  <include file="$(find group3_lab7)/launch/rviz.launch"/>
+  <include file="$(find group3_lab7)/launch/motion_planner.launch"/>
+  <include file="$(find group3_lab7)/launch/pure_pursuit.launch"/>
+</launch>
