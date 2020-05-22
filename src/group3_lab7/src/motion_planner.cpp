@@ -17,6 +17,7 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/GridCells.h>
 #include <std_srvs/Empty.h>
+#include <ackermann_msgs/AckermannDriveStamped.h>
 
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_ros/transform_listener.h>
@@ -31,13 +32,14 @@
 
 #include <motion_planner/rrt.h>
 
-#define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
-#define GRID_PUBLISHER_MESSAGE_QUEUE_SIZE 10
+#define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1
+#define PUBLISHER_MESSAGE_QUEUE_SIZE 1
 
 #define TOPIC_SCAN "/scan"
 #define TOPIC_ODOM "/odom"
 #define TOPIC_GOAL "/mode_base_simple/goal"
 #define TOPIC_MAP  "/map"
+#define TOPIC_NAV  "/nav"
 #define TOPIC_DYNAMIC_OCCUPANCY_GRID "/motion_planner/dynamic_occupancy_grid"
 #define TOPIC_STATIC_OCCUPANCY_GRID  "/motion_planner/static_occupancy_grid"
 #define FRAME_MAP  "map"
@@ -91,6 +93,7 @@ private:
     boost::shared_ptr<ros::ServiceServer> debug_service_;
     boost::shared_ptr<ros::Publisher> dynamic_occupancy_grid_publisher_;
     boost::shared_ptr<ros::Publisher> static_occupancy_grid_publisher_;
+    boost::shared_ptr<ros::Publisher> nav_publisher_;
 
     tf2_ros::Buffer tf_buffer_;
     boost::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -155,8 +158,9 @@ MotionPlanner::MotionPlanner()
         , map_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_MAP, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::mapSubscriberCallback, this)))
         , tf_listener_(new tf2_ros::TransformListener(tf_buffer_, true))
         , debug_service_(new ros::ServiceServer(node_handle_.advertiseService("debug", &MotionPlanner::debugServiceCallback, this)))
-        , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
-        , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , nav_publisher_(new ros::Publisher(node_handle_.advertise<ackermann_msgs::AckermannDriveStamped>(TOPIC_NAV, PUBLISHER_MESSAGE_QUEUE_SIZE)))
 {
     node_handle_.param<float>("vehicle_wheelbase", vehicle_wheelbase_, DEFAULT_VEHICLE_WHEELBASE);
     node_handle_.param<float>("vehicle_width", vehicle_width_, DEFAULT_VEHICLE_WIDTH);
@@ -511,7 +515,15 @@ bool MotionPlanner::isGoal(Node node) {
 }
 
 void MotionPlanner::drive_towards_node(Node node) {
-    return;
+    Eigen::Vector3f laser_frame_coordinates =
+            T_dynamic_oc_pixels_to_laser_frame_ *
+            (T_dynamic_oc_pixels_to_static_oc_pixels_.inverse() * Eigen::Vector3f(node.x, node.y, 0));
+    double distance = pow(laser_frame_coordinates(1), 2) + pow(laser_frame_coordinates(1), 2);
+    double steering_angle = 2 * (laser_frame_coordinates(1)) / distance;
+    ackermann_msgs::AckermannDriveStamped msg;
+    msg.drive.steering_angle = steering_angle;
+    msg.drive.speed = 1.0;
+    nav_publisher_->publish(msg);
 }
 
 int main(int argc, char **argv) {

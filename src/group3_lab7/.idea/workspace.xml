@@ -2,71 +2,71 @@
 <project version="4">
   <component name="CMakeRunConfigurationManager" shouldGenerate="true" shouldDeleteObsolete="true">
     <generated>
-      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="actionlib_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="actionlib_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="roscpp_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="actionlib_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_cpp" />
       <config projectName="group3_lab7" targetName="tf_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="roscpp_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="tf_generate_messages_lisp" />
       <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="doxygen" />
       <config projectName="group3_lab7" targetName="std_srvs_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="roscpp_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="gmock" />
-      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="tf_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="run_tests" />
-      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_cpp" />
       <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="tf_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="motion_planner" />
-      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="actionlib_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="download_extra_data" />
       <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="gmock" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="motion_planner" />
       <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="gtest_main" />
-      <config projectName="group3_lab7" targetName="tests" />
-      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_nodejs" />
       <config projectName="group3_lab7" targetName="roscpp_generate_messages_lisp" />
       <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_nodejs" />
       <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="roscpp_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="tf_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="actionlib_generate_messages_eus" />
-      <config projectName="group3_lab7" targetName="clean_test_results" />
-      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_nodejs" />
-      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="tests" />
       <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_lisp" />
-      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_cpp" />
-      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_py" />
-      <config projectName="group3_lab7" targetName="gtest" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="download_extra_data" />
+      <config projectName="group3_lab7" targetName="doxygen" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_py" />
       <config projectName="group3_lab7" targetName="gmock_main" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="actionlib_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="roscpp_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="std_srvs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="gtest" />
+      <config projectName="group3_lab7" targetName="geometry_msgs_generate_messages_cpp" />
+      <config projectName="group3_lab7" targetName="actionlib_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="sensor_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="run_tests" />
+      <config projectName="group3_lab7" targetName="tf_generate_messages_eus" />
+      <config projectName="group3_lab7" targetName="gtest_main" />
+      <config projectName="group3_lab7" targetName="rosgraph_msgs_generate_messages_py" />
+      <config projectName="group3_lab7" targetName="nav_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_lisp" />
+      <config projectName="group3_lab7" targetName="clean_test_results" />
+      <config projectName="group3_lab7" targetName="std_msgs_generate_messages_nodejs" />
+      <config projectName="group3_lab7" targetName="tf2_msgs_generate_messages_py" />
     </generated>
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
@@ -77,7 +77,6 @@
   <component name="ChangeListManager">
     <list default="true" id="42daaf15-3700-4213-99e3-ddbc5c8ffb92" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/motion_planner/rrt.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/motion_planner/rrt.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/motion_planner.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/motion_planner.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -555,6 +554,8 @@
       <workItem from="1589977721741" duration="1250000" />
       <workItem from="1589979473808" duration="10517000" />
       <workItem from="1589990069220" duration="3307000" />
+      <workItem from="1590127555846" duration="61000" />
+      <workItem from="1590127650516" duration="2265000" />
     </task>
     <task id="LOCAL-00001" summary="added clion configurations for launchfiles">
       <created>1589978277250</created>
@@ -583,10 +584,10 @@
       <screen x="67" y="27" width="1853" height="887" />
     </state>
     <state x="532" y="27" width="912" height="887" key="CommitChangelistDialog2/67.27.1853.887@67.27.1853.887" timestamp="1589978277031" />
-    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog" timestamp="1589974308193">
+    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog" timestamp="1590130601439">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog/67.27.1853.887@67.27.1853.887" timestamp="1589974308193" />
+    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog/67.27.1853.887@67.27.1853.887" timestamp="1590130601439" />
     <state x="796" y="397" width="424" height="484" key="FileChooserDialogImpl" timestamp="1589979620010">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
