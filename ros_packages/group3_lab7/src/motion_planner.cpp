@@ -51,7 +51,8 @@
 #define TOPIC_DYNAMIC_OCCUPANCY_GRID "/motion_planner/dynamic_occupancy_grid"
 #define TOPIC_STATIC_OCCUPANCY_GRID  "/motion_planner/static_occupancy_grid"
 #define TOPIC_RRT_VISUALIZATION      "/motion_planner/rrt_visualization"
-#define FRAME_MAP  "map"
+#define FRAME_MAP   "map"
+#define FRAME_LASER "laser"
 
 #define DEFAULT_VEHICLE_WHEELBASE 0.3302 // units: m (see f110_simulator/params.yaml)
 #define DEFAULT_VEHICLE_WIDTH     0.2032 // units: m (see f110_simulator/params.yaml)
@@ -103,8 +104,8 @@ private:
     // Occupancy grids (static and dynamic)
     // =================================================================================================================
 
-    // Map
-    MotionPlanner::OccupancyGridMessage map_;
+    MotionPlanner::OccupancyGridMessage map_; // copied from "/map", resolution applies both to static_occupancy_grid_
+                                              // and dynamic_occupancy_grid_
 
     std::mutex occupancy_grid_mutex_;
     cv::Mat static_occupancy_grid_; // just a thin wrapper around map_->data.data()
@@ -113,21 +114,9 @@ private:
     cv::Vec2i dynamic_occupancy_grid_center_;
 
     // Affine transformations from dynamic_occupancy_grid pixel coordinates [u,v] to other frames
-    //
-    // Eigen::Vector3f v_laser = T_dynamic_oc_pixels_to_laser_frame_ * Eigen::Vector3f(u, v, 0);
-    // [v_laser(0),  v_laser(1)] are the cartesian coordinates in the laser frame (units: meters)
-
-    Eigen::Affine3f T_dynamic_oc_pixels_to_laser_frame_;
-
-    // Eigen::Vector3f v_map = T_dynamic_oc_pixels_to_map_frame_ * Eigen::Vector3f(u, v, 0);
-    // [v_map(0),  v_map(1)] are the cartesian coordinates in the map frame (units: meters)
-
-    Eigen::Affine3f T_dynamic_oc_pixels_to_map_frame_;
-
-    // Eigen::Vector3f v_static_oc = T_dynamic_oc_pixels_to_static_oc_pixels_ * Eigen::Vector3f(u, v, 0);
-    // [v_static_oc(0),  v_static_oc(1)] are the pixel coordinates [u',v'] in the static occupancy grid
-
-    Eigen::Affine3f T_dynamic_oc_pixels_to_static_oc_pixels_;
+    Eigen::Affine3f T_dynamic_oc_pixels_to_laser_frame_;      // dynamic_occupancy_grid (pixels) to laser frame (meters)
+    Eigen::Affine3f T_dynamic_oc_pixels_to_map_frame_;        // dynamic_occupancy_grid (pixels) to map frame (meters)
+    Eigen::Affine3f T_dynamic_oc_pixels_to_static_oc_pixels_; // dynamic_occupancy_grid (pixels) to static_occupancy_grid (pixels)
 
     void dilateOccupancyGrid(cv::Mat& grid);
 
@@ -135,7 +124,7 @@ private:
             cv::Mat& grid, const cv::Vec2i grid_center, const std::string frame_id) const;
 
     // =================================================================================================================
-    // RRT
+    // Path planning algorithms (RRT/RRT*)
     // =================================================================================================================
 
     boost::shared_ptr<std::thread> path_planner_thread_;
@@ -159,11 +148,6 @@ private:
 
     std::mt19937 random_generator_;
     static constexpr std::mt19937::result_type random_seed_ = 9876543210UL; // fixed seed for reproducibility
-    //std::uniform_real_distribution<float> x_distribution_;
-    //std::uniform_real_distribution<float> y_distribution_;
-
-
-
 };
 
 MotionPlanner::~MotionPlanner() {
@@ -346,7 +330,7 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     // Dilate the dynamic occupancy grid
     dilateOccupancyGrid(dynamic_occupancy_grid_);
     dynamic_occupancy_grid_publisher_->publish(convertToGridCellsMessage(
-            dynamic_occupancy_grid_, dynamic_occupancy_grid_center_, "laser"));
+            dynamic_occupancy_grid_, dynamic_occupancy_grid_center_, FRAME_LASER));
 
     should_plan_path_.store(true);
 }
@@ -404,7 +388,7 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
 
     // Publish static occupancy grid (for RViz)
     static_occupancy_grid_publisher_->publish(convertToGridCellsMessage(
-            static_occupancy_grid_, static_occupancy_grid_center_, "map"));
+            static_occupancy_grid_, static_occupancy_grid_center_, FRAME_MAP));
 
     // Create dynamic occupancy grid
     const float laser_scan_diameter_in_pixels = 2.0f * max_laser_scan_distance_ * pixels_per_meter;
@@ -669,7 +653,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     KDTree index(2, tree, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_max_leaf_size));
 
     // Goal
-    assert(goal.header.frame_id.compare("map") == 0); // we expect a goal in the "map" frame
+    assert(goal.header.frame_id.compare(FRAME_MAP) == 0); // we expect a goal in the "map" frame
 
     const auto goal_in_grid_frame = T_dynamic_oc_pixels_to_map_frame_.inverse() *
             Eigen::Vector3f(goal.pose.position.x, goal.pose.position.y, 0.0f);
@@ -893,7 +877,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     if(generate_marker_messages) {
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "map";
+        marker.header.frame_id = FRAME_MAP;
         marker.header.stamp = ros::Time::now();
 
         // Set the namespace and id for this marker. This serves to create a unique ID.
@@ -964,7 +948,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     if(generate_marker_messages) {
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "map";
+        marker.header.frame_id = FRAME_MAP;
         marker.header.stamp = ros::Time::now();
         marker.ns = "rrt";
         marker.id = marker_message_id++;
@@ -1022,7 +1006,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     if(generate_marker_messages) {
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "map";
+        marker.header.frame_id = FRAME_MAP;
         marker.header.stamp = ros::Time::now();
         marker.ns = "rrt";
         marker.id = marker_message_id++;
@@ -1074,7 +1058,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     if(generate_marker_messages) {
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "map";
+        marker.header.frame_id = FRAME_MAP;
         marker.header.stamp = ros::Time::now();
         marker.ns = "rrt";
         marker.id = marker_message_id++;
@@ -1127,7 +1111,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     if(generate_marker_messages) {
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "map";
+        marker.header.frame_id = FRAME_MAP;
         marker.header.stamp = ros::Time::now();
         marker.ns = "rrt";
         marker.id = marker_message_id++;
