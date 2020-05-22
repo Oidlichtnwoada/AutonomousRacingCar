@@ -663,8 +663,6 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     unsigned int number_of_relinked_nodes = 0; // for debugging only
 #endif
 
-    constexpr bool enable_early_stopping = true; // TODO: expose this as a ROS node parameter
-
     constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
 
     constexpr unsigned int maximum_rrt_samples = 2000;  // TODO: expose this as a ROS node parameter
