@@ -290,6 +290,7 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
 void MotionPlanner::odomSubscriberCallback(MotionPlanner::OdometryMessage odom_msg) {
     current_odometry = *odom_msg;
+    if (dynamic_occupancy_grid_.data == nullptr) return;
     std::vector <Node> random_tree;
     int goal_index = -1;
     Node root = {.x=dynamic_occupancy_grid_center_(0), .y=dynamic_occupancy_grid_center_(

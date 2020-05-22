@@ -106,6 +106,7 @@
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="cf.first.check.clang-format" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/scripts/rviz.sh" />
+    <property name="restartRequiresConfirmation" value="false" />
     <property name="settings.editor.selected.configurable" value="CMakeSettings" />
   </component>
   <component name="RunManager" selected="CMake Application.motion_planner">
@@ -555,7 +556,7 @@
       <workItem from="1589979473808" duration="10517000" />
       <workItem from="1589990069220" duration="3307000" />
       <workItem from="1590127555846" duration="61000" />
-      <workItem from="1590127650516" duration="2265000" />
+      <workItem from="1590127650516" duration="5238000" />
     </task>
     <task id="LOCAL-00001" summary="added clion configurations for launchfiles">
       <created>1589978277250</created>
@@ -564,7 +565,14 @@
       <option name="project" value="LOCAL" />
       <updated>1589978277251</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="implemented last missing function">
+      <created>1590131008853</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1590131008854</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -573,45 +581,70 @@
   <component name="VcsManagerConfiguration">
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <MESSAGE value="added clion configurations for launchfiles" />
-    <option name="LAST_COMMIT_MESSAGE" value="added clion configurations for launchfiles" />
+    <MESSAGE value="implemented last missing function" />
+    <option name="LAST_COMMIT_MESSAGE" value="implemented last missing function" />
   </component>
   <component name="WindowStateProjectService">
     <state x="321" y="197" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1589978167785">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
     <state x="321" y="197" key="#com.intellij.execution.impl.EditConfigurationsDialog/67.27.1853.887@67.27.1853.887" timestamp="1589978167785" />
-    <state x="532" y="27" width="912" height="887" key="CommitChangelistDialog2" timestamp="1589978277031">
+    <state x="521" y="364" key="#xdebugger.evaluate" timestamp="1590133488909">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state x="532" y="27" width="912" height="887" key="CommitChangelistDialog2/67.27.1853.887@67.27.1853.887" timestamp="1589978277031" />
-    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog" timestamp="1590130601439">
+    <state x="521" y="364" key="#xdebugger.evaluate/67.27.1853.887@67.27.1853.887" timestamp="1590133488909" />
+    <state x="532" y="27" width="912" height="887" key="CommitChangelistDialog2" timestamp="1590131007801">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state x="167" y="125" width="1653" height="689" key="DiffContextDialog/67.27.1853.887@67.27.1853.887" timestamp="1590130601439" />
+    <state x="532" y="27" width="912" height="887" key="CommitChangelistDialog2/67.27.1853.887@67.27.1853.887" timestamp="1590131007801" />
+    <state x="163" y="123" width="1653" height="689" key="DiffContextDialog" timestamp="1590133143022">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state x="163" y="123" width="1653" height="689" key="DiffContextDialog/67.27.1853.887@67.27.1853.887" timestamp="1590133143022" />
     <state x="796" y="397" width="424" height="484" key="FileChooserDialogImpl" timestamp="1589979620010">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
     <state x="796" y="397" width="424" height="484" key="FileChooserDialogImpl/67.27.1853.887@67.27.1853.887" timestamp="1589979620010" />
-    <state width="903" height="408" key="GridCell.Tab.0.bottom" timestamp="1589978974347">
+    <state width="903" height="258" key="GridCell.Tab.0.bottom" timestamp="1590133967963">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state width="903" height="408" key="GridCell.Tab.0.bottom/67.27.1853.887@67.27.1853.887" timestamp="1589978974347" />
-    <state width="903" height="408" key="GridCell.Tab.0.center" timestamp="1589978974345">
+    <state width="903" height="258" key="GridCell.Tab.0.bottom/67.27.1853.887@67.27.1853.887" timestamp="1590133967963" />
+    <state width="903" height="258" key="GridCell.Tab.0.center" timestamp="1590133967961">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state width="903" height="408" key="GridCell.Tab.0.center/67.27.1853.887@67.27.1853.887" timestamp="1589978974345" />
-    <state width="903" height="408" key="GridCell.Tab.0.left" timestamp="1589978974345">
+    <state width="903" height="258" key="GridCell.Tab.0.center/67.27.1853.887@67.27.1853.887" timestamp="1590133967960" />
+    <state width="903" height="258" key="GridCell.Tab.0.left" timestamp="1590133967959">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state width="903" height="408" key="GridCell.Tab.0.left/67.27.1853.887@67.27.1853.887" timestamp="1589978974345" />
-    <state width="903" height="408" key="GridCell.Tab.0.right" timestamp="1589978974346">
+    <state width="903" height="258" key="GridCell.Tab.0.left/67.27.1853.887@67.27.1853.887" timestamp="1590133967959" />
+    <state width="903" height="258" key="GridCell.Tab.0.right" timestamp="1590133967962">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
-    <state width="903" height="408" key="GridCell.Tab.0.right/67.27.1853.887@67.27.1853.887" timestamp="1589978974346" />
+    <state width="903" height="258" key="GridCell.Tab.0.right/67.27.1853.887@67.27.1853.887" timestamp="1590133967962" />
+    <state width="903" height="268" key="GridCell.Tab.1.bottom" timestamp="1590133888690">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="903" height="268" key="GridCell.Tab.1.bottom/67.27.1853.887@67.27.1853.887" timestamp="1590133888690" />
+    <state width="903" height="268" key="GridCell.Tab.1.center" timestamp="1590133888688">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="903" height="268" key="GridCell.Tab.1.center/67.27.1853.887@67.27.1853.887" timestamp="1590133888688" />
+    <state width="903" height="268" key="GridCell.Tab.1.left" timestamp="1590133888686">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="903" height="268" key="GridCell.Tab.1.left/67.27.1853.887@67.27.1853.887" timestamp="1590133888686" />
+    <state width="903" height="268" key="GridCell.Tab.1.right" timestamp="1590133888689">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state width="903" height="268" key="GridCell.Tab.1.right/67.27.1853.887@67.27.1853.887" timestamp="1590133888689" />
     <state x="376" y="154" width="1402" height="730" key="SettingsEditor" timestamp="1589978863800">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
     <state x="376" y="154" width="1402" height="730" key="SettingsEditor/67.27.1853.887@67.27.1853.887" timestamp="1589978863800" />
+    <state x="588" y="205" width="800" height="528" key="Vcs.Push.Dialog.v2" timestamp="1590131041412">
+      <screen x="67" y="27" width="1853" height="887" />
+    </state>
+    <state x="588" y="205" width="800" height="528" key="Vcs.Push.Dialog.v2/67.27.1853.887@67.27.1853.887" timestamp="1590131041412" />
     <state x="792" y="186" width="392" height="566" key="com.intellij.openapi.vcs.changes.SpecificFilesViewDialog" timestamp="1589974307715">
       <screen x="67" y="27" width="1853" height="887" />
     </state>
