@@ -53,6 +53,7 @@ static_assert(MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
 #define TOPIC_GOAL "/move_base_simple/goal"
 #define TOPIC_MAP  "/map"
 #define TOPIC_DYNAMIC_OCCUPANCY_GRID "/motion_planner/dynamic_occupancy_grid"
+#define TOPIC_STATIC_OCCUPANCY_GRID  "/motion_planner/static_occupancy_grid"
 #define TOPIC_RRT_VISUALIZATION      "/motion_planner/rrt_visualization"
 #define FRAME_MAP   "map"
 #define FRAME_LASER "laser"
@@ -113,6 +114,7 @@ private:
     boost::shared_ptr<ros::Subscriber> map_subscriber_;
     boost::shared_ptr<ros::ServiceServer> debug_service_;
     boost::shared_ptr<ros::Publisher> dynamic_occupancy_grid_publisher_;
+    boost::shared_ptr<ros::Publisher> static_occupancy_grid_publisher_;
     boost::shared_ptr<ros::Publisher> rrt_visualization_publisher_;
 
     tf2_ros::Buffer tf_buffer_;
@@ -128,11 +130,13 @@ private:
     MotionPlanner::OccupancyGridMessage map_; // copied from "/map"
 
     std::mutex occupancy_grid_mutex_;
+    cv::Mat static_occupancy_grid_; // just a thin wrapper around map_->data.data()
     cv::Mat dynamic_occupancy_grid_;
 #ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
     cv::Mat dynamic_occupancy_grid_distances_;
 #endif
 
+    cv::Vec2i static_occupancy_grid_center_;
     cv::Vec2i dynamic_occupancy_grid_center_;
 
     // Affine transformations from grid coordinates to the "map" and "laser" frames
@@ -188,6 +192,7 @@ MotionPlanner::MotionPlanner()
         , map_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_MAP, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::mapSubscriberCallback, this)))
         , tf_listener_(new tf2_ros::TransformListener(tf_buffer_, true))
         , debug_service_(new ros::ServiceServer(node_handle_.advertiseService("debug", &MotionPlanner::debugServiceCallback, this)))
+        , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , random_generator_(std::mt19937(MotionPlanner::random_seed_))
         , rrt_visualization_publisher_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION, MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE)))
@@ -395,6 +400,20 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     map_ = map_msg;
     const nav_msgs::MapMetaData& info = map_msg->info;
 
+    const float pixels_per_meter = 1.0f / map_->info.resolution;
+    static_occupancy_grid_center_ = cv::Vec2i(
+            static_cast<int>(-map_->info.origin.position.y * pixels_per_meter),  // rows <--> y
+            static_cast<int>(-map_->info.origin.position.x * pixels_per_meter)); // cols <--> x
+    cv::Mat static_occupancy_grid_ = cv::Mat(info.height,
+            info.width, CV_8UC1, (void*) map_->data.data()); // just a thin wrapper around map_->data.data()
+
+    cv::threshold(static_occupancy_grid_, static_occupancy_grid_ /* in-place */, 1, 255, cv::THRESH_BINARY);
+    cv::bitwise_not(static_occupancy_grid_, static_occupancy_grid_);
+
+    // Publish static occupancy grid (for RViz)
+    static_occupancy_grid_publisher_->publish(convertToGridCellsMessage(
+            static_occupancy_grid_, static_occupancy_grid_center_, FRAME_MAP));
+
     if(info.origin.orientation.x != 0.0 || info.origin.orientation.y != 0.0 || info.origin.orientation.z != 0.0) {
         ROS_ERROR("Handling non-zero map rotations is not implemented.");
         throw(std::runtime_error("Handling non-zero map rotations is not implemented."));
@@ -406,8 +425,6 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
           ") are quite large. Consider reducing the resolution.";
         ROS_WARN("%s",o.str().c_str());
     }
-
-    const float pixels_per_meter = 1.0f / map_->info.resolution;
 
     // Create dynamic occupancy grid
     const float laser_scan_diameter_in_pixels = 2.0f * max_laser_scan_distance_ * pixels_per_meter;
@@ -659,6 +676,11 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                       const geometry_msgs::PoseStamped& goal,
                       bool generate_marker_messages) {
 
+    auto distance_between_nodes = [](int row0, int col0, int row1, int col1) -> int {
+        const Eigen::Vector2i v(row0 - row1, col0 - col1);
+        return (USE_L1_DISTANCE_METRIC ? v.lpNorm<1>() : v.squaredNorm());
+    };
+
 #ifndef NDEBUG
     unsigned int number_of_relinked_nodes = 0; // for debugging only
 #endif
@@ -710,19 +732,91 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         return {false, tree, path, marker_messages};
     }
 
-    // Randomly distribute samples across the entire grid
+    // Generate a uniform distribution across the entire grid (default for RRT, RRT* and
+    // Informed-RRT* prior to finding a path to the goal).
     UniformDistribution uniform_row_distribution(static_cast<T>(0), static_cast<T>(dynamic_occupancy_grid_.rows - 1));
     UniformDistribution uniform_col_distribution(static_cast<T>(0), static_cast<T>(dynamic_occupancy_grid_.cols - 1));
 
     // Root node is the origin in the laser frame (= center of the dynamic occupancy grid)
     const T root_row = dynamic_occupancy_grid_center_(0);
     const T root_col = dynamic_occupancy_grid_center_(1);
+
+    // For Informed-RRT* only:
+    // Generate a uniform distribution across the best-fit (**) bounding rectangle (*) around the
+    // ellipsoidal heuristic sampling domain described in [Gammell et al., 2014].
+    //
+    // (*)  this is our original contribution
+    // (**) in the hyperellipsoid-aligned frame
+
+    int heuristic_sampling_domain_major_axis_length = 0; // unknown at this point (for Informed-RRT* only)
+    int heuristic_sampling_domain_minor_axis_length = 0; // unknown at this point (for Informed-RRT* only)
+    UniformDistribution distribution_along_major_axis; // unknown at this point (for Informed-RRT* only)
+    UniformDistribution distribution_along_minor_axis; // unknown at this point (for Informed-RRT* only)
+
+    const Eigen::Vector2f root_to_goal(goal_row - root_row, goal_col - root_col); // can be pre-computed
+
+    // For Informed-RRT* only:
+    // Compute the sampling domain transformation ("hyperellipsoid-aligned frame" --> "grid frame"),
+    // consisting of a rotation by [theta] and a translation by [root_row, root_row].
+    const float theta = std::atan2(root_to_goal(1), root_to_goal(0));
+    Eigen::Affine3f T_sampling_domain_to_grid_frame = Eigen::Affine3f::Identity(); // unknown at this point (for Informed-RRT* only)
+
+    // For Informed-RRT* only:
+    // The following lambda-function returns a valid(*) sample from the heuristic sampling domain.
+    // (*) guaranteed to lie inside the bounds of the grid frame
+    auto sample_from_heuristic_sampling_domain = [&]() -> std::tuple<int,int> {
+        Eigen::Vector3f sample_in_grid_frame;
+        do {
+            // (x,y) are coordinates in the "hyperellipsoid-aligned frame"
+            const T x = distribution_along_major_axis(random_generator_);
+            const T y = distribution_along_minor_axis(random_generator_);
+            // transform coordinates from "hyperellipsoid-aligned frame" to grid frame
+            sample_in_grid_frame = T_sampling_domain_to_grid_frame * Eigen::Vector3f(x, y, 0.0f);
+
+        } while(sample_in_grid_frame(0) < 0 ||
+                sample_in_grid_frame(0) >= dynamic_occupancy_grid_.rows ||
+                sample_in_grid_frame(1) < 0 ||
+                sample_in_grid_frame(1) >= dynamic_occupancy_grid_.cols);
+
+        return {static_cast<T>(sample_in_grid_frame(0)),
+                static_cast<T>(sample_in_grid_frame(1))};
+    };
+
+    auto sample_from_entire_grid = [&]() -> std::tuple<int,int> {
+        return { uniform_row_distribution(random_generator_),
+                 uniform_col_distribution(random_generator_) };
+    };
+
+
+    const float g_x = goal_row;
+    const float g_y = goal_col;
+    const float r_x = root_row;
+    const float r_y = root_col;
+    const float r2g_x = root_to_goal(0);
+    const float r2g_y = root_to_goal(1);
+    const float theta_deg = theta * 180.0f / M_PI;
+
+
+    const float shortest_linear_path_to_goal = root_to_goal.norm(); // L2 norm
+    const float upper_bound_L1_distance_to_goal = shortest_linear_path_to_goal * std::sqrt(2.0); // upper bound for the L1 norm
+    const float lower_bound_L1_distance_to_goal = shortest_linear_path_to_goal; // lower bound for the L1 norm
+
     tree.nodes_.push_back(Node(root_row,root_col,0)); // insert the root node
     index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
 
+    // =================================================================================================================
+    // Sampling loop
+    // =================================================================================================================
     while(tree.nodes_.size() < maximum_rrt_samples) {
-        const T random_row = uniform_row_distribution(random_generator_);
-        const T random_col = uniform_col_distribution(random_generator_);
+
+        auto [random_row, random_col] = (USE_INFORMED_RRT_STAR && path_to_goal_found) ?
+                                        sample_from_heuristic_sampling_domain():
+                                        sample_from_entire_grid();
+
+        //assert(random_row >= 0);
+        //assert(random_row < dynamic_occupancy_grid_.rows);
+        //assert(random_col >= 0);
+        //assert(random_col < dynamic_occupancy_grid_.cols);
 
         if(dynamic_occupancy_grid_.at<uint8_t>(random_row, random_col) != GRID_CELL_IS_FREE) {
             // grid cell is blocked
@@ -783,14 +877,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
         assert(dynamic_occupancy_grid_.at<uint8_t>(leaf_row, leaf_col) == GRID_CELL_IS_FREE);
 
-        // Compute parent-->leaf distance.
-        Eigen::Vector2i parent_to_leaf(parent_row - leaf_row,
-                                       parent_col - leaf_col);
-        const auto parent_to_leaf_distance =
-                USE_L1_DISTANCE_METRIC ?
-                parent_to_leaf.lpNorm<1>() :
-                parent_to_leaf.squaredNorm();
-
+        const auto parent_to_leaf_distance = distance_between_nodes(parent_row, parent_col, leaf_row, leaf_col);
         const auto accumulated_path_length_to_leaf = parent_node.path_length_ + parent_to_leaf_distance;
 
         tree.nodes_.push_back(Node(leaf_row, leaf_col, parent_node_index, accumulated_path_length_to_leaf)); // insert new leaf
@@ -807,12 +894,8 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                 assert(j < tree.nodes_.size());
                 Node& node = tree.nodes_[j];
 
-                Eigen::Vector2i node_to_leaf(node.position_(0) - leaf_row,
-                                             node.position_(1) - leaf_col);
-                const auto node_to_leaf_distance =
-                        USE_L1_DISTANCE_METRIC ?
-                        node_to_leaf.lpNorm<1>() :
-                        node_to_leaf.squaredNorm();
+                const auto node_to_leaf_distance = distance_between_nodes(
+                        node.position_(0), node.position_(1), leaf_row, leaf_col);
 
                 if(accumulated_path_length_to_leaf + node_to_leaf_distance < node.path_length_) {
                     // re-link node to new parent (which is our leaf)
@@ -841,17 +924,41 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
 
         // Check if we are within reach of the goal
-        Eigen::Vector2i goal_to_leaf(goal_row - leaf_node.position_(0),
-                                     goal_col - leaf_node.position_(1));
-        const auto leaf_to_goal_distance =
-                USE_L1_DISTANCE_METRIC ?
-                goal_to_leaf.lpNorm<1>() :
-                goal_to_leaf.squaredNorm();
+        const auto leaf_to_goal_distance = distance_between_nodes(
+                goal_row, goal_col, leaf_node.position_(0), leaf_node.position_(1));
 
         if(leaf_to_goal_distance <= rrt_goal_proximity_threshold) {
             path_to_goal_found = true;
             const int length_of_new_path_to_goal = leaf_node.path_length_ + leaf_to_goal_distance;
             length_of_best_path_to_goal = std::min<int>(length_of_best_path_to_goal, length_of_new_path_to_goal);
+
+            if(USE_INFORMED_RRT_STAR) {
+                // Uniform distribution across the best-fit bounding rectangle (!) of the elliptical heuristic
+                // sampling domain described in [Gammell et al., 2014].
+
+                // In the paper: sqrt(c_{best}^2 - c_{min}^2), where ...
+                // c_{min}  ... linear shortest distance to goal (theoretical minimum cost)
+                // c_{best} ... accumulated length of best path to goal (current best cost)
+
+                // NOTE: If we are using the L1 distance metric, this is obviously just an
+                //       approximation. Since the resulting L1 minor_axis_length
+                //       is an upper bound for the L2 minor_axis_length, this is ok.
+
+                const float accumulated_length_of_best_path_to_goal = static_cast<float>(length_of_best_path_to_goal);
+
+                // Use the variable naming scheme from [Gammell et al., 2014]...
+                const float& c_min = USE_L1_DISTANCE_METRIC ? lower_bound_L1_distance_to_goal : shortest_linear_path_to_goal;
+                const float& c_best = accumulated_length_of_best_path_to_goal;
+                heuristic_sampling_domain_major_axis_length = static_cast<int>(c_best);
+                heuristic_sampling_domain_minor_axis_length = static_cast<int>(std::sqrt((c_best * c_best) - (c_min * c_min)));
+                distribution_along_major_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_major_axis_length));
+                distribution_along_minor_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_minor_axis_length));
+
+                T_sampling_domain_to_grid_frame = Eigen::Affine3f::Identity();
+                T_sampling_domain_to_grid_frame.pretranslate(Eigen::Vector3f(0, -static_cast<float>(heuristic_sampling_domain_minor_axis_length) / 2.0, 0.0f));
+                T_sampling_domain_to_grid_frame.prerotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
+                T_sampling_domain_to_grid_frame.pretranslate(Eigen::Vector3f(root_row, root_col, 0.0f));
+            }
         }
     }
 
@@ -874,12 +981,8 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
     assert(nn_index < tree.nodes_.size());
 
-    Eigen::Vector2i goal_to_closest_leaf(goal_row - tree.nodes_[nn_index].position_(0),
-                                         goal_col - tree.nodes_[nn_index].position_(1));
-    const auto closest_leaf_to_goal_distance =
-            USE_L1_DISTANCE_METRIC ?
-            goal_to_closest_leaf.lpNorm<1>() :
-            goal_to_closest_leaf.squaredNorm();
+    const auto closest_leaf_to_goal_distance = distance_between_nodes(
+            goal_row, goal_col, tree.nodes_[nn_index].position_(0), tree.nodes_[nn_index].position_(1));
 
     const auto accumulated_path_length_to_goal =
             tree.nodes_[nn_index].path_length_ + closest_leaf_to_goal_distance;
@@ -977,6 +1080,70 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
     }
 #endif
 
+#define SHOW_HEURISTIC_SAMPLING_DOMAIN_BOUNDS
+#if defined(SHOW_HEURISTIC_SAMPLING_DOMAIN_BOUNDS)
+    if(generate_marker_messages) {
+
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = FRAME_MAP;
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "rrt";
+        marker.id = marker_message_id++;
+
+        marker.type = visualization_msgs::Marker::LINE_LIST;
+        marker.action = visualization_msgs::Marker::ADD;
+
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+
+        marker.scale.x = 1.0 / 100.0f;
+        marker.scale.y = 0.0; // must be zero for LINE_LIST
+        marker.scale.z = 0.0; // must be zero for LINE_LIST
+
+        marker.color.r = 255.0f / 255.0f;
+        marker.color.g = 0.0f;
+        marker.color.b = 200.0f / 255.0f;
+        marker.color.a = 1.0;
+
+        marker.lifetime = ros::Duration();
+
+        std::vector<Eigen::Vector3f> vertices;
+
+        // vertices are initially in the "hyperellipsoid aligned frame".
+        vertices.push_back(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+        vertices.push_back(Eigen::Vector3f(heuristic_sampling_domain_major_axis_length, 0.0f, 0.0f));
+        vertices.push_back(Eigen::Vector3f(heuristic_sampling_domain_major_axis_length, heuristic_sampling_domain_minor_axis_length, 0.0f));
+        vertices.push_back(Eigen::Vector3f(0.0f, heuristic_sampling_domain_minor_axis_length, 0.0f));
+
+        std::vector<geometry_msgs::Point> points;
+
+        for(auto &vertex : vertices) {
+
+            // transform from "hyperellipsoid aligned frame" to "grid frame".
+            const auto p_in_grid_frame = T_sampling_domain_to_grid_frame * vertex;
+
+            // transform from "grid frame" to "map frame".
+            const auto p_in_map_frame = T_dynamic_oc_pixels_to_map_frame_ * p_in_grid_frame;
+            geometry_msgs::Point p;
+            p.x = p_in_map_frame(0);
+            p.y = p_in_map_frame(1);
+            p.z = 0.0f;
+            points.push_back(p);
+        }
+
+        for(int i=0; i<points.size(); i++) {
+            marker.points.push_back(points[i]);
+            marker.points.push_back(points[(i+1) % points.size()]);
+        }
+        marker_messages.push_back(marker);
+    }
+#endif
+
 #define SHOW_OCCUPANCY_GRID_OUTLINE
 #if defined(SHOW_OCCUPANCY_GRID_OUTLINE)
     if(generate_marker_messages) {
@@ -1009,17 +1176,20 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
         marker.lifetime = ros::Duration();
 
-        std::vector<Eigen::Vector3f> edges;
+        // vertices are initially in the "grid frame".
+        std::vector<Eigen::Vector3f> vertices;
 
-        edges.push_back(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
-        edges.push_back(Eigen::Vector3f(dynamic_occupancy_grid_.rows-1, 0.0f, 0.0f));
-        edges.push_back(Eigen::Vector3f(dynamic_occupancy_grid_.rows-1, dynamic_occupancy_grid_.cols-1, 0.0f));
-        edges.push_back(Eigen::Vector3f(0.0f, dynamic_occupancy_grid_.cols-1, 0.0f));
+        vertices.push_back(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+        vertices.push_back(Eigen::Vector3f(dynamic_occupancy_grid_.rows-1, 0.0f, 0.0f));
+        vertices.push_back(Eigen::Vector3f(dynamic_occupancy_grid_.rows-1, dynamic_occupancy_grid_.cols-1, 0.0f));
+        vertices.push_back(Eigen::Vector3f(0.0f, dynamic_occupancy_grid_.cols-1, 0.0f));
 
         std::vector<geometry_msgs::Point> points;
 
-        for(auto &edge : edges) {
-            const auto p_in_map_frame = T_dynamic_oc_pixels_to_map_frame_ * edge;
+        for(auto &vertex : vertices) {
+
+            // transform from "grid frame" to "map frame".
+            const auto p_in_map_frame = T_dynamic_oc_pixels_to_map_frame_ * vertex;
             geometry_msgs::Point p;
             p.x = p_in_map_frame(0);
             p.y = p_in_map_frame(1);
