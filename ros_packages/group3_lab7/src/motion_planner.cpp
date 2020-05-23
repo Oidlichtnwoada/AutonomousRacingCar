@@ -687,8 +687,13 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
     constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
 
+#if !defined(NDEBUG)
     constexpr unsigned int maximum_rrt_samples = 2000;  // TODO: expose this as a ROS node parameter
-    constexpr int maximum_rrt_expansion_distance = 5; // TODO: expose this as a ROS node parameter
+#else
+    constexpr unsigned int maximum_rrt_samples = 4000;  // TODO: expose this as a ROS node parameter
+#endif
+
+    constexpr int maximum_rrt_expansion_distance = 40; // TODO: expose this as a ROS node parameter
     constexpr float rrt_goal_proximity_threshold = 2;   // TODO: expose this as a ROS node parameter
 
     // RRT* only:
@@ -787,16 +792,6 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                  uniform_col_distribution(random_generator_) };
     };
 
-
-    const float g_x = goal_row;
-    const float g_y = goal_col;
-    const float r_x = root_row;
-    const float r_y = root_col;
-    const float r2g_x = root_to_goal(0);
-    const float r2g_y = root_to_goal(1);
-    const float theta_deg = theta * 180.0f / M_PI;
-
-
     const float shortest_linear_path_to_goal = root_to_goal.norm(); // L2 norm
     const float upper_bound_L1_distance_to_goal = shortest_linear_path_to_goal * std::sqrt(2.0); // upper bound for the L1 norm
     const float lower_bound_L1_distance_to_goal = shortest_linear_path_to_goal; // lower bound for the L1 norm
@@ -812,11 +807,6 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         auto [random_row, random_col] = (USE_INFORMED_RRT_STAR && path_to_goal_found) ?
                                         sample_from_heuristic_sampling_domain():
                                         sample_from_entire_grid();
-
-        //assert(random_row >= 0);
-        //assert(random_row < dynamic_occupancy_grid_.rows);
-        //assert(random_col >= 0);
-        //assert(random_col < dynamic_occupancy_grid_.cols);
 
         if(dynamic_occupancy_grid_.at<uint8_t>(random_row, random_col) != GRID_CELL_IS_FREE) {
             // grid cell is blocked
