@@ -808,8 +808,8 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
                                         sample_from_heuristic_sampling_domain():
                                         sample_from_entire_grid();
 
-        if(dynamic_occupancy_grid_.at<uint8_t>(random_row, random_col) != GRID_CELL_IS_FREE) {
-            // grid cell is blocked
+        if(isGridCellOccupied(random_row, random_col)) {
+            // grid cell is occupied
             continue;
         }
 
@@ -848,7 +848,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         const T parent_row = static_cast<T>(parent_node.position_(0));
         const T parent_col = static_cast<T>(parent_node.position_(1));
 
-        assert(dynamic_occupancy_grid_.at<uint8_t>(parent_row, parent_col) == GRID_CELL_IS_FREE);
+        assert(not isGridCellOccupied(parent_row, parent_col));
 
         // Expand the path from the parent to the leaf, check if any obstacles are in the way...
         cv::Vec2i leaf_position(0,0);
@@ -865,7 +865,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
         const T leaf_row = leaf_position(0);
         const T leaf_col = leaf_position(1);
 
-        assert(dynamic_occupancy_grid_.at<uint8_t>(leaf_row, leaf_col) == GRID_CELL_IS_FREE);
+        assert(not isGridCellOccupied(leaf_row, leaf_col));
 
         const auto parent_to_leaf_distance = distance_between_nodes(parent_row, parent_col, leaf_row, leaf_col);
         const auto accumulated_path_length_to_leaf = parent_node.path_length_ + parent_to_leaf_distance;
@@ -1281,8 +1281,7 @@ MotionPlanner::runRRT(const nav_msgs::Odometry& odometry,
 
         for(int row=0; row<dynamic_occupancy_grid_.rows; row++) {
             for(int col=0; col<dynamic_occupancy_grid_.cols; col++) {
-                if(dynamic_occupancy_grid_.at<uint8_t>(row, col) != GRID_CELL_IS_FREE) {
-
+                if(isGridCellOccupied(row, col)) {
                     const auto point_in_map_frame =
                             T_dynamic_oc_pixels_to_map_frame_ *
                             Eigen::Vector3f(row, col, 0.0f);

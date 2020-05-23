@@ -2,3 +2,4 @@ cmake-build-*
 .idea
 .vscode
 *.code-workspace
+ros_packages/group3_lab7/src/group3_lab7/

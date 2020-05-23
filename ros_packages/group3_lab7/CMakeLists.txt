@@ -6,6 +6,7 @@ set(NODE_NAME "motion_planner" CACHE STRING "")
 add_compile_options(-std=c++17)
 
 find_package(catkin REQUIRED COMPONENTS
+  rospy
   roscpp
   std_msgs
   std_srvs
@@ -18,6 +19,14 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_eigen
   tf2_geometry_msgs
   tf2_sensor_msgs
+  ackermann_msgs
+  dynamic_reconfigure
+)
+
+catkin_python_setup()
+
+generate_dynamic_reconfigure_options(
+  cfg/follow_me.cfg
 )
 
 find_package(cmake_modules REQUIRED)
@@ -26,7 +35,7 @@ find_package(Boost REQUIRED)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs std_srvs sensor_msgs geometry_msgs tf2 tf2_ros tf2_eigen tf2_geometry_msgs tf2_sensor_msgs
+  CATKIN_DEPENDS rospy roscpp std_msgs std_srvs sensor_msgs geometry_msgs tf2 tf2_ros tf2_eigen tf2_geometry_msgs tf2_sensor_msgs ackermann_msgs dynamic_reconfigure
   DEPENDS EIGEN3 Boost
 )
 
@@ -49,6 +58,10 @@ install(TARGETS ${NODE_NAME}
         LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
         RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+catkin_install_python(
+  PROGRAMS src/follow_me.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 install(FILES 
         launch/motion_planner.launch
