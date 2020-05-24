@@ -43,29 +43,3 @@ public:
             const float meters_per_pixel,
             const std::string frame_id) const;
 };
-
-#if 0
-inline bool IsGridCellOccupied(
-        int row,
-        int col,
-        const cv::Mat& occupancy_grid) {
-    return(occupancy_grid.at<uint8_t>(row,col) == GRID_CELL_IS_OCCUPIED);
-}
-
-bool ExpandPath(
-        const cv::Vec2i start,
-        const cv::Vec2i destination,
-        cv::Vec2i& end,
-        const int max_expansion_distance,
-        const cv::Mat& occupancy_grid);
-
-cv::Mat& ExpandOccupancyGrid(
-        cv::Mat& grid,
-        float vehicle_width_in_pixels);
-
-nav_msgs::GridCells ConvertToGridCellsMessage(
-        cv::Mat& grid,
-        const cv::Vec2i grid_center,
-        const float meters_per_pixel,
-        const std::string frame_id);
-#endif

@@ -18,6 +18,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Point.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/GridCells.h>
 #include <visualization_msgs/Marker.h>
@@ -39,6 +40,7 @@
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
 #define GRID_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 #define MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE 10
+#define PATH_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 
 static_assert(SUBSCRIBER_MESSAGE_QUEUE_SIZE > 0);
 static_assert(GRID_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
@@ -55,7 +57,8 @@ static_assert(MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
 #define TOPIC_MAP  "/map"
 #define TOPIC_DYNAMIC_OCCUPANCY_GRID "/motion_planner/dynamic_occupancy_grid"
 #define TOPIC_STATIC_OCCUPANCY_GRID  "/motion_planner/static_occupancy_grid"
-#define TOPIC_RRT_VISUALIZATION      "/motion_planner/rrt_visualization"
+#define TOPIC_RRT_VISUALIZATION      "/motion_planner/rrt_visualization" // TODO: rename this to "markers"
+#define TOPIC_PATH_TO_GOAL           "/motion_planner/path_to_goal"
 #define FRAME_MAP       "map"
 #define FRAME_BASE_LINK "base_link"
 #define FRAME_LASER     "laser"
@@ -81,6 +84,7 @@ public:
     typedef boost::shared_ptr<sensor_msgs::LaserScan const> LaserScanMessage;
     typedef boost::shared_ptr<geometry_msgs::PoseStamped const> PoseStampedMessage;
     typedef boost::shared_ptr<nav_msgs::Odometry const> OdometryMessage;
+    typedef boost::shared_ptr<nav_msgs::Path const> PathMessage;
     typedef boost::shared_ptr<nav_msgs::OccupancyGrid const> OccupancyGridMessage;
 
 private:
@@ -103,6 +107,8 @@ private:
     boost::shared_ptr<ros::Publisher> dynamic_occupancy_grid_publisher_;
     boost::shared_ptr<ros::Publisher> static_occupancy_grid_publisher_;
     boost::shared_ptr<ros::Publisher> rrt_visualization_publisher_;
+    boost::shared_ptr<ros::Publisher> path_to_goal_publisher_;
+    std::mutex path_to_goal_publisher_mutex_;
 
     tf2_ros::Buffer tf_buffer_;
     boost::shared_ptr<tf2_ros::TransformListener> tf_listener_;
@@ -157,6 +163,8 @@ private:
     unsigned long long goal_messages_received_;
     unsigned long long map_messages_received_;
 #endif
+
+    void publishPath(const PathPlanner::Path& path);
 };
 
 MotionPlanner::~MotionPlanner() {
@@ -174,6 +182,7 @@ MotionPlanner::MotionPlanner()
         , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , rrt_visualization_publisher_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION, MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , path_to_goal_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::Path>(TOPIC_PATH_TO_GOAL, PATH_PUBLISHER_MESSAGE_QUEUE_SIZE)))
 #if !defined(NDEBUG)
         , laser_scan_messages_received_(0)
         , odometry_messages_received_(0)
@@ -593,6 +602,13 @@ void MotionPlanner::runPathPlanner() {
                     T_grid_to_map,
                     options,
                     marker_publisher);
+
+            std::future<void> path_to_goal_publishing_task = std::async(std::launch::async,
+                [&,path]() {
+                std::lock_guard<std::mutex> scoped_lock(path_to_goal_publisher_mutex_);
+                publishPath(path);
+            });
+
         } else {
             sampling_rate.sleep();
         }
@@ -600,6 +616,49 @@ void MotionPlanner::runPathPlanner() {
 
     ROS_INFO("Path planner is shutting down...");
 }
+
+void MotionPlanner::publishPath(const PathPlanner::Path& path) {
+    nav_msgs::Path path_msg;
+    path_msg.header.frame_id = FRAME_MAP;
+    path_msg.header.stamp = ros::Time::now();
+
+    for(int i=0; i<path.size(); i++) {
+        const Eigen::Vector2f& waypoint_position = path[i];
+        geometry_msgs::PoseStamped waypoint;
+        waypoint.header.stamp = path_msg.header.stamp;
+        waypoint.header.frame_id = path_msg.header.frame_id;
+        waypoint.pose.position.x = waypoint_position(0);
+        waypoint.pose.position.y = waypoint_position(1);
+        waypoint.pose.position.z = 0.0f;
+        waypoint.pose.orientation.x = 0.0;
+        waypoint.pose.orientation.y = 0.0;
+        waypoint.pose.orientation.z = 0.0;
+        waypoint.pose.orientation.w = 1.0;
+        path_msg.poses.push_back(waypoint);
+    }
+    if(path_msg.poses.size() >= 3) {
+        for(int i=0; i<path_msg.poses.size(); i++) {
+            geometry_msgs::PoseStamped& waypoint = path_msg.poses[i];
+            const int j_prev = (i > 0) ? (i-1) : (i);
+            const int j_next = (i < (path_msg.poses.size() - 1)) ? (i+1) : (i);
+            const float x0 = path_msg.poses[j_prev].pose.position.x;
+            const float y0 = path_msg.poses[j_prev].pose.position.y;
+            const float x1 = path_msg.poses[j_next].pose.position.x;
+            const float y1 = path_msg.poses[j_next].pose.position.y;
+            const Eigen::Vector2f path_direction(x1-x0, y1-y0);
+            const float theta = std::atan2(path_direction(1), path_direction(0));
+            const Eigen::Quaternionf q(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
+            waypoint.pose.orientation.x = q.x();
+            waypoint.pose.orientation.y = q.y();
+            waypoint.pose.orientation.z = q.z();
+            waypoint.pose.orientation.w = q.w();
+        }
+    }
+
+    path_to_goal_publisher_->publish(path_msg);
+}
+
+
 
 int main(int argc, char **argv) {
 #if !defined(NDEBUG)

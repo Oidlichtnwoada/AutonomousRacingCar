@@ -7,17 +7,22 @@
 
 #include <motion_planner/occupancy_grid.h>
 
+OccupancyGrid::OccupancyGrid() {}
+
+OccupancyGrid::OccupancyGrid(const cv::Mat& m) :
+    cv::Mat(m)
+{}
+
 // This is a modified version of
 // Bresenham's line algorithm
 //
 // Source: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C
 
-bool ExpandPath(
+bool OccupancyGrid::expandPath(
         const cv::Vec2i start,
         const cv::Vec2i destination,
         cv::Vec2i& end,
-        const int max_expansion_distance,
-        const cv::Mat& occupancy_grid)
+        const int max_expansion_distance) const
 {
     int x0 = start(0);
     int y0 = start(1);
@@ -32,7 +37,7 @@ bool ExpandPath(
     int err = (dx>dy ? dx : -dy)/2, e2;
 
     for(;;){
-        if (IsGridCellOccupied(x0,y0,occupancy_grid)) {
+        if (isGridCellOccupied(x0,y0)) {
             return(false);
         }
 
@@ -41,7 +46,7 @@ bool ExpandPath(
         }
         e2 = err;
         if (e2 >-dx) {
-            if (IsGridCellOccupied(x0 + sx, y0,occupancy_grid)) {
+            if (isGridCellOccupied(x0 + sx, y0)) {
                 end = cv::Vec2i(x0,y0);
                 return(false);
             }
@@ -52,7 +57,7 @@ bool ExpandPath(
             err -= dy; x0 += sx;
         }
         if (e2 < dy) {
-            if (IsGridCellOccupied(x0, y0 + sy, occupancy_grid)) {
+            if (isGridCellOccupied(x0, y0 + sy)) {
                 end = cv::Vec2i(x0,y0);
                 return(false);
             }
@@ -70,28 +75,25 @@ bool ExpandPath(
     return(true);
 }
 
-cv::Mat& ExpandOccupancyGrid(cv::Mat& grid, float vehicle_width_in_pixels) {
-    //const float pixels_per_meter = 1.0 / map_->info.resolution;
-    //const float vehicle_width_in_pixels = vehicle_width_ * pixels_per_meter;
+OccupancyGrid& OccupancyGrid::expand(float vehicle_width_in_pixels) {
     unsigned int structuring_element_width = static_cast<unsigned int>(std::ceil(vehicle_width_in_pixels)) + 1;
     if (structuring_element_width % 2 == 0) {
         structuring_element_width++;
     }
     if(GRID_CELL_IS_FREE < GRID_CELL_IS_OCCUPIED) {
-        cv::dilate(grid, grid /* in-place */ , cv::getStructuringElement(
+        cv::dilate(*this, *this /* in-place */ , cv::getStructuringElement(
                 cv::MORPH_ELLIPSE, cv::Size(structuring_element_width, structuring_element_width)));
     } else {
-        cv::erode(grid, grid /* in-place */ , cv::getStructuringElement(
+        cv::erode(*this, *this /* in-place */ , cv::getStructuringElement(
                 cv::MORPH_ELLIPSE, cv::Size(structuring_element_width, structuring_element_width)));
     }
-    return(grid);
+    return(*this);
 }
 
-nav_msgs::GridCells ConvertToGridCellsMessage(
-        cv::Mat& grid,
+nav_msgs::GridCells OccupancyGrid::convertToGridCellsMessage(
         const cv::Vec2i grid_center,
         const float meters_per_pixel,
-        const std::string frame_id) {
+        const std::string frame_id) const {
 
     nav_msgs::GridCells grid_msg;
     grid_msg.header.stamp = ros::Time::now();
@@ -101,9 +103,9 @@ nav_msgs::GridCells ConvertToGridCellsMessage(
     grid_msg.cell_height = meters_per_pixel;
     grid_msg.cell_width = meters_per_pixel;
 
-    for(int row=0; row<grid.rows; row++) {
-        for(int col=0; col<grid.cols; col++) {
-            if(grid.at<uint8_t>(row,col) == GRID_CELL_IS_FREE) {
+    for(int row=0; row<this->rows; row++) {
+        for(int col=0; col<this->cols; col++) {
+            if(this->at<uint8_t>(row,col) == GRID_CELL_IS_FREE) {
                 continue;
             }
 

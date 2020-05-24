@@ -26,7 +26,7 @@ inline int L1_norm(const Eigen::Vector2i& v0, int row1, int col1) {
 
 std::tuple<bool, PathPlanner::Tree, PathPlanner::Path>
 PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
-                 const cv::Mat& occupancy_grid,
+                 const OccupancyGrid& occupancy_grid,
                  const cv::Vec2i& occupancy_grid_center,
                  const Eigen::Affine3f& T_grid_to_map,
                  const Options options,
@@ -154,7 +154,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                                         sample_from_heuristic_sampling_domain():
                                         sample_from_entire_grid();
 
-        if(IsGridCellOccupied(random_row, random_col, occupancy_grid)) {
+        if(occupancy_grid.isGridCellOccupied(random_row, random_col)) {
             // grid cell is occupied
             continue;
         }
@@ -194,16 +194,15 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         const T parent_row = static_cast<T>(parent_node.position_(0));
         const T parent_col = static_cast<T>(parent_node.position_(1));
 
-        assert(not IsGridCellOccupied(parent_row, parent_col, occupancy_grid));
+        assert(not occupancy_grid.isGridCellOccupied(parent_row, parent_col));
 
         // Expand the path from the parent to the leaf, check if any obstacles are in the way...
         cv::Vec2i leaf_position(0,0);
         const bool expansion_has_no_obstacles =
-                ExpandPath(cv::Vec2i(parent_row, parent_col),
+                occupancy_grid.expandPath(cv::Vec2i(parent_row, parent_col),
                            cv::Vec2i(random_row, random_col),
                            leaf_position,
-                           maximum_rrt_expansion_distance,
-                           occupancy_grid);
+                           maximum_rrt_expansion_distance);
 
         if(!expansion_has_no_obstacles) {
             continue;
@@ -212,7 +211,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         const T leaf_row = leaf_position(0);
         const T leaf_col = leaf_position(1);
 
-        assert(not IsGridCellOccupied(leaf_row, leaf_col, occupancy_grid));
+        assert(not occupancy_grid.isGridCellOccupied(leaf_row, leaf_col));
 
         const auto parent_to_leaf_distance = L1_norm(parent_row, parent_col, leaf_row, leaf_col);
         const auto accumulated_path_length_to_leaf = parent_node.path_length_ + parent_to_leaf_distance;
@@ -240,11 +239,10 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                     // Check if obstacles are in the way...
                     cv::Vec2i dummy_position;
                     const bool expansion_has_no_obstacles =
-                            ExpandPath(cv::Vec2i(leaf_row, leaf_col),
+                            occupancy_grid.expandPath(cv::Vec2i(leaf_row, leaf_col),
                                        cv::Vec2i(node.position_(0), node.position_(1)),
                                        dummy_position,
-                                       std::numeric_limits<int>::max(),
-                                       occupancy_grid);
+                                       std::numeric_limits<int>::max());
 
                     if(!expansion_has_no_obstacles) {
                         continue;
@@ -357,23 +355,19 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         marker_publishing_task_ = std::async(
                 std::launch::async,
                 [=]() {
-                    try {
-                        std::vector<visualization_msgs::Marker> marker_messages = generateMarkerMessages(
-                                tree,
-                                path,
-                                goal_in_map_frame,
-                                T_grid_to_map,
-                                Eigen::Vector2i(occupancy_grid.rows, occupancy_grid.cols),
-                                T_sampling_domain_to_grid_frame,
-                                Eigen::Vector2f(heuristic_sampling_domain_major_axis_length,
-                                                heuristic_sampling_domain_minor_axis_length));
-                        for(auto message : marker_messages) {
-                            marker_publisher->publish(message);
-                        }}
-                    catch (const std::exception& e) {
-                        std::cout << e.what() << std::endl;
-                        /* */
-                    }});
+                    std::vector<visualization_msgs::Marker> marker_messages = generateMarkerMessages(
+                            tree,
+                            path,
+                            goal_in_map_frame,
+                            T_grid_to_map,
+                            Eigen::Vector2i(occupancy_grid.rows, occupancy_grid.cols),
+                            T_sampling_domain_to_grid_frame,
+                            Eigen::Vector2f(heuristic_sampling_domain_major_axis_length,
+                                            heuristic_sampling_domain_minor_axis_length));
+                    for(auto message : marker_messages) {
+                        marker_publisher->publish(message);
+                    }
+                });
     }
     return {true, tree, path};
 }
@@ -388,7 +382,7 @@ std::vector<visualization_msgs::Marker>
                 const Eigen::Affine3f T_sampling_domain_to_grid,
                 const Eigen::Vector2f sampling_domain_extents,
                 const std::string map_frame
-                ) {
+                ) const {
 
     int marker_message_id = 0;
     std::vector<visualization_msgs::Marker> marker_messages;

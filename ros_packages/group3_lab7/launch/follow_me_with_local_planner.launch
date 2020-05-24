@@ -9,8 +9,6 @@
     <!--
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find group3_lab7)/launch/follow_me_with_local_planner.rviz" output="screen"/>
     -->
-    <!--
     <remap to="/follow_me/goal" from="/motion_planner/goal" />
     <node pkg="group3_lab7" name="motion_planner" type="motion_planner" output="screen"/>
-    -->
 </launch>
