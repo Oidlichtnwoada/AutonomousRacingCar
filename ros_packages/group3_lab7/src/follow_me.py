@@ -45,9 +45,9 @@ class PurePursuit:
 
         self.last_processing_timestamp = rospy.Time()
 
-        self.dt_threshold = 0.0 # unthrottled
+        # self.dt_threshold = 0.0 # unthrottled
         # Example (throttled at 100Hz)
-        #self.dt_threshold = 1.0 / 100.0 # run at 100 Hz (max.)
+        self.dt_threshold = 1.0 / 100.0 # run at 100 Hz (max.)
 
         DEFAULT_WHEELBASE = 0.3302 # see simulator.yaml
         # The distance between the front and rear axle of the racecar

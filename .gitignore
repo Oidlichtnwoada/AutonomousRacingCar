@@ -3,3 +3,7 @@ cmake-build-*
 .vscode
 *.code-workspace
 ros_packages/group3_lab7/src/group3_lab7/
+
+ros_packages/group3_lab7/docs/
+
+ros_packages/group3_lab7/cfg/cpp/
