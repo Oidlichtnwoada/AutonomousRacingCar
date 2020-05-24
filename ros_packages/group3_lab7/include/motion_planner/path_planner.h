@@ -7,6 +7,7 @@
 
 #pragma once
 #include <motion_planner/Tree.h>
+#include <motion_planner/occupancy_grid.h>
 #include <deque>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -37,7 +38,7 @@ public:
 
     std::tuple<bool /* success */, Tree /* full tree */, Path /* best path */>
     run(Eigen::Vector2f goal_in_map_frame,
-        const cv::Mat& occupancy_grid,
+        const OccupancyGrid& occupancy_grid,
         const cv::Vec2i& occupancy_grid_center,
         const Eigen::Affine3f& T_grid_to_map,
         const Options options = {.algorithm = INFORMED_RRT_STAR},
@@ -63,5 +64,5 @@ protected:
             const Eigen::Affine3f T_sampling_domain_to_grid,
             const Eigen::Vector2f sampling_domain_extents, // [major axis length, minor axis length]
             const std::string map_frame = "map"
-            );
+            ) const;
 };

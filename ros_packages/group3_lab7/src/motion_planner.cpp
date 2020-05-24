@@ -63,8 +63,8 @@ static_assert(MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
 #define DEFAULT_VEHICLE_WHEELBASE 0.3302 // units: m (see f110_simulator/params.yaml)
 #define DEFAULT_VEHICLE_WIDTH     0.2032 // units: m (see f110_simulator/params.yaml)
 #define DEFAULT_MAX_LASER_SCAN_DISTANCE 5.0 // units: m
-#define DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY 20 // units: Hz
-#define DEFAULT_GOAL_UPDATE_FREQUENCY 20 // units: Hz
+#define DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY 60 // units: Hz
+#define DEFAULT_GOAL_UPDATE_FREQUENCY 60 // units: Hz
 
 static_assert(DEFAULT_VEHICLE_WHEELBASE > 0);
 static_assert(DEFAULT_VEHICLE_WIDTH > 0);
@@ -120,8 +120,8 @@ private:
     MotionPlanner::OccupancyGridMessage map_; // copied from "/map"
 
     std::mutex occupancy_grid_mutex_;
-    cv::Mat static_occupancy_grid_; // just a thin wrapper around map_->data.data()
-    cv::Mat dynamic_occupancy_grid_;
+    OccupancyGrid static_occupancy_grid_; // just a thin wrapper around map_->data.data()
+    OccupancyGrid dynamic_occupancy_grid_;
 #ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
     cv::Mat dynamic_occupancy_grid_distances_;
 #endif
@@ -373,9 +373,9 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
     // Expand the dynamic occupancy grid
     const float vehicle_width_in_pixels = vehicle_width_ * pixels_per_meter;
-    ExpandOccupancyGrid(dynamic_occupancy_grid_, vehicle_width_in_pixels);
-    dynamic_occupancy_grid_publisher_->publish(ConvertToGridCellsMessage(
-            dynamic_occupancy_grid_, dynamic_occupancy_grid_center_, meters_per_pixel, FRAME_LASER));
+    dynamic_occupancy_grid_.expand(vehicle_width_in_pixels);
+    dynamic_occupancy_grid_publisher_->publish(dynamic_occupancy_grid_.convertToGridCellsMessage(
+            dynamic_occupancy_grid_center_, meters_per_pixel, FRAME_LASER));
 
 #ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
 
@@ -456,15 +456,15 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     static_occupancy_grid_center_ = cv::Vec2i(
             static_cast<int>(-map_->info.origin.position.y * pixels_per_meter),  // rows <--> y
             static_cast<int>(-map_->info.origin.position.x * pixels_per_meter)); // cols <--> x
-    cv::Mat static_occupancy_grid_ = cv::Mat(info.height,
-            info.width, CV_8UC1, (void*) map_->data.data()); // just a thin wrapper around map_->data.data()
+    static_occupancy_grid_ = OccupancyGrid(cv::Mat(info.height,
+            info.width, CV_8UC1, (void*) map_->data.data())); // just a thin wrapper around map_->data.data()
 
     cv::threshold(static_occupancy_grid_, static_occupancy_grid_ /* in-place */, 1, 255, cv::THRESH_BINARY);
     cv::bitwise_not(static_occupancy_grid_, static_occupancy_grid_);
 
     // Publish static occupancy grid (for RViz)
-    static_occupancy_grid_publisher_->publish(ConvertToGridCellsMessage(
-            static_occupancy_grid_, static_occupancy_grid_center_, meters_per_pixel, FRAME_MAP));
+    static_occupancy_grid_publisher_->publish(static_occupancy_grid_.convertToGridCellsMessage(
+            static_occupancy_grid_center_, meters_per_pixel, FRAME_MAP));
 
     if(info.origin.orientation.x != 0.0 || info.origin.orientation.y != 0.0 || info.origin.orientation.z != 0.0) {
         ROS_ERROR("Handling non-zero map rotations is not implemented.");
@@ -605,9 +605,13 @@ int main(int argc, char **argv) {
 #if !defined(NDEBUG)
     std::cerr << "WARNING: Debug build." << std::endl;
 #endif
-    ros::init(argc, argv, "motion_planner");
-    boost::shared_ptr<MotionPlanner> motion_planner(new MotionPlanner());
-    ros::spin();
-    motion_planner.reset();
+    try {
+        ros::init(argc, argv, "motion_planner");
+        boost::shared_ptr<MotionPlanner> motion_planner(new MotionPlanner());
+        ros::spin();
+        motion_planner.reset();
+    } catch(std::exception &exception) {
+        std::cerr << "ERROR: " << exception.what() << std::endl;
+    }
     return 0;
 }
