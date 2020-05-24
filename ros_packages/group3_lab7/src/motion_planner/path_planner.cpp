@@ -24,7 +24,7 @@ inline int L1_norm(const Eigen::Vector2i& v0, int row1, int col1) {
 };
 */
 
-std::tuple<bool, PathPlanner::Tree, PathPlanner::Path>
+std::tuple<bool, PathPlanner::Tree, PathPlanner::Path, PathPlanner::GridPath>
 PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                  const OccupancyGrid& occupancy_grid,
                  const cv::Vec2i& occupancy_grid_center,
@@ -80,7 +80,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
         // TODO: Is there a better way to handle such a case?
         Path path;
-        return {false, tree, path};
+        GridPath grid_path;
+        return {false, tree, path, grid_path};
     }
 
     // Generate a uniform distribution across the entire grid (default for RRT, RRT* and
@@ -148,7 +149,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     // =================================================================================================================
     // Sampling loop
     // =================================================================================================================
-    while(tree.nodes_.size() < maximum_rrt_samples) {
+    int number_of_skipped_nodes = 0;
+    while((tree.nodes_.size() + number_of_skipped_nodes) < maximum_rrt_samples) {
 
         auto [random_row, random_col] = (USE_INFORMED_RRT_STAR && path_to_goal_found) ?
                                         sample_from_heuristic_sampling_domain():
@@ -170,6 +172,12 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
         size_t nn_index = nn_indices[0]; // for RRT (k=1)
         T nn_distance = nn_distances[0]; // for RRT (k=1)
+
+        if(nn_distance == 0) {
+            // skip cells that were already visited, but count them towards the total
+            number_of_skipped_nodes++;
+            continue;
+        }
 
         // RRT* only: inspect the k-neighborhood, find minimum-cost link
         if(neighbors_found && USE_RRT_STAR) {
@@ -286,7 +294,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                 const float& c_min = shortest_linear_path_to_goal; // the L2 norm is the lower bound for the L1 norm
                 const float& c_best = accumulated_length_of_best_path_to_goal;
                 heuristic_sampling_domain_major_axis_length = static_cast<int>(c_best);
-                heuristic_sampling_domain_minor_axis_length = static_cast<int>(std::sqrt((c_best * c_best) - (c_min * c_min)));
+                //heuristic_sampling_domain_minor_axis_length = static_cast<int>(std::sqrt((c_best * c_best) - (c_min * c_min)));
+                heuristic_sampling_domain_minor_axis_length = static_cast<int>(0.7071f * std::sqrt((c_best * c_best) - (c_min * c_min)));
                 distribution_along_major_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_major_axis_length));
                 distribution_along_minor_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_minor_axis_length));
 
@@ -304,7 +313,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
     // Trace the path back from the goal to the parent node
 
-    std::deque<Eigen::Vector2f> path; // path in the "map" coordinate frame
+    Path path; // path in the "map" coordinate frame
+    GridPath grid_path; // path in the grid coordinate frame
     std::deque<Node> nodes_on_path;   // nodes on path (in the grid coordinate frame)
 
     // Run a knn-search (k=1) to find the closest node to our goal.
@@ -324,10 +334,14 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
             tree.nodes_[nn_index].path_length_ + closest_leaf_to_goal_distance;
 
     nodes_on_path.push_front(Node(goal_row, goal_col, nn_index, accumulated_path_length_to_goal)); // insert the goal as the last node in the path
+    grid_path.push_front(Eigen::Vector2i(goal_row, goal_col));
 
     while(true) {
+
         const size_t parent_node_index = nodes_on_path.front().parent_;
-        nodes_on_path.push_front(tree.nodes_[parent_node_index]);
+        const Node& parent_node = tree.nodes_[parent_node_index];
+        nodes_on_path.push_front(parent_node);
+        grid_path.push_front(parent_node.position_);
 
         const T node_row = nodes_on_path.front().position_(0);
         const T node_col = nodes_on_path.front().position_(1);
@@ -369,7 +383,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                     }
                 });
     }
-    return {true, tree, path};
+    return {true, tree, path, grid_path};
 }
 
 std::vector<visualization_msgs::Marker>
@@ -684,4 +698,24 @@ std::vector<visualization_msgs::Marker>
     }
 #endif
     return(marker_messages);
+}
+
+PathPlanner::Path GridToMap(
+        const PathPlanner::GridPath& grid_path,
+        const Eigen::Affine3f T_grid_to_map) {
+    PathPlanner::Path path;
+    for(int i=0; i<grid_path.size(); i++) {
+        path.push_back((T_grid_to_map * Eigen::Vector3f(grid_path[i](0), grid_path[i](1), 0.0f)).head(2));
+    }
+    return(path);
+}
+
+PathPlanner::GridPath MapToGrid(
+        const PathPlanner::Path& path,
+        const Eigen::Affine3f T_map_to_grid) {
+    PathPlanner::GridPath grid_path;
+    for(int i=0; i<path.size(); i++) {
+        grid_path.push_back((T_map_to_grid * Eigen::Vector3f(path[i](0), path[i](1), 0.0f)).cast<int>().head(2));
+    }
+    return(grid_path);
 }

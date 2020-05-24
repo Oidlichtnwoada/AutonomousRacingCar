@@ -74,8 +74,6 @@ static_assert(DEFAULT_VEHICLE_WIDTH > 0);
 static_assert(DEFAULT_MAX_LASER_SCAN_DISTANCE > 0);
 static_assert(DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY >= 0);
 
-#undef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM // <-- not enabled by default!
-
 class MotionPlanner {
 
 public:
@@ -128,9 +126,6 @@ private:
     std::mutex occupancy_grid_mutex_;
     OccupancyGrid static_occupancy_grid_; // just a thin wrapper around map_->data.data()
     OccupancyGrid dynamic_occupancy_grid_;
-#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
-    cv::Mat dynamic_occupancy_grid_distances_;
-#endif
 
     cv::Vec2i static_occupancy_grid_center_;
     cv::Vec2i dynamic_occupancy_grid_center_;
@@ -230,9 +225,6 @@ bool MotionPlanner::debugServiceCallback(std_srvs::Empty::Request& request,
     std::cout << "MotionPlanner::debugServiceCallback()" << std::endl;
     cv::imwrite("/tmp/static_occupancy_grid.png", static_occupancy_grid_);
     cv::imwrite("/tmp/dynamic_occupancy_grid.png", dynamic_occupancy_grid_);
-#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
-    cv::imwrite("/tmp/dynamic_occupancy_grid_distances.png", dynamic_occupancy_grid_distances_);
-#endif
     return(true);
 }
 
@@ -386,23 +378,6 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     dynamic_occupancy_grid_publisher_->publish(dynamic_occupancy_grid_.convertToGridCellsMessage(
             dynamic_occupancy_grid_center_, meters_per_pixel, FRAME_LASER));
 
-#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
-
-    static_assert(GRID_CELL_IS_OCCUPIED == 0 && GRID_CELL_IS_FREE == 255, "Invalid GRID_CELL constants.");
-
-    // Calculate the distance to the closest blocked cell for each cell of the grid
-
-    // TODO: Do we want a 3x3 or a 5x5 mask for DIST_L2?
-    // NOTE: for DIST_L1, a 3x3 mask gives the same result as 5x5 or any larger
-    //       See: https://docs.opencv.org/master/d7/d1b/group__imgproc__misc.html
-    cv::distanceTransform(
-            dynamic_occupancy_grid_,
-            dynamic_occupancy_grid_distances_,
-            USE_L1_DISTANCE_METRIC ? cv::DIST_L1 : cv::DIST_L2,
-            USE_L1_DISTANCE_METRIC ? 3 : 5,
-            USE_L1_DISTANCE_METRIC ? CV_8U : CV_32F);
-#endif
-
     should_plan_path_.store(true);
 }
 
@@ -511,15 +486,6 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
     const cv::Scalar grid_cell_is_free(GRID_CELL_IS_FREE);
     dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_cols, dynamic_occupancy_grid_rows, CV_8UC1, grid_cell_is_free);
 
-#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
-    const cv::Scalar zero(0.0);
-    dynamic_occupancy_grid_distances_ =
-            cv::Mat(dynamic_occupancy_grid_cols,
-                    dynamic_occupancy_grid_rows,
-                    USE_L1_DISTANCE_METRIC ? CV_8UC1 : CV_32F,
-                    zero);
-#endif
-
     should_plan_path_.store(true);
 }
 
@@ -595,7 +561,7 @@ void MotionPlanner::runPathPlanner() {
                     should_generate_marker_messages ? rrt_visualization_publisher_ : nullptr;
 
 
-            auto [success, tree, path] = path_planner_.run(
+            auto [success, tree, path, grid_path] = path_planner_.run(
                     Eigen::Vector2f(goal.pose.position.x, goal.pose.position.y),
                     occupancy_grid,
                     occupancy_grid_center,
@@ -603,17 +569,17 @@ void MotionPlanner::runPathPlanner() {
                     options,
                     marker_publisher);
 
-            std::future<void> path_to_goal_publishing_task = std::async(std::launch::async,
-                [&,path]() {
-                std::lock_guard<std::mutex> scoped_lock(path_to_goal_publisher_mutex_);
-                publishPath(path);
-            });
+            std::future<void> path_to_goal_publishing_task = std::async(
+                    std::launch::async, [&,path]()
+                    {
+                        std::lock_guard<std::mutex> scoped_lock(path_to_goal_publisher_mutex_);
+                        publishPath(path);
+                    });
 
         } else {
             sampling_rate.sleep();
         }
     }
-
     ROS_INFO("Path planner is shutting down...");
 }
 

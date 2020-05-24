@@ -29,6 +29,7 @@ public:
     static constexpr bool USE_L1_DISTANCE_METRIC = true;
     typedef motion_planner::Tree<T, USE_L1_DISTANCE_METRIC> Tree;
     typedef std::deque<Eigen::Vector2f> Path;
+    typedef std::deque<Eigen::Vector2i> GridPath;
 
     enum Algorithm { RRT, RRT_STAR, INFORMED_RRT_STAR };
 
@@ -36,7 +37,7 @@ public:
         Algorithm algorithm;
     };
 
-    std::tuple<bool /* success */, Tree /* full tree */, Path /* best path */>
+    std::tuple<bool /* success */, Tree /* full tree */, Path /* best path */, GridPath>
     run(Eigen::Vector2f goal_in_map_frame,
         const OccupancyGrid& occupancy_grid,
         const cv::Vec2i& occupancy_grid_center,
@@ -66,3 +67,6 @@ protected:
             const std::string map_frame = "map"
             ) const;
 };
+
+PathPlanner::Path GridToMap(const PathPlanner::GridPath& grid_path, const Eigen::Affine3f T_grid_to_map);
+PathPlanner::GridPath MapToGrid(const PathPlanner::Path& path, const Eigen::Affine3f T_map_to_grid);
