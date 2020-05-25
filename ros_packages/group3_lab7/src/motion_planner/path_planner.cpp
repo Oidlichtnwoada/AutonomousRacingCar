@@ -298,6 +298,12 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         }
     }
 
+    if(tree.nodes_.size() < 2) {
+        Path path;
+        GridPath grid_path;
+        return {false, tree, path, grid_path};
+    }
+
     // NOTE: If we did not find a path to the goal (i.e. path_to_goal_found==false), there are two possibilities:
     //       Return with an error, or choose the closest leaf in our tree and construct the path backwards from that.
     //       Let's go with the second option (which is what we would do anyways if path_to_goal_found==true).

@@ -587,6 +587,10 @@ void MotionPlanner::runPathPlanner() {
                     options,
                     marker_publisher);
 
+            if(!success) {
+                continue;
+            }
+
             std::future<void> path_to_goal_publishing_task = std::async(
                     std::launch::async, [&,path]()
                     {
