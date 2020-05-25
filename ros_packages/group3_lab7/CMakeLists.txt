@@ -28,6 +28,7 @@ catkin_python_setup()
 generate_dynamic_reconfigure_options(
   cfg/follow_me.cfg
   cfg/motion_planner.cfg
+  cfg/pure_pursuit.cfg
 )
 
 find_package(cmake_modules REQUIRED)

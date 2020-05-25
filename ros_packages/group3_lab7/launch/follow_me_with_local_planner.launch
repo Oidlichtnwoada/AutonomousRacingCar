@@ -11,4 +11,7 @@
     -->
     <remap to="/follow_me/goal" from="/motion_planner/goal" />
     <node pkg="group3_lab7" name="motion_planner" type="motion_planner" output="screen"/>
+
+    <remap to="/motion_planner/path_to_goal" from="/pure_pursuit/tracked_path" />
+    <node pkg="group3_lab7" name="pure_pursuit" type="pure_pursuit.py" output="screen"/>
 </launch>

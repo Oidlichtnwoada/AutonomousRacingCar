@@ -4,8 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /GridCells2
         - /TF1/Frames1
-        - /Marker1/Namespaces1
+        - /Marker2/Namespaces1
       Splitter Ratio: 0.5
     Tree Height: 954
   - Class: rviz/Selection
@@ -26,7 +27,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -51,9 +52,32 @@ Visualization Manager:
       Name: GridCells
       Topic: /motion_planner/static_occupancy_grid
       Value: false
+    - Alpha: 1
+      Axes Length: 1
+      Axes Radius: 0.10000000149011612
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Arrow
+      Topic: /pure_pursuit/commanded_heading
+      Unreliable: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: false
+      Marker Topic: /pure_pursuit/track_arc
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
     - Alpha: 0.5
       Class: rviz/GridCells
-      Color: 25; 255; 0
+      Color: 255; 0; 127
       Enabled: true
       Name: GridCells
       Topic: /motion_planner/dynamic_occupancy_grid
@@ -134,13 +158,13 @@ Visualization Manager:
       Reference Frame: map
       Value: false
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /motion_planner/rrt_visualization
       Name: Marker
       Namespaces:
-        rrt: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
     - Alpha: 1
       Axes Length: 0.4000000059604645
       Axes Radius: 0.03999999910593033
@@ -275,25 +299,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 7.0941877365112305
+      Distance: 6.485305309295654
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 2.3901453018188477
-        Y: 1.171518325805664
-        Z: -1.1443339586257935
+        X: 1.8089826107025146
+        Y: 0.9074507355690002
+        Z: -1.4122881889343262
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7247970700263977
+      Pitch: 0.9397969841957092
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.323563098907471
+      Yaw: 4.053565979003906
     Saved: ~
 Window Geometry:
   "&Displays":

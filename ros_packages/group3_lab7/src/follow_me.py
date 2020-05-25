@@ -118,7 +118,7 @@ class PurePursuit:
         return path_msg
 
     def reconfigure(self, config, level):
-        rospy.loginfo("""Reconfigure request: {lookahead_distance} {forward_direction}""".format(**config))
+        rospy.loginfo("""[follow_me] reconfigure request: {lookahead_distance} {forward_direction}""".format(**config))
         self.lookahead_distance = config["lookahead_distance"]
         forward_direction = config["forward_direction"]
 
