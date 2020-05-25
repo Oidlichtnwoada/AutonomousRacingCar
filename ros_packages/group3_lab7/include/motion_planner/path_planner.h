@@ -27,9 +27,8 @@ public:
     PathPlanner();
 
 public:
-    typedef int T;
-    static constexpr bool USE_L1_DISTANCE_METRIC = true;
-    typedef motion_planner::Tree<T, USE_L1_DISTANCE_METRIC> Tree;
+    static constexpr bool USE_L1_DISTANCE_METRIC = false;
+    typedef motion_planner::Tree<float, USE_L1_DISTANCE_METRIC> Tree;
     typedef std::deque<Eigen::Vector2f> Path;
     typedef std::deque<Eigen::Vector2i> GridPath;
     typedef group3_lab7::motion_planner_Config Configuration;

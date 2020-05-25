@@ -29,17 +29,9 @@ PathPlanner::PathPlanner()
     : random_generator_(std::mt19937(PathPlanner::random_seed_))
 {}
 
-inline int L1_norm(int row0, int col0, int row1, int col1) {
-    return Eigen::Vector2i(row0 - row1, col0 - col1).lpNorm<1>();
+inline float L2_norm(float row0, float col0, float row1, float col1) {
+    return Eigen::Vector2f(row0 - row1, col0 - col1).norm();
 };
-inline int L1_norm(const Eigen::Vector2i& v0, const Eigen::Vector2i& v1) {
-    return Eigen::Vector2i(v1-v0).lpNorm<1>();
-};
-/*
-inline int L1_norm(const Eigen::Vector2i& v0, int row1, int col1) {
-    return Eigen::Vector2i(v0(0) - row1, v0(1) - col1).lpNorm<1>();
-};
-*/
 
 std::tuple<bool, PathPlanner::Tree, PathPlanner::Path, PathPlanner::GridPath>
 PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
@@ -65,20 +57,20 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     KDTree index(2, tree, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_max_leaf_size));
 
     bool path_to_goal_found = false;
-    T length_of_best_path_to_goal = std::numeric_limits<T>::max();
+    float length_of_best_path_to_goal = std::numeric_limits<float>::max();
 
     const Eigen::Vector3f goal_in_grid_frame =
             T_grid_to_map.inverse() *
             Eigen::Vector3f(goal_in_map_frame(0), goal_in_map_frame(1), 0.0f);
 
-    const T goal_row = static_cast<T>(goal_in_grid_frame(0));
-    const T goal_col = static_cast<T>(goal_in_grid_frame(1));
+    const float goal_row = goal_in_grid_frame(0);
+    const float goal_col = goal_in_grid_frame(1);
 
     // check if goal lies outside grid bounds
-    if(goal_row < 0 ||
-       goal_row >= occupancy_grid.rows ||
-       goal_col < 0 ||
-       goal_col >= occupancy_grid.cols) {
+    if(goal_row < 0.0f ||
+       goal_row >= (float)occupancy_grid.rows ||
+       goal_col < 0.0f ||
+       goal_col >= (float)occupancy_grid.cols) {
 
         // goal lies outside grid bounds
 
@@ -90,12 +82,12 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
     // Generate a uniform distribution across the entire grid (default for RRT, RRT* and
     // Informed-RRT* prior to finding a path to the goal).
-    UniformDistribution uniform_row_distribution(static_cast<T>(0), static_cast<T>(occupancy_grid.rows - 1));
-    UniformDistribution uniform_col_distribution(static_cast<T>(0), static_cast<T>(occupancy_grid.cols - 1));
+    UniformDistribution uniform_row_distribution(0.0f, (float)(occupancy_grid.rows - 1));
+    UniformDistribution uniform_col_distribution(0.0f, (float)(occupancy_grid.cols - 1));
 
     // Root node is the origin in the laser frame (= center of the dynamic occupancy grid)
-    const T root_row = occupancy_grid_center(0);
-    const T root_col = occupancy_grid_center(1);
+    const float root_row = (float)occupancy_grid_center(0);
+    const float root_col = (float)occupancy_grid_center(1);
 
     // For Informed-RRT* only:
     // Generate a uniform distribution across the best-fit (**) bounding rectangle (*) around the
@@ -104,8 +96,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     // (*)  this is our original contribution
     // (**) in the hyperellipsoid-aligned frame
 
-    int heuristic_sampling_domain_major_axis_length = 0; // unknown at this point (for Informed-RRT* only)
-    int heuristic_sampling_domain_minor_axis_length = 0; // unknown at this point (for Informed-RRT* only)
+    float heuristic_sampling_domain_major_axis_length = 0.0f; // unknown at this point (for Informed-RRT* only)
+    float heuristic_sampling_domain_minor_axis_length = 0.0f; // unknown at this point (for Informed-RRT* only)
     UniformDistribution distribution_along_major_axis; // unknown at this point (for Informed-RRT* only)
     UniformDistribution distribution_along_minor_axis; // unknown at this point (for Informed-RRT* only)
 
@@ -120,32 +112,30 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     // For Informed-RRT* only:
     // The following lambda-function returns a valid(*) sample from the heuristic sampling domain.
     // (*) guaranteed to lie inside the bounds of the grid frame
-    auto sample_from_heuristic_sampling_domain = [&]() -> std::tuple<T,T> {
+    auto sample_from_heuristic_sampling_domain = [&]() -> std::tuple<float,float> {
         Eigen::Vector3f sample_in_grid_frame;
         do {
             // (x,y) are coordinates in the "hyperellipsoid-aligned frame"
-            const T x = distribution_along_major_axis(random_generator_);
-            const T y = distribution_along_minor_axis(random_generator_);
+            const float x = distribution_along_major_axis(random_generator_);
+            const float y = distribution_along_minor_axis(random_generator_);
             // transform coordinates from "hyperellipsoid-aligned frame" to grid frame
             sample_in_grid_frame = T_sampling_domain_to_grid_frame * Eigen::Vector3f(x, y, 0.0f);
 
-        } while(sample_in_grid_frame(0) < 0 ||
-                sample_in_grid_frame(0) >= occupancy_grid.rows ||
-                sample_in_grid_frame(1) < 0 ||
-                sample_in_grid_frame(1) >= occupancy_grid.cols);
+        } while(sample_in_grid_frame(0) < 0.0f ||
+                sample_in_grid_frame(0) >= (float)occupancy_grid.rows ||
+                sample_in_grid_frame(1) < 0.0f ||
+                sample_in_grid_frame(1) >= (float)occupancy_grid.cols);
 
-        return {static_cast<T>(sample_in_grid_frame(0)),
-                static_cast<T>(sample_in_grid_frame(1))};
+        return { sample_in_grid_frame(0),
+                 sample_in_grid_frame(1) };
     };
 
-    auto sample_from_entire_grid = [&]() -> std::tuple<T,T> {
+    auto sample_from_entire_grid = [&]() -> std::tuple<float,float> {
         return { uniform_row_distribution(random_generator_),
                  uniform_col_distribution(random_generator_) };
     };
 
-    const float shortest_linear_path_to_goal = root_to_goal.norm(); // L2 norm (this is also the lower bound of the L1 norm)
-    //const float upper_bound_L1_distance_to_goal = shortest_linear_path_to_goal * std::sqrt(2.0); // upper bound for the L1 norm
-    //const float lower_bound_L1_distance_to_goal = shortest_linear_path_to_goal; // lower bound for the L1 norm (same as the L2 norm)
+    const float shortest_linear_path_to_goal = root_to_goal.norm();
 
     tree.nodes_.push_back(Node(root_row,root_col,0)); // insert the root node
     index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
@@ -168,16 +158,16 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         // Run a knn-search (k=1 for RRT, k>1 for RRT*)
         const size_t k = USE_RRT_STAR ? options.size_of_k_neighborhood_ : 1;
         size_t nn_indices[k];
-        T nn_distances[k];
+        float nn_distances[k];
         KNNResultSet nn_results(k);
         nn_results.init(nn_indices, nn_distances);
-        T query_position[2] = { random_row, random_col };
+        float query_position[2] = { random_row, random_col };
         const bool neighbors_found = index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
 
         size_t nn_index = nn_indices[0]; // for RRT (k=1)
-        T nn_distance = nn_distances[0]; // for RRT (k=1)
+        float nn_distance = nn_distances[0]; // for RRT (k=1)
 
-        if(nn_distance == 0) {
+        if(nn_distance == 0.0f) {
             // skip cells that were already visited, but count them towards the total
             number_of_skipped_nodes++;
             continue;
@@ -203,8 +193,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         // The nearest node is our new parent
         const size_t parent_node_index = nn_index;
         const Node& parent_node = tree.nodes_[parent_node_index];
-        const T parent_row = static_cast<T>(parent_node.position_(0));
-        const T parent_col = static_cast<T>(parent_node.position_(1));
+        const float parent_row = parent_node.position_(0);
+        const float parent_col = parent_node.position_(1);
 
         assert(not occupancy_grid.isGridCellOccupied(parent_row, parent_col));
 
@@ -220,12 +210,12 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
             continue;
         }
 
-        const T leaf_row = leaf_position(0);
-        const T leaf_col = leaf_position(1);
+        const float leaf_row = (float) leaf_position(0);
+        const float leaf_col = (float) leaf_position(1);
 
         assert(not occupancy_grid.isGridCellOccupied(leaf_row, leaf_col));
 
-        const auto parent_to_leaf_distance = L1_norm(parent_row, parent_col, leaf_row, leaf_col);
+        const auto parent_to_leaf_distance = L2_norm(parent_row, parent_col, leaf_row, leaf_col);
         const auto accumulated_path_length_to_leaf = parent_node.path_length_ + parent_to_leaf_distance;
 
         tree.nodes_.push_back(Node(leaf_row, leaf_col, parent_node_index, accumulated_path_length_to_leaf)); // insert new leaf
@@ -242,7 +232,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                 assert(j < tree.nodes_.size());
                 Node& node = tree.nodes_[j];
 
-                const auto node_to_leaf_distance = L1_norm(
+                const auto node_to_leaf_distance = L2_norm(
                         node.position_(0), node.position_(1), leaf_row, leaf_col);
 
                 if(accumulated_path_length_to_leaf + node_to_leaf_distance < node.path_length_) {
@@ -272,13 +262,13 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
 
         // Check if we are within reach of the goal
-        const auto leaf_to_goal_distance = L1_norm(
+        const auto leaf_to_goal_distance = L2_norm(
                 goal_row, goal_col, leaf_node.position_(0), leaf_node.position_(1));
 
         if(leaf_to_goal_distance <= options.goal_proximity_threshold_) {
             path_to_goal_found = true;
-            const int length_of_new_path_to_goal = leaf_node.path_length_ + leaf_to_goal_distance;
-            length_of_best_path_to_goal = std::min<int>(length_of_best_path_to_goal, length_of_new_path_to_goal);
+            const float length_of_new_path_to_goal = leaf_node.path_length_ + leaf_to_goal_distance;
+            length_of_best_path_to_goal = std::min(length_of_best_path_to_goal, length_of_new_path_to_goal);
 
             if(USE_INFORMED_RRT_STAR) {
                 // Uniform distribution across the best-fit bounding rectangle (!) of the elliptical heuristic
@@ -288,28 +278,20 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                 // c_{min}  ... linear shortest distance to goal (theoretical minimum cost)
                 // c_{best} ... accumulated length of best path to goal (current best cost)
 
-                // NOTE: If we are using the L1 distance metric, this is obviously just an
-                //       approximation. Since the resulting L1 major_axis_length is an
-                //       upper bound for the L2 minor_axis_length, this is ok.
-
-                const float accumulated_length_of_best_path_to_goal = static_cast<float>(length_of_best_path_to_goal);
+                const float accumulated_length_of_best_path_to_goal = length_of_best_path_to_goal;
 
                 // Use the variable naming scheme from [Gammell et al., 2014]...
-                const float& c_min = shortest_linear_path_to_goal; // the L2 norm is the lower bound for the L1 norm
+                const float& c_min = shortest_linear_path_to_goal;
                 const float& c_best = accumulated_length_of_best_path_to_goal;
-                heuristic_sampling_domain_major_axis_length = static_cast<int>(c_best);
 
-                // "Safe" upper bound
-                // heuristic_sampling_domain_minor_axis_length = static_cast<int>(std::sqrt((c_best * c_best) - (c_min * c_min)));
+                heuristic_sampling_domain_major_axis_length = c_best;
+                heuristic_sampling_domain_minor_axis_length = std::sqrt((c_best * c_best) - (c_min * c_min));
 
-                // Heuristic approximation (NOTE: sqrt(2) = 0.7071)
-                heuristic_sampling_domain_minor_axis_length = static_cast<int>(0.7071f * std::sqrt((c_best * c_best) - (c_min * c_min)));
-
-                distribution_along_major_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_major_axis_length));
-                distribution_along_minor_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_minor_axis_length));
+                distribution_along_major_axis = UniformDistribution(0.0f, heuristic_sampling_domain_major_axis_length);
+                distribution_along_minor_axis = UniformDistribution(0.0f, heuristic_sampling_domain_minor_axis_length);
 
                 T_sampling_domain_to_grid_frame = Eigen::Affine3f::Identity();
-                T_sampling_domain_to_grid_frame.pretranslate(Eigen::Vector3f(0, -static_cast<float>(heuristic_sampling_domain_minor_axis_length) / 2.0, 0.0f));
+                T_sampling_domain_to_grid_frame.pretranslate(Eigen::Vector3f(0, -(heuristic_sampling_domain_minor_axis_length) / 2.0, 0.0f));
                 T_sampling_domain_to_grid_frame.prerotate(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
                 T_sampling_domain_to_grid_frame.pretranslate(Eigen::Vector3f(root_row, root_col, 0.0f));
             }
@@ -329,14 +311,14 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     // Run a knn-search (k=1) to find the closest node to our goal.
     const size_t k = 1;
     size_t nn_index;
-    T nn_distance;
+    float nn_distance;
     KNNResultSet nn_results(k);
     nn_results.init(&nn_index, &nn_distance);
-    T query_position[2] = { goal_row, goal_col };
+    float query_position[2] = { goal_row, goal_col };
     index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
     assert(nn_index < tree.nodes_.size());
 
-    const auto closest_leaf_to_goal_distance = L1_norm(
+    const auto closest_leaf_to_goal_distance = L2_norm(
             goal_row, goal_col, tree.nodes_[nn_index].position_(0), tree.nodes_[nn_index].position_(1));
 
     const auto accumulated_path_length_to_goal =
@@ -352,8 +334,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         nodes_on_path.push_front(parent_node);
         grid_path.push_front(parent_node.position_.cast<int>());
 
-        const T node_row = nodes_on_path.front().position_(0);
-        const T node_col = nodes_on_path.front().position_(1);
+        const float node_row = nodes_on_path.front().position_(0);
+        const float node_col = nodes_on_path.front().position_(1);
 
         const auto node_in_map_frame =
                 T_grid_to_map * Eigen::Vector3f(node_row, node_col, 0.0f);
