@@ -627,9 +627,9 @@ std::vector<visualization_msgs::Marker>
         marker.scale.y = 0.0; // must be zero for LINE_LIST
         marker.scale.z = 0.0; // must be zero for LINE_LIST
 
-        marker.color.r = 0.0f;
-        marker.color.g = 1.0f;
-        marker.color.b = 0.0f;
+        marker.color.r = 255.0f / 255.0f;
+        marker.color.g = 255.0f / 255.0f;
+        marker.color.b =  51.0f / 255.0f;
         marker.color.a = 1.0;
 
         marker.lifetime = ros::Duration();
