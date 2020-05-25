@@ -19,6 +19,8 @@
 #include <boost/shared_ptr.hpp>
 #include <future>
 
+#include <group3_lab7/motion_planner_Config.h>
+
 class PathPlanner {
 
 public:
@@ -30,11 +32,28 @@ public:
     typedef motion_planner::Tree<T, USE_L1_DISTANCE_METRIC> Tree;
     typedef std::deque<Eigen::Vector2f> Path;
     typedef std::deque<Eigen::Vector2i> GridPath;
+    typedef group3_lab7::motion_planner_Config Configuration;
 
-    enum Algorithm { RRT, RRT_STAR, INFORMED_RRT_STAR };
+    enum Algorithm { RRT = 0, RRT_STAR = 1, INFORMED_RRT_STAR = 2 };
 
     struct Options {
-        Algorithm algorithm;
+        Options();
+        Options(const Configuration&);
+        Algorithm algorithm_;
+        int number_of_random_samples_;
+        int goal_proximity_threshold_; // in grid coordinates (pixels)
+        int size_of_k_neighborhood_;   // a.k.a. just "k", only used for RRT* and Informed-RRT*
+        int maximum_branch_expansion_; // in grid coordinates (pixels)
+
+        static constexpr Algorithm default_algorithm = INFORMED_RRT_STAR;
+        #if !defined(NDEBUG)
+        static constexpr int default_number_of_random_samples = 2000; // DEBUG
+        #else
+        static constexpr int default_number_of_random_samples = 8000; // RELEASE
+        #endif
+        static constexpr int default_goal_proximity_threshold =  2;
+        static constexpr int default_size_of_k_neighborhood   = 10;
+        static constexpr int default_maximum_branch_expansion =  5;
     };
 
     std::tuple<bool /* success */, Tree /* full tree */, Path /* best path */, GridPath>
@@ -42,7 +61,7 @@ public:
         const OccupancyGrid& occupancy_grid,
         const cv::Vec2i& occupancy_grid_center,
         const Eigen::Affine3f& T_grid_to_map,
-        const Options options = {.algorithm = INFORMED_RRT_STAR},
+        const Options options = Options(),
         boost::shared_ptr<ros::Publisher> marker_publisher = nullptr);
 
 protected:

@@ -36,7 +36,7 @@ public:
             cv::Vec2i& end,
             const int max_expansion_distance) const;
 
-    OccupancyGrid& expand(float vehicle_width_in_pixels);
+    OccupancyGrid& expand(float width_in_pixels);
 
     nav_msgs::GridCells convertToGridCellsMessage(
             const cv::Vec2i grid_center,

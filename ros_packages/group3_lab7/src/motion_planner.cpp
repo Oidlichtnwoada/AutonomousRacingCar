@@ -35,6 +35,9 @@
 #include <motion_planner/occupancy_grid.h>
 #include <motion_planner/path_planner.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <group3_lab7/motion_planner_Config.h>
+
 #define LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION // <-- this is just an optimization
 
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
@@ -84,6 +87,13 @@ public:
     typedef boost::shared_ptr<nav_msgs::Odometry const> OdometryMessage;
     typedef boost::shared_ptr<nav_msgs::Path const> PathMessage;
     typedef boost::shared_ptr<nav_msgs::OccupancyGrid const> OccupancyGridMessage;
+    typedef group3_lab7::motion_planner_Config Configuration;
+
+    std::mutex configuration_mutex_;
+    std::atomic<bool> has_valid_configuration_;
+    Configuration configuration_;
+    std::atomic<float> scan_dt_threshold_;
+    std::atomic<float> goal_dt_threshold_;
 
 private:
     float vehicle_wheelbase_; // units: m
@@ -112,10 +122,7 @@ private:
     boost::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
     ros::Time last_scan_timestamp_;
-    float scan_dt_threshold_;
-
     ros::Time last_goal_timestamp_;
-    float goal_dt_threshold_;
 
     // =================================================================================================================
     // Occupancy grids (static and dynamic)
@@ -178,6 +185,7 @@ MotionPlanner::MotionPlanner()
         , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , rrt_visualization_publisher_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION, MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , path_to_goal_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::Path>(TOPIC_PATH_TO_GOAL, PATH_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , has_valid_configuration_(false)
 #if !defined(NDEBUG)
         , laser_scan_messages_received_(0)
         , odometry_messages_received_(0)
@@ -192,12 +200,6 @@ MotionPlanner::MotionPlanner()
     node_handle_.param<float>("vehicle_width", vehicle_width_, DEFAULT_VEHICLE_WIDTH);
     node_handle_.param<float>("max_laser_scan_distance", max_laser_scan_distance_, DEFAULT_MAX_LASER_SCAN_DISTANCE);
 
-    float dynamic_occupancy_grid_update_frequency; // units: Hz
-    float goal_update_frequency; // units: Hz
-
-    node_handle_.param<float>("dynamic_occupancy_grid_update_frequency", dynamic_occupancy_grid_update_frequency, DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY);
-    node_handle_.param<float>("goal_update_frequency", goal_update_frequency, DEFAULT_GOAL_UPDATE_FREQUENCY);
-
     auto check_value = [](float f, std::string s) {
         if(f <= 0.0f) {
             std::ostringstream o;
@@ -209,10 +211,9 @@ MotionPlanner::MotionPlanner()
     check_value(vehicle_wheelbase_, "vehicle_wheelbase");
     check_value(vehicle_width_, "vehicle_width_");
     check_value(max_laser_scan_distance_, "max_laser_scan_distance");
-    check_value(dynamic_occupancy_grid_update_frequency, "dynamic_occupancy_grid_update_frequency");
 
-    scan_dt_threshold_ = 1.0f / dynamic_occupancy_grid_update_frequency;
-    goal_dt_threshold_ = 1.0f / goal_update_frequency;
+    scan_dt_threshold_.store(1.0f / DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY);
+    goal_dt_threshold_.store(1.0f / DEFAULT_GOAL_UPDATE_FREQUENCY);
 
     path_planner_thread_ = boost::shared_ptr<std::thread>(new std::thread(&MotionPlanner::runPathPlanner, this));
 }
@@ -263,7 +264,7 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     }
 
     const float dt = current_timestamp.toSec() - last_scan_timestamp_.toSec();
-    if(dt < scan_dt_threshold_) {
+    if(dt < scan_dt_threshold_.load()) {
         return;
     }
     last_scan_timestamp_ = current_timestamp;
@@ -374,7 +375,14 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
     // Expand the dynamic occupancy grid
     const float vehicle_width_in_pixels = vehicle_width_ * pixels_per_meter;
-    dynamic_occupancy_grid_.expand(vehicle_width_in_pixels);
+
+    float grid_expansion_width = vehicle_width_in_pixels;
+    if(has_valid_configuration_.load()) {
+        std::lock_guard<std::mutex> scoped_lock(configuration_mutex_);
+        grid_expansion_width += static_cast<float>(configuration_.extra_occupancy_grid_dilation);
+        assert(grid_expansion_width >= 0);
+    }
+    dynamic_occupancy_grid_.expand(grid_expansion_width);
     dynamic_occupancy_grid_publisher_->publish(dynamic_occupancy_grid_.convertToGridCellsMessage(
             dynamic_occupancy_grid_center_, meters_per_pixel, FRAME_LASER));
 
@@ -409,7 +417,7 @@ void MotionPlanner::goalSubscriberCallback(MotionPlanner::PoseStampedMessage goa
     }
 
     const float dt = current_timestamp.toSec() - last_goal_timestamp_.toSec();
-    if(dt < goal_dt_threshold_) {
+    if(dt < goal_dt_threshold_.load()) {
         return;
     }
     last_goal_timestamp_ = current_timestamp;
@@ -491,20 +499,23 @@ void MotionPlanner::mapSubscriberCallback(MotionPlanner::OccupancyGridMessage ma
 
 void MotionPlanner::runPathPlanner() {
 
-    // TODO: expose options to dynamic_reconfigure
-    PathPlanner::Options options = {.algorithm = PathPlanner::INFORMED_RRT_STAR};
-
-    // NOTE: goal_proximity_threshold is used only for performance reasons, nothing else.
-    // We don't want to repeatedly trigger the planner if we are already at (or near) the goal.
-    constexpr float goal_proximity_threshold = 0.1; // units: meters // TODO: this is an arbitrary choice for testing.
-
     ROS_INFO("Path planner is starting...");
     static unsigned int number_of_computations = 0; // for debugging only
 
     ros::Rate sampling_rate(1000); // 1000 hz (chosen to match the /odom update frequency)
     while (!ros::isShuttingDown()) {
+
         bool expected = true;
-        if(should_plan_path_.compare_exchange_strong(expected, false)) {
+        if(has_valid_configuration_.load() &&
+           should_plan_path_.compare_exchange_strong(expected, false)) {
+
+            bool should_generate_marker_messages = true;
+            PathPlanner::Options options;
+            {
+                std::lock_guard<std::mutex> scoped_lock(configuration_mutex_);
+                options = PathPlanner::Options(configuration_);
+                should_generate_marker_messages = configuration_.generate_marker_messages;
+            }
 
             geometry_msgs::PoseStamped goal;
             nav_msgs::Odometry odometry;
@@ -537,10 +548,18 @@ void MotionPlanner::runPathPlanner() {
             const Eigen::Vector2f odom_to_goal(goal.pose.position.x - odometry.pose.pose.position.x,
                                                goal.pose.position.y - odometry.pose.pose.position.y);
 
+            // NOTE: goal_proximity_threshold (in map coordinates, units: meters) is used only for performance
+            // reasons, nothing else. We don't want to repeatedly trigger the planner if we are already at
+            // (or near) the goal.
+
+            /*
+            const float goal_proximity_threshold = ... ??? ...;
+
             if(odom_to_goal.norm() < goal_proximity_threshold) {
                 // we are already close to the goal
                 continue;
             }
+            */
 
             cv::Mat occupancy_grid;
             cv::Vec2i occupancy_grid_center;
@@ -553,13 +572,12 @@ void MotionPlanner::runPathPlanner() {
             }
 
             number_of_computations++;
-            bool should_generate_marker_messages = true;
+
             // TODO: throttle marker message generation to some maximum frequency
             //       (by setting should_generate_marker_messages=false if some delta_t has not yet elapsed).
 
             boost::shared_ptr<ros::Publisher> marker_publisher =
                     should_generate_marker_messages ? rrt_visualization_publisher_ : nullptr;
-
 
             auto [success, tree, path, grid_path] = path_planner_.run(
                     Eigen::Vector2f(goal.pose.position.x, goal.pose.position.y),
@@ -625,6 +643,17 @@ void MotionPlanner::publishPath(const PathPlanner::Path& path) {
 }
 
 
+void DynamicReconfigureCallback(
+        group3_lab7::motion_planner_Config &config,
+        uint32_t level,
+        boost::shared_ptr<MotionPlanner> motion_planner) {
+
+    std::lock_guard<std::mutex> scoped_lock(motion_planner->configuration_mutex_);
+    motion_planner->configuration_ = config;
+    motion_planner->scan_dt_threshold_.store(1.0f / config.maximum_occupancy_grid_update_frequency);
+    motion_planner->goal_dt_threshold_.store(1.0f / config.maximum_goal_update_frequency);
+    motion_planner->has_valid_configuration_.store(true);
+}
 
 int main(int argc, char **argv) {
 #if !defined(NDEBUG)
@@ -633,6 +662,12 @@ int main(int argc, char **argv) {
     try {
         ros::init(argc, argv, "motion_planner");
         boost::shared_ptr<MotionPlanner> motion_planner(new MotionPlanner());
+
+        dynamic_reconfigure::Server<group3_lab7::motion_planner_Config> dynamic_reconfigure_server;
+        dynamic_reconfigure::Server<group3_lab7::motion_planner_Config>::CallbackType dynamic_reconfigure_callback;
+        dynamic_reconfigure_callback = boost::bind(&DynamicReconfigureCallback, _1, _2, motion_planner);
+        dynamic_reconfigure_server.setCallback(dynamic_reconfigure_callback);
+
         ros::spin();
         motion_planner.reset();
     } catch(std::exception &exception) {

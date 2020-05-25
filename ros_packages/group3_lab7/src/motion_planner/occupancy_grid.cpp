@@ -75,8 +75,8 @@ bool OccupancyGrid::expandPath(
     return(true);
 }
 
-OccupancyGrid& OccupancyGrid::expand(float vehicle_width_in_pixels) {
-    unsigned int structuring_element_width = static_cast<unsigned int>(std::ceil(vehicle_width_in_pixels)) + 1;
+OccupancyGrid& OccupancyGrid::expand(float width_in_pixels) {
+    unsigned int structuring_element_width = static_cast<unsigned int>(std::ceil(width_in_pixels)) + 1;
     if (structuring_element_width % 2 == 0) {
         structuring_element_width++;
     }

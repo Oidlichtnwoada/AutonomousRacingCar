@@ -27,6 +27,7 @@ catkin_python_setup()
 
 generate_dynamic_reconfigure_options(
   cfg/follow_me.cfg
+  cfg/motion_planner.cfg
 )
 
 find_package(cmake_modules REQUIRED)
@@ -35,11 +36,13 @@ find_package(Boost REQUIRED)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
+  INCLUDE_DIRS
   CATKIN_DEPENDS rospy roscpp std_msgs std_srvs sensor_msgs geometry_msgs tf2 tf2_ros tf2_eigen tf2_geometry_msgs tf2_sensor_msgs ackermann_msgs dynamic_reconfigure
   DEPENDS EIGEN3 Boost
 )
 
 include_directories(
+        cfg/cpp
         include
         ${EIGEN3_INCLUDE_DIR}
         ${Boost_INCLUDE_DIRS}
@@ -51,6 +54,9 @@ add_executable(${NODE_NAME}
   src/motion_planner.cpp
   src/motion_planner/path_planner.cpp
   src/motion_planner/occupancy_grid.cpp)
+
+# make sure configure headers are built before any node using them
+add_dependencies(${NODE_NAME} ${PROJECT_NAME}_gencfg)
 
 target_link_libraries(${NODE_NAME} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 

@@ -7,6 +7,23 @@
 
 #include <motion_planner/path_planner.h>
 #include <motion_planner/occupancy_grid.h>
+#include <string>
+
+PathPlanner::Options::Options()
+    : algorithm_(default_algorithm)
+    , number_of_random_samples_(default_number_of_random_samples)
+    , goal_proximity_threshold_(default_goal_proximity_threshold)
+    , size_of_k_neighborhood_(default_size_of_k_neighborhood)
+    , maximum_branch_expansion_(default_maximum_branch_expansion)
+{}
+
+PathPlanner::Options::Options(const Configuration& configuration)
+        : algorithm_((Algorithm)configuration.algorithm)
+        , number_of_random_samples_(configuration.number_of_random_samples)
+        , goal_proximity_threshold_(configuration.goal_proximity_threshold)
+        , size_of_k_neighborhood_(configuration.size_of_k_neighborhood)
+        , maximum_branch_expansion_(configuration.maximum_branch_expansion)
+{}
 
 PathPlanner::PathPlanner()
     : random_generator_(std::mt19937(PathPlanner::random_seed_))
@@ -32,32 +49,19 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                  const Options options,
                  boost::shared_ptr<ros::Publisher> marker_publisher) {
 
-    const bool USE_RRT_STAR = (options.algorithm == RRT_STAR) || (options.algorithm == INFORMED_RRT_STAR);
-    const bool USE_INFORMED_RRT_STAR = (options.algorithm == INFORMED_RRT_STAR);
+    const bool USE_RRT_STAR = (options.algorithm_ == RRT_STAR) || (options.algorithm_ == INFORMED_RRT_STAR);
+    const bool USE_INFORMED_RRT_STAR = (options.algorithm_ == INFORMED_RRT_STAR);
 
-#ifndef NDEBUG
+    #ifndef NDEBUG
     unsigned int number_of_relinked_nodes = 0; // for debugging only
-#endif
+    #endif
 
-    constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
-
-#if !defined(NDEBUG)
-    constexpr unsigned int maximum_rrt_samples = 2000;  // TODO: expose this as a ROS node parameter
-#else
-    constexpr unsigned int maximum_rrt_samples = 4000;  // TODO: expose this as a ROS node parameter
-#endif
-
-    constexpr int maximum_rrt_expansion_distance = 5; // TODO: expose this as a ROS node parameter
-    constexpr float rrt_goal_proximity_threshold = 2;   // TODO: expose this as a ROS node parameter
-
-    // RRT* only:
-    constexpr unsigned int rrt_star_nn_k = 10; // size of the neighborhood for reconnection inspection
-
-    assert(maximum_rrt_samples > 0);
-    assert(maximum_rrt_expansion_distance > 1);
-    assert(rrt_goal_proximity_threshold > 0);
+    assert(options.number_of_random_samples_ > 0);
+    assert(options.maximum_branch_expansion_ > 1);
+    assert(options.goal_proximity_threshold_ > 0);
 
     Tree tree;
+    constexpr size_t kdtree_max_leaf_size = 10; // TODO: Is this a good choice?
     KDTree index(2, tree, nanoflann::KDTreeSingleIndexAdaptorParams(kdtree_max_leaf_size));
 
     bool path_to_goal_found = false;
@@ -116,7 +120,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     // For Informed-RRT* only:
     // The following lambda-function returns a valid(*) sample from the heuristic sampling domain.
     // (*) guaranteed to lie inside the bounds of the grid frame
-    auto sample_from_heuristic_sampling_domain = [&]() -> std::tuple<int,int> {
+    auto sample_from_heuristic_sampling_domain = [&]() -> std::tuple<T,T> {
         Eigen::Vector3f sample_in_grid_frame;
         do {
             // (x,y) are coordinates in the "hyperellipsoid-aligned frame"
@@ -134,7 +138,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                 static_cast<T>(sample_in_grid_frame(1))};
     };
 
-    auto sample_from_entire_grid = [&]() -> std::tuple<int,int> {
+    auto sample_from_entire_grid = [&]() -> std::tuple<T,T> {
         return { uniform_row_distribution(random_generator_),
                  uniform_col_distribution(random_generator_) };
     };
@@ -150,7 +154,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     // Sampling loop
     // =================================================================================================================
     int number_of_skipped_nodes = 0;
-    while((tree.nodes_.size() + number_of_skipped_nodes) < maximum_rrt_samples) {
+    while((tree.nodes_.size() + number_of_skipped_nodes) < options.number_of_random_samples_) {
 
         auto [random_row, random_col] = (USE_INFORMED_RRT_STAR && path_to_goal_found) ?
                                         sample_from_heuristic_sampling_domain():
@@ -162,7 +166,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         }
 
         // Run a knn-search (k=1 for RRT, k>1 for RRT*)
-        const size_t k = USE_RRT_STAR ? rrt_star_nn_k : 1;
+        const size_t k = USE_RRT_STAR ? options.size_of_k_neighborhood_ : 1;
         size_t nn_indices[k];
         T nn_distances[k];
         KNNResultSet nn_results(k);
@@ -210,7 +214,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                 occupancy_grid.expandPath(cv::Vec2i(parent_row, parent_col),
                            cv::Vec2i(random_row, random_col),
                            leaf_position,
-                           maximum_rrt_expansion_distance);
+                           options.maximum_branch_expansion_);
 
         if(!expansion_has_no_obstacles) {
             continue;
@@ -271,7 +275,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         const auto leaf_to_goal_distance = L1_norm(
                 goal_row, goal_col, leaf_node.position_(0), leaf_node.position_(1));
 
-        if(leaf_to_goal_distance <= rrt_goal_proximity_threshold) {
+        if(leaf_to_goal_distance <= options.goal_proximity_threshold_) {
             path_to_goal_found = true;
             const int length_of_new_path_to_goal = leaf_node.path_length_ + leaf_to_goal_distance;
             length_of_best_path_to_goal = std::min<int>(length_of_best_path_to_goal, length_of_new_path_to_goal);
@@ -294,8 +298,13 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                 const float& c_min = shortest_linear_path_to_goal; // the L2 norm is the lower bound for the L1 norm
                 const float& c_best = accumulated_length_of_best_path_to_goal;
                 heuristic_sampling_domain_major_axis_length = static_cast<int>(c_best);
-                //heuristic_sampling_domain_minor_axis_length = static_cast<int>(std::sqrt((c_best * c_best) - (c_min * c_min)));
+
+                // "Safe" upper bound
+                // heuristic_sampling_domain_minor_axis_length = static_cast<int>(std::sqrt((c_best * c_best) - (c_min * c_min)));
+
+                // Heuristic approximation (NOTE: sqrt(2) = 0.7071)
                 heuristic_sampling_domain_minor_axis_length = static_cast<int>(0.7071f * std::sqrt((c_best * c_best) - (c_min * c_min)));
+
                 distribution_along_major_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_major_axis_length));
                 distribution_along_minor_axis = UniformDistribution(static_cast<T>(0), static_cast<T>(heuristic_sampling_domain_minor_axis_length));
 
@@ -341,7 +350,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         const size_t parent_node_index = nodes_on_path.front().parent_;
         const Node& parent_node = tree.nodes_[parent_node_index];
         nodes_on_path.push_front(parent_node);
-        grid_path.push_front(parent_node.position_);
+        grid_path.push_front(parent_node.position_.cast<int>());
 
         const T node_row = nodes_on_path.front().position_(0);
         const T node_col = nodes_on_path.front().position_(1);
