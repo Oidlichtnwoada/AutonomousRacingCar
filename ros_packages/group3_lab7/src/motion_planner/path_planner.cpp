@@ -337,6 +337,14 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
         const size_t parent_node_index = nodes_on_path.front().parent_;
         const Node& parent_node = tree.nodes_[parent_node_index];
+
+        const int l1_norm = (parent_node.position_.cast<int>() - grid_path.front()).lpNorm<1>();
+        if(l1_norm == 0) {
+            nodes_on_path.pop_front();
+            path.pop_front();
+            grid_path.pop_front();
+        }
+
         nodes_on_path.push_front(parent_node);
         grid_path.push_front(parent_node.position_.cast<int>());
 
