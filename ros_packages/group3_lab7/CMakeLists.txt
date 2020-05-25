@@ -26,9 +26,9 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_python_setup()
 
 generate_dynamic_reconfigure_options(
-  cfg/follow_me.cfg
   cfg/motion_planner.cfg
-  cfg/pure_pursuit.cfg
+  cfg/path_follower.cfg
+  cfg/path_publisher.cfg
 )
 
 find_package(cmake_modules REQUIRED)
@@ -68,7 +68,7 @@ install(TARGETS ${NODE_NAME}
 )
 
 catkin_install_python(
-  PROGRAMS src/follow_me.py
+  PROGRAMS src/path_follower.py src/path_publisher.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 install(FILES 

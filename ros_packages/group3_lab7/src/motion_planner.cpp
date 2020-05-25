@@ -54,8 +54,8 @@ static_assert(MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
 #if defined(NDEBUG)
 #define TOPIC_GOAL "/motion_planner/goal" // Release
 #else
-#define TOPIC_GOAL "/follow_me/goal"
-//#define TOPIC_GOAL "/move_base_simple/goal" // Debug
+#define TOPIC_GOAL "/path_publisher/goal"     // Debug <-- TODO: remove this
+//#define TOPIC_GOAL "/move_base_simple/goal" // Debug <-- TODO: remove this
 #endif
 #define TOPIC_MAP  "/map"
 #define TOPIC_DYNAMIC_OCCUPANCY_GRID "/motion_planner/dynamic_occupancy_grid"

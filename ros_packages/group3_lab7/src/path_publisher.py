@@ -24,7 +24,7 @@ from geometry_msgs.msg import Vector3
 from visualization_msgs.msg import Marker
 
 # import dynamic_reconfigure variables.
-from group3_lab7.cfg import follow_me_Config as Configuration
+from group3_lab7.cfg import path_publisher_Config as Configuration
 from dynamic_reconfigure.server import Server as DynamicReconfigureServer
 
 import numpy as np
@@ -32,7 +32,7 @@ from scipy.spatial.transform import Rotation, Slerp
 from scipy.spatial import cKDTree
 from scipy.interpolate import interp1d
 
-class PurePursuit:
+class PathPublisher:
 
     def __init__(self):
 
@@ -65,7 +65,7 @@ class PurePursuit:
 
         # Create a latched(*) global path publisher
         # (*) http://wiki.ros.org/rospy/Overview/Publishers%20and%20Subscribers
-        self.global_path_pub = rospy.Publisher('/follow_me/global_path', Path, queue_size=1, latch=True)
+        self.global_path_pub = rospy.Publisher('/path_publisher/global_path', Path, queue_size=1, latch=True)
 
         self.global_path_msg = self.generate_path_msg(self.tracked_path, self.forward_direction)
         self.global_path_pub.publish(self.global_path_msg)
@@ -73,7 +73,7 @@ class PurePursuit:
         self.t_last_global_path_publication = rospy.Time.now()
 
         # Create local path publisher
-        self.local_path_pub = rospy.Publisher('/follow_me/local_path', Path, queue_size=1000)
+        self.local_path_pub = rospy.Publisher('/path_publisher/local_path', Path, queue_size=1000)
 
 
         self.odom_sub = rospy.Subscriber("/odom", Odometry, self.odom_callback)
@@ -88,8 +88,8 @@ class PurePursuit:
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
-        self.closest_waypoint_pub = rospy.Publisher('/follow_me/closest_waypoint', PoseStamped, queue_size=1000) # for RViz only
-        self.goal_pub = rospy.Publisher('/follow_me/goal', PoseStamped, queue_size=1000)
+        self.closest_waypoint_pub = rospy.Publisher('/path_publisher/closest_waypoint', PoseStamped, queue_size=1000) # for RViz only
+        self.goal_pub = rospy.Publisher('/path_publisher/goal', PoseStamped, queue_size=1000)
 
     def generate_path_msg(self, path, forward_direction=True):
         path_msg = Path() # this won't change over the lifetime of the node
@@ -118,7 +118,7 @@ class PurePursuit:
         return path_msg
 
     def reconfigure(self, config, level):
-        rospy.loginfo("""[follow_me] reconfigure request: {lookahead_distance} {forward_direction}""".format(**config))
+        rospy.loginfo("""[path_publisher] reconfigure request: {lookahead_distance} {forward_direction}""".format(**config))
         self.lookahead_distance = config["lookahead_distance"]
         forward_direction = config["forward_direction"]
 
@@ -260,10 +260,10 @@ class PurePursuit:
             rospy.sleep(0.1)
 
 def main(args):
-    rospy.init_node("follow_me", anonymous=False)
-    pure_pursuit = PurePursuit()
+    rospy.init_node("path_publisher", anonymous=False)
+    path_publisher = PathPublisher()
     try:
-        pure_pursuit.message_loop()
+        path_publisher.message_loop()
     except:
         # TODO: error handling
         raise
