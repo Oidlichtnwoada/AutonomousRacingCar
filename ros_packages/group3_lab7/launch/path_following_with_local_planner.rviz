@@ -4,9 +4,9 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /GridCells2
         - /TF1/Frames1
-        - /Marker2/Namespaces1
+        - /Marker1/Namespaces1
+        - /Path2
       Splitter Ratio: 0.5
     Tree Height: 954
   - Class: rviz/Selection
@@ -51,29 +51,6 @@ Visualization Manager:
       Enabled: false
       Name: GridCells
       Topic: /motion_planner/static_occupancy_grid
-      Value: false
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz/Pose
-      Color: 255; 25; 0
-      Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: Pose
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic: /pure_pursuit/commanded_heading
-      Unreliable: false
-      Value: true
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: /pure_pursuit/track_arc
-      Name: Marker
-      Namespaces:
-        {}
-      Queue Size: 100
       Value: false
     - Alpha: 0.5
       Class: rviz/GridCells
@@ -150,21 +127,14 @@ Visualization Manager:
         {}
       Update Interval: 0
       Value: false
-    - Class: rviz/Axes
-      Enabled: false
-      Length: 1
-      Name: Axes
-      Radius: 0.10000000149011612
-      Reference Frame: map
-      Value: false
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /motion_planner/rrt_visualization
       Name: Marker
       Namespaces:
         {}
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 1
       Axes Length: 0.4000000059604645
       Axes Radius: 0.03999999910593033
@@ -177,7 +147,7 @@ Visualization Manager:
       Shaft Length: 1
       Shaft Radius: 0.05000000074505806
       Shape: Axes
-      Topic: /follow_me/goal
+      Topic: /path_publisher/goal
       Unreliable: false
       Value: true
     - Alpha: 0.5
@@ -200,7 +170,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /follow_me/global_path
+      Topic: /path_publisher/global_path
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -208,7 +178,7 @@ Visualization Manager:
       Axes Radius: 0.03999999910593033
       Class: rviz/Pose
       Color: 255; 25; 0
-      Enabled: true
+      Enabled: false
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612
       Name: Pose
@@ -217,7 +187,7 @@ Visualization Manager:
       Shape: Axes
       Topic: /gt_pose
       Unreliable: false
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -233,9 +203,9 @@ Visualization Manager:
       Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 15.369379043579102
+      Max Intensity: 15.349390983581543
       Min Color: 0; 0; 0
-      Min Intensity: 0.745723307132721
+      Min Intensity: 0.7384074330329895
       Name: LaserScan
       Position Transformer: XYZ
       Queue Size: 10
@@ -248,29 +218,29 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: false
-    - Alpha: 1
+    - Alpha: 0.8999999761581421
       Buffer Length: 1
       Class: rviz/Path
-      Color: 25; 255; 0
-      Enabled: false
+      Color: 200; 255; 0
+      Enabled: true
       Head Diameter: 0.10000000149011612
       Head Length: 0.05000000074505806
-      Length: 0.10000000149011612
-      Line Style: Lines
+      Length: 0.30000001192092896
+      Line Style: Billboards
       Line Width: 0.029999999329447746
       Name: Path
       Offset:
         X: 0
         Y: 0
         Z: 0
-      Pose Color: 85; 255; 0
-      Pose Style: Axes
-      Radius: 0.019999999552965164
-      Shaft Diameter: 0.03999999910593033
+      Pose Color: 0; 122; 51
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.05000000074505806
       Shaft Length: 0.10000000149011612
       Topic: /motion_planner/path_to_goal
       Unreliable: false
-      Value: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -299,25 +269,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 6.485305309295654
+      Distance: 8.406862258911133
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.8089826107025146
-        Y: 0.9074507355690002
-        Z: -1.4122881889343262
+        X: 0.6176853179931641
+        Y: 1.1141119003295898
+        Z: -1.3271312713623047
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9397969841957092
+      Pitch: 0.7597970962524414
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.053565979003906
+      Yaw: 4.26537561416626
     Saved: ~
 Window Geometry:
   "&Displays":
