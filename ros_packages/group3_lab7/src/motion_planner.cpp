@@ -34,6 +34,7 @@
 
 #include <motion_planner/occupancy_grid.h>
 #include <motion_planner/path_planner.h>
+#include <motion_planner/path_follower.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <group3_lab7/motion_planner_Config.h>
@@ -146,6 +147,7 @@ private:
     // =================================================================================================================
 
     PathPlanner path_planner_;
+    std::atomic<bool> should_exit_path_planner_thread_;
     boost::shared_ptr<std::thread> path_planner_thread_;
     void runPathPlanner();
 
@@ -166,10 +168,12 @@ private:
     unsigned long long map_messages_received_;
 #endif
 
+    std::future<void> path_to_goal_publishing_task_;
     void publishPath(const PathPlanner::Path& path);
 };
 
 MotionPlanner::~MotionPlanner() {
+    should_exit_path_planner_thread_.store(true);
     path_planner_thread_->join();
 }
 
@@ -186,6 +190,7 @@ MotionPlanner::MotionPlanner()
         , rrt_visualization_publisher_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION, MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , path_to_goal_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::Path>(TOPIC_PATH_TO_GOAL, PATH_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , has_valid_configuration_(false)
+        , should_exit_path_planner_thread_(false)
 #if !defined(NDEBUG)
         , laser_scan_messages_received_(0)
         , odometry_messages_received_(0)
@@ -215,6 +220,7 @@ MotionPlanner::MotionPlanner()
     scan_dt_threshold_.store(1.0f / DEFAULT_DYNAMIC_OCCUPANCY_GRID_UPDATE_FREQUENCY);
     goal_dt_threshold_.store(1.0f / DEFAULT_GOAL_UPDATE_FREQUENCY);
 
+    should_exit_path_planner_thread_.store(false);
     path_planner_thread_ = boost::shared_ptr<std::thread>(new std::thread(&MotionPlanner::runPathPlanner, this));
 }
 
@@ -503,17 +509,19 @@ void MotionPlanner::runPathPlanner() {
     static unsigned int number_of_computations = 0; // for debugging only
 
     ros::Rate sampling_rate(1000); // 1000 hz (chosen to match the /odom update frequency)
-    while (!ros::isShuttingDown()) {
+    while(!should_exit_path_planner_thread_.load() && !ros::isShuttingDown()) {
 
         bool expected = true;
         if(has_valid_configuration_.load() &&
            should_plan_path_.compare_exchange_strong(expected, false)) {
 
             bool should_generate_marker_messages = true;
-            PathPlanner::Options options;
+            PathPlanner::Options path_planner_options;
+            PathFollower::Options path_follower_options;
             {
                 std::lock_guard<std::mutex> scoped_lock(configuration_mutex_);
-                options = PathPlanner::Options(configuration_);
+                path_planner_options = PathPlanner::Options(configuration_);
+                path_follower_options = PathFollower::Options(configuration_);
                 should_generate_marker_messages = configuration_.generate_marker_messages;
             }
 
@@ -584,19 +592,26 @@ void MotionPlanner::runPathPlanner() {
                     occupancy_grid,
                     occupancy_grid_center,
                     T_grid_to_map,
-                    options,
+                    path_planner_options,
                     marker_publisher);
 
             if(!success) {
                 continue;
             }
 
-            std::future<void> path_to_goal_publishing_task = std::async(
-                    std::launch::async, [&,path]()
-                    {
-                        std::lock_guard<std::mutex> scoped_lock(path_to_goal_publisher_mutex_);
-                        publishPath(path);
-                    });
+            if(not (path_to_goal_publishing_task_.valid() && path_to_goal_publishing_task_.wait_for(
+                    std::chrono::nanoseconds(0)) != std::future_status::ready)) {
+
+                path_to_goal_publishing_task_ = std::async(
+                        std::launch::async, [&, path]() {
+                            const auto [success, refined_path] = PathFollower(path_follower_options).refinePath(path);
+                            if(success)
+                            {
+                                std::lock_guard<std::mutex> scoped_lock(path_to_goal_publisher_mutex_);
+                                publishPath(refined_path);
+                            }
+                        });
+            }
 
         } else {
             sampling_rate.sleep();

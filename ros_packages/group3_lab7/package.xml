@@ -21,15 +21,10 @@
   <depend>tf2_sensor_msgs</depend>
   <build_depend>eigen</build_depend>
   <build_depend>boost</build_depend>
-
   <depend>rospy</depend>
   <depend>ackermann_msgs</depend>
   <depend>dynamic_reconfigure</depend>
   <exec_depend>python-scipy</exec_depend>
   <exec_depend>python-numpy</exec_depend>
-
-  <!--
-  <test_depend>rosunit</test_depend>
-  -->
   <export></export>
 </package>

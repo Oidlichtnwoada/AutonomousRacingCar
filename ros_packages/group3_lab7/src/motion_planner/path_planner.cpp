@@ -66,8 +66,14 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     const float goal_row = goal_in_grid_frame(0);
     const float goal_col = goal_in_grid_frame(1);
 
+    // Root node is the origin in the laser frame (= center of the dynamic occupancy grid)
+    const float root_row = (float)occupancy_grid_center(0);
+    const float root_col = (float)occupancy_grid_center(1);
+    const bool root_is_blocked = occupancy_grid.isGridCellOccupied(root_row, root_col);
+
     // check if goal lies outside grid bounds
-    if(goal_row < 0.0f ||
+    if(root_is_blocked ||
+       goal_row < 0.0f ||
        goal_row >= (float)occupancy_grid.rows ||
        goal_col < 0.0f ||
        goal_col >= (float)occupancy_grid.cols) {
@@ -84,10 +90,6 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     // Informed-RRT* prior to finding a path to the goal).
     UniformDistribution uniform_row_distribution(0.0f, (float)(occupancy_grid.rows - 1));
     UniformDistribution uniform_col_distribution(0.0f, (float)(occupancy_grid.cols - 1));
-
-    // Root node is the origin in the laser frame (= center of the dynamic occupancy grid)
-    const float root_row = (float)occupancy_grid_center(0);
-    const float root_col = (float)occupancy_grid_center(1);
 
     // For Informed-RRT* only:
     // Generate a uniform distribution across the best-fit (**) bounding rectangle (*) around the
@@ -163,6 +165,11 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         nn_results.init(nn_indices, nn_distances);
         float query_position[2] = { random_row, random_col };
         const bool neighbors_found = index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
+
+        if(nn_results.size() == 0) {
+            number_of_skipped_nodes++;
+            continue;
+        }
 
         size_t nn_index = nn_indices[0]; // for RRT (k=1)
         float nn_distance = nn_distances[0]; // for RRT (k=1)
@@ -322,6 +329,13 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     nn_results.init(&nn_index, &nn_distance);
     float query_position[2] = { goal_row, goal_col };
     index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
+
+    if(nn_results.size() == 0) {
+        // no path to goal?
+        Path path;
+        GridPath grid_path;
+        return {false, tree, path, grid_path};
+    }
     assert(nn_index < tree.nodes_.size());
 
     const auto closest_leaf_to_goal_distance = L2_norm(
