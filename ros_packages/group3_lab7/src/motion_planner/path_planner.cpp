@@ -142,6 +142,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     tree.nodes_.push_back(Node(root_row,root_col,0)); // insert the root node
     index.addPoints(tree.nodes_.size() - 1, tree.nodes_.size() - 1); // update kd-tree
 
+    std::set<size_t> leaves_in_proximity_to_goal; // vector of leaf indices
+
     // =================================================================================================================
     // Sampling loop
     // =================================================================================================================
@@ -157,48 +159,48 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
             continue;
         }
 
-        // Run a knn-search (k=1 for RRT, k>1 for RRT*)
-        const size_t k = USE_RRT_STAR ? options.size_of_k_neighborhood_ : 1;
+        // Run a knn-search (k=1 for RRT, k>=1 for all RRT* variants)
+        size_t k = USE_RRT_STAR ? options.size_of_k_neighborhood_ : 1;
         size_t nn_indices[k];
         float nn_distances[k];
         KNNResultSet nn_results(k);
         nn_results.init(nn_indices, nn_distances);
         float query_position[2] = { random_row, random_col };
-        const bool neighbors_found = index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
+        index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
 
-        if(nn_results.size() == 0) {
+        if(nn_results.size() == 0 || // <-- query failure (should not really happen)
+           nn_distances[0] == 0.0f)  // <-- skip cells that were already visited, but count them towards the total
+        {
             number_of_skipped_nodes++;
             continue;
         }
 
-        size_t nn_index = nn_indices[0]; // for RRT (k=1)
-        float nn_distance = nn_distances[0]; // for RRT (k=1)
+        k = nn_results.size(); // set k to the actual number of neighbors
+        size_t nearest_neighbor_index = nn_indices[0]; // default for RRT (k=1)
 
-        if(nn_distance == 0.0f) {
-            // skip cells that were already visited, but count them towards the total
-            number_of_skipped_nodes++;
-            continue;
-        }
+        // RRT* variants only: inspect the entire k-neighborhood, find minimum-cost link
+        if(USE_RRT_STAR) {
 
-        // RRT* only: inspect the k-neighborhood, find minimum-cost link
-        if(neighbors_found && USE_RRT_STAR) {
-
-            std::vector<Node*> k_neighborhood;
+            std::vector<std::tuple<const Node*, float> > k_neighborhood;
             for(unsigned int i=0; i<k; i++) {
                 const size_t j = nn_indices[i];
                 assert(j < tree.nodes_.size());
-                k_neighborhood.push_back(&tree.nodes_[j]);
+                const Node* node = &tree.nodes_[j];
+                const float distance_from_node = L2_norm(node->position_(0), node->position_(1), random_row, random_col);
+                k_neighborhood.push_back( { node, distance_from_node } );
             }
             const unsigned int argmin_cost = std::distance(k_neighborhood.begin(), std::min_element(
-                    k_neighborhood.begin(), k_neighborhood.end(), [](Node* node0, Node* node1) {
-                        return (node0->path_length_ < node1->path_length_); }));
+                    k_neighborhood.begin(), k_neighborhood.end(),
+                    [](std::tuple<const Node*, float> node0, std::tuple<const Node*, float> node1) {
+                        return (std::get<1>(node0) + std::get<0>(node0)->path_length_ <
+                                std::get<1>(node1) + std::get<0>(node1)->path_length_);
+                    }));
 
-            nn_index = nn_indices[argmin_cost];
-            nn_distance = nn_distances[argmin_cost];
+            nearest_neighbor_index = nn_indices[argmin_cost];
         }
 
         // The nearest node is our new parent
-        const size_t parent_node_index = nn_index;
+        const size_t parent_node_index = nearest_neighbor_index;
         const Node& parent_node = tree.nodes_[parent_node_index];
         const float parent_row = parent_node.position_(0);
         const float parent_col = parent_node.position_(1);
@@ -229,11 +231,11 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         const Node& leaf_node = tree.nodes_.back();
         const size_t leaf_node_index = tree.nodes_.size() - 1;
 
-        if(neighbors_found && USE_RRT_STAR) {
+        if(USE_RRT_STAR) {
 
             for(unsigned int i=0; i<k; i++) {
                 const size_t j = nn_indices[i];
-                if(j==nn_index) {
+                if(j == nearest_neighbor_index) {
                     continue; // we are only interested in the (k-1)-neighborhood
                 }
                 assert(j < tree.nodes_.size());
@@ -274,6 +276,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
         if(leaf_to_goal_distance <= options.goal_proximity_threshold_) {
             path_to_goal_found = true;
+            leaves_in_proximity_to_goal.insert(leaf_node_index);
             const float length_of_new_path_to_goal = leaf_node.path_length_ + leaf_to_goal_distance;
             length_of_best_path_to_goal = std::min(length_of_best_path_to_goal, length_of_new_path_to_goal);
 
@@ -311,40 +314,60 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         return {false, tree, path, grid_path};
     }
 
-    // NOTE: If we did not find a path to the goal (i.e. path_to_goal_found==false), there are two possibilities:
-    //       Return with an error, or choose the closest leaf in our tree and construct the path backwards from that.
-    //       Let's go with the second option (which is what we would do anyways if path_to_goal_found==true).
+    // =================================================================================================================
+
+    int leaf_index_of_best_path_to_goal = (-1);
+    float length_of_shortest_path_to_goal = std::numeric_limits<float>::max();
+    for (auto leaf_index : leaves_in_proximity_to_goal) {
+        const Node &node = tree.nodes_[leaf_index];
+        if (node.path_length_ < length_of_shortest_path_to_goal) {
+            length_of_shortest_path_to_goal = node.path_length_;
+            leaf_index_of_best_path_to_goal = leaf_index;
+        }
+    }
+
+    // NOTE: If we did not find a path to the goal, there are two possibilities: Return with an error,
+    //       or choose the closest leaf in our tree and construct the path backwards from that. Let's go
+    //       with the second option.
+
+    if(leaf_index_of_best_path_to_goal < 0) {
+
+        // Run a knn-search (k=1) to find the closest node to our goal.
+        const size_t k = 1;
+        size_t nn_index;
+        float nn_distance;
+        KNNResultSet nn_results(k);
+        nn_results.init(&nn_index, &nn_distance);
+        float query_position[2] = {goal_row, goal_col};
+        index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
+
+        if (nn_results.size() == 0) {
+            // no path to goal?
+            Path path;
+            GridPath grid_path;
+            return {false, tree, path, grid_path};
+        }
+        assert(nn_index < tree.nodes_.size());
+        leaf_index_of_best_path_to_goal = nn_index;
+
+    }
 
     // Trace the path back from the goal to the parent node
-
     Path path; // path in the "map" coordinate frame
     GridPath grid_path; // path in the grid coordinate frame
     std::deque<Node> nodes_on_path;   // nodes on path (in the grid coordinate frame)
 
-    // Run a knn-search (k=1) to find the closest node to our goal.
-    const size_t k = 1;
-    size_t nn_index;
-    float nn_distance;
-    KNNResultSet nn_results(k);
-    nn_results.init(&nn_index, &nn_distance);
-    float query_position[2] = { goal_row, goal_col };
-    index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
-
-    if(nn_results.size() == 0) {
-        // no path to goal?
-        Path path;
-        GridPath grid_path;
-        return {false, tree, path, grid_path};
-    }
-    assert(nn_index < tree.nodes_.size());
-
     const auto closest_leaf_to_goal_distance = L2_norm(
-            goal_row, goal_col, tree.nodes_[nn_index].position_(0), tree.nodes_[nn_index].position_(1));
+            goal_row,
+            goal_col,
+            tree.nodes_[leaf_index_of_best_path_to_goal].position_(0),
+            tree.nodes_[leaf_index_of_best_path_to_goal].position_(1));
 
     const auto accumulated_path_length_to_goal =
-            tree.nodes_[nn_index].path_length_ + closest_leaf_to_goal_distance;
+            tree.nodes_[leaf_index_of_best_path_to_goal].path_length_ +
+            closest_leaf_to_goal_distance;
 
-    nodes_on_path.push_front(Node(goal_row, goal_col, nn_index, accumulated_path_length_to_goal)); // insert the goal as the last node in the path
+    nodes_on_path.push_front(Node(goal_row, goal_col, leaf_index_of_best_path_to_goal, accumulated_path_length_to_goal)); // insert the goal as the last node in the path
     grid_path.push_front(Eigen::Vector2i(goal_row, goal_col));
 
     while(true) {
@@ -352,6 +375,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         const size_t parent_node_index = nodes_on_path.front().parent_;
         const Node& parent_node = tree.nodes_[parent_node_index];
 
+        // remove duplicates
         const int l1_norm = (parent_node.position_.cast<int>() - grid_path.front()).lpNorm<1>();
         if(l1_norm == 0) {
             nodes_on_path.pop_front();
