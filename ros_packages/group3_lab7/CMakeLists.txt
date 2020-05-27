@@ -56,7 +56,6 @@ add_executable(${NODE_NAME}
   src/motion_planner.cpp
   src/motion_planner/path_follower.cpp
   src/motion_planner/path_planner.cpp
-  src/motion_planner/path_interpolation.cpp
   src/motion_planner/occupancy_grid.cpp
 )
 
