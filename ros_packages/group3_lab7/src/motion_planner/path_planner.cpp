@@ -38,6 +38,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                  const OccupancyGrid& occupancy_grid,
                  const cv::Vec2i& occupancy_grid_center,
                  const Eigen::Affine3f& T_grid_to_map,
+                 GridPath seeded_nodes,
                  const Options options,
                  boost::shared_ptr<ros::Publisher> marker_publisher) {
 
@@ -150,9 +151,20 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
     int number_of_skipped_nodes = 0;
     while((tree.nodes_.size() + number_of_skipped_nodes) < options.number_of_random_samples_) {
 
-        auto [random_row, random_col] = (USE_INFORMED_RRT_STAR && path_to_goal_found) ?
-                                        sample_from_heuristic_sampling_domain():
-                                        sample_from_entire_grid();
+        float random_row;
+        float random_col;
+
+        if(!seeded_nodes.empty()) {
+
+            random_row = (float) seeded_nodes.front()(0);
+            random_col = (float) seeded_nodes.front()(1);
+            seeded_nodes.pop_front();
+
+        } else {
+            std::tie(random_row, random_col) = (USE_INFORMED_RRT_STAR && path_to_goal_found) ?
+                                               sample_from_heuristic_sampling_domain():
+                                               sample_from_entire_grid();
+        }
 
         if(occupancy_grid.isGridCellOccupied(random_row, random_col)) {
             // grid cell is occupied
@@ -480,13 +492,9 @@ std::vector<visualization_msgs::Marker>
 
         marker.lifetime = ros::Duration();
 
-        for(unsigned int j=0; j<tree.nodes_.size(); j++) {
+        for(unsigned int j=1; j<tree.nodes_.size(); j++) {
 
             const size_t i = tree.nodes_[j].parent_;
-            if(i==0) {
-                continue;
-            }
-
             const auto &vertex0 = tree.nodes_[i].position_;
             const auto &vertex1 = tree.nodes_[j].position_;
 

@@ -173,6 +173,9 @@ private:
 
     std::atomic<bool> should_plan_path_;
 
+    std::mutex last_path_mutex_;
+    PathPlanner::Path last_path_; // previous solution (in map frame)
+
 #if !defined(NDEBUG)
     unsigned long long laser_scan_messages_received_;
     unsigned long long odometry_messages_received_;
@@ -554,6 +557,7 @@ void MotionPlanner::runPathPlanner() {
            should_plan_path_.compare_exchange_strong(expected, false)) {
 
             bool should_generate_marker_messages = true;
+            bool should_seed_last_solution = false;
             PathPlanner::Options path_planner_options;
             PathFollower::Options path_follower_options;
             {
@@ -561,6 +565,7 @@ void MotionPlanner::runPathPlanner() {
                 path_planner_options = PathPlanner::Options(configuration_);
                 path_follower_options = PathFollower::Options(configuration_);
                 should_generate_marker_messages = configuration_.generate_marker_messages;
+                should_seed_last_solution = configuration_.seed_last_solution;
             }
 
             geometry_msgs::PoseStamped goal;
@@ -625,16 +630,38 @@ void MotionPlanner::runPathPlanner() {
             boost::shared_ptr<ros::Publisher> marker_publisher =
                     should_generate_marker_messages ? rrt_visualization_publisher_ : nullptr;
 
+            PathPlanner::GridPath seeded_nodes; // TODO: <--- initialize!
+            if(should_seed_last_solution)
+            {
+                std::lock_guard<std::mutex> scoped_lock(last_path_mutex_);
+                for(int i=0; i<last_path_.size(); i++) {
+                    const Eigen::Vector2f old_waypoint_in_map_frame = last_path_[i];
+
+                    const Eigen::Vector3f old_waypoint_in_new_grid_frame =
+                            T_map_to_grid_frame_ *
+                            Eigen::Vector3f(old_waypoint_in_map_frame(0),
+                                            old_waypoint_in_map_frame(1), 0.0f);
+                    seeded_nodes.push_back(Eigen::Vector2i(old_waypoint_in_new_grid_frame(0),
+                                                           old_waypoint_in_new_grid_frame(1)));
+                }
+            }
+
+
             auto [success, tree, path, grid_path] = path_planner_.run(
                     Eigen::Vector2f(goal.pose.position.x, goal.pose.position.y),
                     occupancy_grid,
                     occupancy_grid_center,
                     T_grid_to_map,
+                    seeded_nodes,
                     path_planner_options,
                     marker_publisher);
 
             if(!success) {
                 continue;
+            } else {
+
+                std::lock_guard<std::mutex> scoped_lock(last_path_mutex_);
+                last_path_ = path;
             }
 
             if(not (path_to_goal_publishing_task_.valid() && path_to_goal_publishing_task_.wait_for(

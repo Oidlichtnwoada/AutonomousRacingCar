@@ -60,6 +60,7 @@ public:
         const OccupancyGrid& occupancy_grid,
         const cv::Vec2i& occupancy_grid_center,
         const Eigen::Affine3f& T_grid_to_map,
+        GridPath seeded_nodes,
         const Options options = Options(),
         boost::shared_ptr<ros::Publisher> marker_publisher = nullptr);
 
