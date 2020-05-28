@@ -5,12 +5,21 @@
  * -------------------------------------------------------
  */
 
+#define ENABLE_BOUNDING_BOX_COMPARISON
+
+
 #include <motion_planner/path_planner.h>
 #include <motion_planner/occupancy_grid.h>
 #include <string>
 
+#if defined(ENABLE_BOUNDING_BOX_COMPARISON)
+#include <motion_planner/bounding_box.h>
+#endif
+
+
 PathPlanner::Options::Options()
     : algorithm_(default_algorithm)
+    , reward_temporal_coherence_(default_reward_temporal_coherence)
     , number_of_random_samples_(default_number_of_random_samples)
     , goal_proximity_threshold_(default_goal_proximity_threshold)
     , size_of_k_neighborhood_(default_size_of_k_neighborhood)
@@ -19,6 +28,7 @@ PathPlanner::Options::Options()
 
 PathPlanner::Options::Options(const Configuration& configuration)
         : algorithm_((Algorithm)configuration.algorithm)
+        , reward_temporal_coherence_(configuration.reward_temporal_coherence)
         , number_of_random_samples_(configuration.number_of_random_samples)
         , goal_proximity_threshold_(configuration.goal_proximity_threshold)
         , size_of_k_neighborhood_(configuration.size_of_k_neighborhood)
@@ -47,6 +57,8 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
     #ifndef NDEBUG
     unsigned int number_of_relinked_nodes = 0; // for debugging only
+    static unsigned int maximum_number_of_leaves_in_proximity_to_goal = 0; // for debugging only
+    unsigned int number_of_deletions_from_set_of_leaves_in_proximity_to_goal = 0; // for debugging only
     #endif
 
     assert(options.number_of_random_samples_ > 0);
@@ -145,6 +157,15 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
     std::set<size_t> leaves_in_proximity_to_goal; // vector of leaf indices
 
+#if defined(ENABLE_BOUNDING_BOX_COMPARISON)
+    const BoundingBox seeded_path_bounding_box = BoundingBox::fromPath<int>(seeded_nodes);
+
+    const bool should_check_temporal_coherence =
+            (options.reward_temporal_coherence_ &&
+             seeded_path_bounding_box.isValid());
+
+#endif
+
     // =================================================================================================================
     // Sampling loop
     // =================================================================================================================
@@ -211,12 +232,11 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
             nearest_neighbor_index = nn_indices[argmin_cost];
         }
 
-        // The nearest node is our new parent
+        // The nearest node is our new parent (unless it's already closer to the goal)
         const size_t parent_node_index = nearest_neighbor_index;
         const Node& parent_node = tree.nodes_[parent_node_index];
         const float parent_row = parent_node.position_(0);
         const float parent_col = parent_node.position_(1);
-
         assert(not occupancy_grid.isGridCellOccupied(parent_row, parent_col));
 
         // Expand the path from the parent to the leaf, check if any obstacles are in the way...
@@ -235,6 +255,25 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         const float leaf_col = (float) leaf_position(1);
 
         assert(not occupancy_grid.isGridCellOccupied(leaf_row, leaf_col));
+
+        if(leaves_in_proximity_to_goal.find(parent_node_index) != leaves_in_proximity_to_goal.end()) {
+            // parent is already in proximity of the goal, check if the new node is even closer
+
+            const float parent_to_goal_distance = L2_norm(goal_row, goal_col, parent_row, parent_col);
+            const float leaf_to_goal_distance = L2_norm(goal_row, goal_col, leaf_row, leaf_col);
+            if(parent_to_goal_distance < leaf_to_goal_distance) {
+
+                number_of_skipped_nodes++;
+                continue;
+
+            } else {
+                leaves_in_proximity_to_goal.erase(parent_node_index); // remove parent, insert leaf later...
+                #ifndef NDEBUG
+                number_of_deletions_from_set_of_leaves_in_proximity_to_goal++;
+                #endif
+            }
+        }
+
 
         const auto parent_to_leaf_distance = L2_norm(parent_row, parent_col, leaf_row, leaf_col);
         const auto accumulated_path_length_to_leaf = parent_node.path_length_ + parent_to_leaf_distance;
@@ -328,15 +367,69 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
 
     // =================================================================================================================
 
+#ifndef NDEBUG
+    maximum_number_of_leaves_in_proximity_to_goal = std::max<unsigned int>(
+            maximum_number_of_leaves_in_proximity_to_goal,
+            leaves_in_proximity_to_goal.size());
+    const unsigned int number_of_leaves_in_proximity_to_goal = leaves_in_proximity_to_goal.size();
+#endif
+
+#if defined(ENABLE_BOUNDING_BOX_COMPARISON)
+    std::vector<std::tuple<size_t, float, float> > candidate_path_metrics;
+#endif
+
     int leaf_index_of_best_path_to_goal = (-1);
     float length_of_shortest_path_to_goal = std::numeric_limits<float>::max();
     for (auto leaf_index : leaves_in_proximity_to_goal) {
         const Node &node = tree.nodes_[leaf_index];
-        if (node.path_length_ < length_of_shortest_path_to_goal) {
-            length_of_shortest_path_to_goal = node.path_length_;
-            leaf_index_of_best_path_to_goal = leaf_index;
+
+        #if defined(ENABLE_BOUNDING_BOX_COMPARISON)
+        if(should_check_temporal_coherence) {
+            size_t current_node_index = leaf_index;
+            BoundingBox bounding_box;
+            while (true) {
+                const Node &current_node = tree.nodes_[current_node_index];
+                bounding_box.addPoint<float>(current_node.position_);
+                if (current_node_index == 0) {
+                    break;
+                } else {
+                    current_node_index = current_node.parent_;
+                }
+            }
+            const float overlap_with_seeded_path = bounding_box.computeOverlap(seeded_path_bounding_box);
+            candidate_path_metrics.push_back( {leaf_index, overlap_with_seeded_path, node.path_length_} );
+        } else {
+#endif
+
+            if (node.path_length_ < length_of_shortest_path_to_goal) {
+                length_of_shortest_path_to_goal = node.path_length_;
+                leaf_index_of_best_path_to_goal = leaf_index;
+            }
+
+#if defined(ENABLE_BOUNDING_BOX_COMPARISON)
         }
+#endif
+
     }
+
+#if defined(ENABLE_BOUNDING_BOX_COMPARISON)
+
+    if(should_check_temporal_coherence && !candidate_path_metrics.empty()) {
+        std::sort(candidate_path_metrics.begin(),
+                  candidate_path_metrics.end(),
+                  /*
+                   * TEST (DO NOT USE!)
+                  [&](const auto &lhs, const auto &rhs) {
+                      return (std::get<2>(lhs) + ((1.0f - std::get<1>(lhs)) * SOME_PENALTY)) <
+                             (std::get<2>(rhs) + ((1.0f - std::get<1>(rhs)) * SOME_PENALTY));
+                  */
+                  [&](const auto &lhs, const auto &rhs) {
+                      return (std::get<1>(lhs) > std::get<1>(rhs));
+                  });
+        leaf_index_of_best_path_to_goal = std::get<0>(candidate_path_metrics.front());
+        length_of_shortest_path_to_goal = std::get<2>(candidate_path_metrics.front());
+    }
+#endif
 
     // NOTE: If we did not find a path to the goal, there are two possibilities: Return with an error,
     //       or choose the closest leaf in our tree and construct the path backwards from that. Let's go
@@ -547,14 +640,15 @@ std::vector<visualization_msgs::Marker>
         marker.pose.orientation.z = 0.0;
         marker.pose.orientation.w = 1.0;
 
-        marker.scale.x = 1.0 / 100.0f;
+        marker.scale.x = 2.0 / 100.0f;
         marker.scale.y = 0.0; // must be zero for LINE_LIST
         marker.scale.z = 0.0; // must be zero for LINE_LIST
 
-        marker.color.r = 255.0f / 255.0f;
-        marker.color.g = 0.0f;
-        marker.color.b = 200.0f / 255.0f;
+        marker.color.r = 0.0f;
+        marker.color.g = 1.0f;
+        marker.color.b = 1.0f;
         marker.color.a = 1.0;
+
 
         marker.lifetime = ros::Duration();
 

@@ -57,6 +57,7 @@ add_executable(${NODE_NAME}
   src/motion_planner/path_follower.cpp
   src/motion_planner/path_planner.cpp
   src/motion_planner/occupancy_grid.cpp
+  src/motion_planner/bounding_box.cpp
 )
 
 # make sure configure headers are built before any node using them

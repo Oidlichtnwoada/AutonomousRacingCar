@@ -39,12 +39,14 @@ public:
         Options();
         Options(const Configuration&);
         Algorithm algorithm_;
+        bool reward_temporal_coherence_;
         int number_of_random_samples_;
         int goal_proximity_threshold_; // in grid coordinates (pixels)
         int size_of_k_neighborhood_;   // a.k.a. just "k", only used for RRT* and Informed-RRT*
         int maximum_branch_expansion_; // in grid coordinates (pixels)
 
         static constexpr Algorithm default_algorithm = INFORMED_RRT_STAR;
+        static constexpr float default_reward_temporal_coherence = true;
         #if !defined(NDEBUG)
         static constexpr int default_number_of_random_samples = 2000; // DEBUG
         #else
