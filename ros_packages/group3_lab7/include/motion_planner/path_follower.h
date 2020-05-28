@@ -19,10 +19,8 @@ public:
         Options();
         Options(const Configuration&);
 
-        int cubic_spline_points_;
-        int interpolated_points_on_path_;
-        static constexpr int default_cubic_spline_points = 10;
-        static constexpr int default_interpolated_points_on_path = 30;
+        float path_segment_length_;
+        static constexpr float default_path_segment_length = 0.2;
     };
 
     PathFollower(Options options);

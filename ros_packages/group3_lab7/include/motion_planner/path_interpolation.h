@@ -19,19 +19,19 @@ T LinearCurveLength(std::deque<Eigen::Matrix<T, 2, 1> > const &curve) {
     return(sum);
 }
 
-template<typename T, typename U>
-std::vector<Eigen::Matrix<T, Eigen::Dynamic, 1> > UniformLinearInterpolation(
-        const std::deque<Eigen::Matrix<U, 2, 1> > &curve,
+template<typename T>
+std::deque<Eigen::Matrix<T, 2, 1> > UniformLinearInterpolation(
+        const std::deque<Eigen::Matrix<T, 2, 1> > &curve,
         std::size_t target_size,
         const T known_linear_curve_length = 0) {
 
-    std::vector<Eigen::Matrix<T, Eigen::Dynamic, 1> > interpolated_curve;
+    std::deque<Eigen::Matrix<T, 2, 1> > interpolated_curve;
     if(curve.size() < 2 || target_size < 2) {
         // degenerate input curve or invalid target size
         return interpolated_curve;
     }
     const T total_length = (known_linear_curve_length > 0.0f) ?
-            known_linear_curve_length : LinearCurveLength<U>(curve);
+            known_linear_curve_length : LinearCurveLength<T>(curve);
 
     const T segment_length = total_length / (T)(target_size - 1);
 
