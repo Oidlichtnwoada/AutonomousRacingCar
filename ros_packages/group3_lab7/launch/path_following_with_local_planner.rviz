@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /TF1/Frames1
         - /Marker1/Namespaces1
-        - /Path2
       Splitter Ratio: 0.5
     Tree Height: 954
   - Class: rviz/Selection
@@ -132,7 +131,7 @@ Visualization Manager:
       Marker Topic: /motion_planner/rrt_visualization
       Name: Marker
       Namespaces:
-        {}
+        rrt: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -222,7 +221,7 @@ Visualization Manager:
       Buffer Length: 1
       Class: rviz/Path
       Color: 200; 255; 0
-      Enabled: true
+      Enabled: false
       Head Diameter: 0.10000000149011612
       Head Length: 0.05000000074505806
       Length: 0.30000001192092896
@@ -239,6 +238,21 @@ Visualization Manager:
       Shaft Diameter: 0.05000000074505806
       Shaft Length: 0.10000000149011612
       Topic: /motion_planner/path_to_goal
+      Unreliable: false
+      Value: false
+    - Alpha: 1
+      Axes Length: 0.4000000059604645
+      Axes Radius: 0.03999999910593033
+      Class: rviz/Pose
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.30000001192092896
+      Head Radius: 0.10000000149011612
+      Name: Pose
+      Shaft Length: 1
+      Shaft Radius: 0.05000000074505806
+      Shape: Axes
+      Topic: /motion_planner/commanded_goal
       Unreliable: false
       Value: true
   Enabled: true
@@ -276,18 +290,18 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.6176853179931641
-        Y: 1.1141119003295898
-        Z: -1.3271312713623047
+        X: 1.7469921112060547
+        Y: 1.5608206987380981
+        Z: -1.0584383010864258
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7597970962524414
+      Pitch: 0.7197971343994141
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.26537561416626
+      Yaw: 4.315386772155762
     Saved: ~
 Window Geometry:
   "&Displays":

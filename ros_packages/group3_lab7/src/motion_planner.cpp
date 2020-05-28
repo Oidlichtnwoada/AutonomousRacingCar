@@ -41,7 +41,7 @@
 #include <group3_lab7/motion_planner_Config.h>
 
 #include <nanoflann/nanoflann.hpp>
-#include <nanoflann/KDTreeVectorOfVectorsAdaptor.h>
+//#include <nanoflann/KDTreeVectorOfVectorsAdaptor.h>
 
 //#define LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION // <-- this is just an optimization
 
@@ -50,7 +50,7 @@
 #define MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 #define PATH_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 //#define STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE 100
-#define COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE 100
+#define COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE 5
 
 static_assert(SUBSCRIBER_MESSAGE_QUEUE_SIZE > 0);
 static_assert(GRID_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
@@ -189,18 +189,18 @@ private:
 #endif
 
 
-    typedef KDTreeVectorOfVectorsAdaptor<std::deque<Eigen::Vector2f>, float> KDTree2f;
+    //typedef KDTreeVectorOfVectorsAdaptor<std::deque<Eigen::Vector2f>, float> KDTree2f;
     std::mutex path_to_goal_mutex_;
     PathPlanner::Path path_to_goal_;
-    boost::shared_ptr<KDTree2f> path_to_goal_kdtree_; // <--- just a wrapper around path_to_goal_
-    void recomputePathToGoalKDTree();
+    //boost::shared_ptr<KDTree2f> path_to_goal_kdtree_; // <--- just a wrapper around path_to_goal_
+    //void recomputePathToGoalKDTree();
     //static boost::shared_ptr<MotionPlanner::KDTree2f> computeKDTree(const PathPlanner::Path& path);
 
     std::future<void> path_to_goal_publishing_task_;
     void publishCommandedPathToGoal(const PathPlanner::Path& path) const;
     bool computeAndPublishCommandedGoal(
             const PathPlanner::Path& path,
-            boost::shared_ptr<MotionPlanner::KDTree2f> kdtree,
+            //boost::shared_ptr<MotionPlanner::KDTree2f> kdtree,
             const nav_msgs::Odometry& odometry) const;
 
 };
@@ -448,10 +448,12 @@ void MotionPlanner::odomSubscriberCallback(MotionPlanner::OdometryMessage odom_m
     }
     {
         std::lock_guard<std::mutex> scoped_lock(path_to_goal_mutex_);
-        if(path_to_goal_.empty() || !path_to_goal_kdtree_) {
+        //if(path_to_goal_.empty() || !path_to_goal_kdtree_) {
+        if(path_to_goal_.empty()) {
             return;
         }
-        computeAndPublishCommandedGoal(path_to_goal_, path_to_goal_kdtree_, *odom_msg);
+        //computeAndPublishCommandedGoal(path_to_goal_, path_to_goal_kdtree_, *odom_msg);
+        computeAndPublishCommandedGoal(path_to_goal_, *odom_msg);
     }
     // NOTE: should_plan_path_.store(true) should NOT be used here!
 }
@@ -682,8 +684,9 @@ void MotionPlanner::runPathPlanner() {
                                 {
                                     std::lock_guard<std::mutex> scoped_lock(path_to_goal_mutex_);
                                     path_to_goal_ = interpolated_path;
-                                    recomputePathToGoalKDTree();
-                                    computeAndPublishCommandedGoal(path_to_goal_, path_to_goal_kdtree_, odometry);
+                                    //recomputePathToGoalKDTree();
+                                    //computeAndPublishCommandedGoal(path_to_goal_, path_to_goal_kdtree_, odometry);
+                                    computeAndPublishCommandedGoal(path_to_goal_, odometry);
                                 }
                                 {
                                     std::lock_guard<std::mutex> scoped_lock(path_to_goal_publisher_mutex_);
@@ -700,11 +703,13 @@ void MotionPlanner::runPathPlanner() {
     ROS_INFO("Path planner is shutting down...");
 }
 
+/*
 void MotionPlanner::recomputePathToGoalKDTree() {
     constexpr int leaf_max_size = 10;
     path_to_goal_kdtree_ = boost::shared_ptr<KDTree2f>(new KDTree2f(2, path_to_goal_, leaf_max_size));
     path_to_goal_kdtree_->index->buildIndex();
 }
+*/
 
 /*
 boost::shared_ptr<MotionPlanner::KDTree2f> MotionPlanner::computeKDTree(const PathPlanner::Path& path) {
@@ -718,12 +723,25 @@ boost::shared_ptr<MotionPlanner::KDTree2f> MotionPlanner::computeKDTree(const Pa
 
 bool MotionPlanner::computeAndPublishCommandedGoal(
         const PathPlanner::Path& path,
-        boost::shared_ptr<MotionPlanner::KDTree2f> kdtree,
+        //boost::shared_ptr<MotionPlanner::KDTree2f> kdtree,
         const nav_msgs::Odometry& odometry) const {
 
     const Eigen::Vector2f current_position(odometry.pose.pose.position.x,
                                            odometry.pose.pose.position.y);
 
+    float shortest_distance = std::numeric_limits<float>::max();
+    int index_of_closest_point_on_path = (-1);
+    for(int i=0; i<path.size(); i++) {
+        const Eigen::Vector2f& point_on_path = path[i];
+        const float distance = Eigen::Vector2f(current_position - point_on_path).norm();
+        if(distance < shortest_distance) {
+            shortest_distance = distance;
+            index_of_closest_point_on_path = i;
+        }
+    }
+    assert(index_of_closest_point_on_path >= 0);
+
+#if 0
     const size_t num_results = 1;
     std::vector<size_t> nn_indices(num_results);
     std::vector<float> nn_distances(num_results);
@@ -734,40 +752,35 @@ bool MotionPlanner::computeAndPublishCommandedGoal(
     if(nn_results.size() == 0) {
         return(false);
     }
+    index_of_closest_point_on_path = nn_indices[0];
+#endif
 
-    size_t current_waypoint_index = nn_indices[0];
-    float distance_on_path = 0.0f;
-    const float lookahead_distance_ = steering_lookahead_distance_;
+    const float steering_lookahead_distance = steering_lookahead_distance_.load();
+    float total_linear_distance_on_path = 0.0f;
 
-    while(distance_on_path < lookahead_distance_) {
-        const size_t next_waypoint_index = (current_waypoint_index + 1);
-        if(next_waypoint_index >= path.size()) {
-            distance_on_path += (path[next_waypoint_index] - path[current_waypoint_index]).norm();
+    int i = index_of_closest_point_on_path;
+    while(total_linear_distance_on_path < steering_lookahead_distance) {
+        const int j = (i + 1);
+        if (j >= path.size()) {
+            break;
         }
-        current_waypoint_index = next_waypoint_index;
+        total_linear_distance_on_path += Eigen::Vector2f(path[j] - path[i]).norm();
+        i++;
     }
 
-    const Eigen::Vector2f& goal_position = path[current_waypoint_index];
+    const int index_of_goal_point = i;
+    assert(index_of_goal_point < path.size());
+    const Eigen::Vector2f& goal_position = path[index_of_goal_point];
 
-    int j0, j1;
-    if(current_waypoint_index > 0) {
-        j0 = (current_waypoint_index - 1);
-        j1 = current_waypoint_index;
-
-    } else {
-        j0 = current_waypoint_index;
-        j1 = (current_waypoint_index + 1);
-    }
-    assert(j1 < path.size());
-    assert(j0 >= 0);
-
-    const Eigen::Vector3f path_direction_in_map_frame(
-            path[j1](0) - path[j0](0),
-            path[j1](1) - path[j0](1),
-            0.0f);
-
-    const Eigen::Quaternionf goal_orientation = Eigen::Quaternionf::FromTwoVectors(
-            Eigen::Vector3f(1.0f, 0.0f, 0.0f), path_direction_in_map_frame);
+    const int j_prev = (i > 0) ? (i-1) : (i);
+    const int j_next = (i < (path.size() - 1)) ? (i+1) : (i);
+    const float x0 = path[j_prev](0);
+    const float y0 = path[j_prev](1);
+    const float x1 = path[j_next](0);
+    const float y1 = path[j_next](1);
+    const Eigen::Vector2f path_direction(x1-x0, y1-y0);
+    const float theta = std::atan2(path_direction(1), path_direction(0));
+    const Eigen::Quaternionf q(Eigen::AngleAxisf(theta, Eigen::Vector3f::UnitZ()));
 
     geometry_msgs::PoseStamped goal_msg;
     goal_msg.header.stamp = ros::Time::now();
@@ -777,10 +790,10 @@ bool MotionPlanner::computeAndPublishCommandedGoal(
     goal_msg.pose.position.y = goal_position(1);
     goal_msg.pose.position.z = 0.0f;
 
-    goal_msg.pose.orientation.x = goal_orientation.x();
-    goal_msg.pose.orientation.y = goal_orientation.y();
-    goal_msg.pose.orientation.z = goal_orientation.z();
-    goal_msg.pose.orientation.w = goal_orientation.w();
+    goal_msg.pose.orientation.x = q.x();
+    goal_msg.pose.orientation.y = q.y();
+    goal_msg.pose.orientation.z = q.z();
+    goal_msg.pose.orientation.w = q.w();
 
     commanded_goal_publisher_->publish(goal_msg);
 }
