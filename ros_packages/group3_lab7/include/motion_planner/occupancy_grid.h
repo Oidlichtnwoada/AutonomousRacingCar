@@ -24,13 +24,21 @@ class OccupancyGrid : public cv::Mat {
 
 public:
 
-    OccupancyGrid();
-    OccupancyGrid(const cv::Mat&);
+    enum DistanceMetric {
+        L1_DISTANCE_METRIC = 0,
+        L2_DISTANCE_METRIC_3x3_KERNEL = 1,
+        L2_DISTANCE_METRIC_5x5_KERNEL = 2};
+
+    OccupancyGrid(DistanceMetric distance_metric = L2_DISTANCE_METRIC_3x3_KERNEL);
+    OccupancyGrid(const cv::Mat&, DistanceMetric distance_metric = L2_DISTANCE_METRIC_3x3_KERNEL);
+
+    virtual void copyMeTo(OccupancyGrid& other_grid) const;
+
 
     inline bool isGridCellOccupied(int row, int col) const {
         return (this->at<uint8_t>(row, col) == GRID_CELL_IS_OCCUPIED);
     }
-    bool expandPath(
+    bool tracePath(
             const cv::Vec2i start,
             const cv::Vec2i destination,
             cv::Vec2i& end,
@@ -42,4 +50,12 @@ public:
             const cv::Vec2i grid_center,
             const float meters_per_pixel,
             const std::string frame_id) const;
+
+    void computeDistanceTransform();
+    bool hasDistances() const;
+
+protected:
+    DistanceMetric distance_metric_;
+    cv::Mat distances_;
+
 };

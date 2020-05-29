@@ -7,18 +7,26 @@
 
 #include <motion_planner/occupancy_grid.h>
 
-OccupancyGrid::OccupancyGrid() {}
-
-OccupancyGrid::OccupancyGrid(const cv::Mat& m) :
-    cv::Mat(m)
+OccupancyGrid::OccupancyGrid(DistanceMetric distance_metric)
+        : distance_metric_(distance_metric)
 {}
+
+OccupancyGrid::OccupancyGrid(const cv::Mat& m, DistanceMetric distance_metric)
+        : cv::Mat(m)
+        , distance_metric_(distance_metric)
+{}
+
+void OccupancyGrid::copyMeTo(OccupancyGrid& other_grid) const {
+    this->copyTo(other_grid);
+    distances_.copyTo(other_grid.distances_);
+}
 
 // This is a modified version of
 // Bresenham's line algorithm
 //
 // Source: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C
 
-bool OccupancyGrid::expandPath(
+bool OccupancyGrid::tracePath(
         const cv::Vec2i start,
         const cv::Vec2i destination,
         cv::Vec2i& end,
@@ -121,4 +129,62 @@ nav_msgs::GridCells OccupancyGrid::convertToGridCellsMessage(
         }
     }
     return(grid_msg);
+}
+
+bool OccupancyGrid::hasDistances() const {
+    return (not distances_.empty());
+}
+
+void OccupancyGrid::computeDistanceTransform() {
+
+    static_assert(GRID_CELL_IS_OCCUPIED == 0 && GRID_CELL_IS_FREE == 255, "Invalid GRID_CELL constants.");
+    assert(not this->empty());
+
+    // Calculate the distance to the closest blocked cell for each cell of the grid
+
+    /*
+    const cv::Scalar zero(0.0);
+    distances_ = cv::Mat(this->cols,
+                         this->rows,
+                         (distance_metric_ == L1_DISTANCE_METRIC) ? CV_8UC1 : CV_32F,
+                         zero);
+    */
+
+    switch(distance_metric_) {
+        default:
+        case(L1_DISTANCE_METRIC):
+        {
+            cv::distanceTransform(
+                    *this,
+                    distances_,
+                    cv::DIST_L1,
+                    3, // (*)
+                    CV_8U);
+
+            // (*) for DIST_L1, a 3x3 mask gives the same result as 5x5 or any larger
+            //     See: https://docs.opencv.org/master/d7/d1b/group__imgproc__misc.html
+
+            break;
+        }
+        case(L2_DISTANCE_METRIC_3x3_KERNEL):
+        {
+            cv::distanceTransform(
+                    *this,
+                    distances_,
+                    cv::DIST_L2,
+                    3,
+                    CV_32F);
+            break;
+        }
+        case(L2_DISTANCE_METRIC_5x5_KERNEL):
+        {
+            cv::distanceTransform(
+                    *this,
+                    distances_,
+                    cv::DIST_L2,
+                    5,
+                    CV_32F);
+            break;
+        }
+    }
 }

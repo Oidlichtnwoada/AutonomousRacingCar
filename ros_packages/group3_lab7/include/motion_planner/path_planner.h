@@ -6,7 +6,7 @@
  */
 
 #pragma once
-#include <motion_planner/Tree.h>
+#include <motion_planner/tree.h>
 #include <motion_planner/occupancy_grid.h>
 #include <deque>
 #include <Eigen/Dense>

@@ -27,26 +27,28 @@ catkin_python_setup()
 
 generate_dynamic_reconfigure_options(
   cfg/motion_planner.cfg
-  cfg/path_follower.cfg
   cfg/path_publisher.cfg
   cfg/drive_controller.cfg
 )
 
 find_package(cmake_modules REQUIRED)
-find_package(Eigen3 REQUIRED)
+#find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 find_package(OpenCV REQUIRED)
 
 catkin_package(
   INCLUDE_DIRS
   CATKIN_DEPENDS rospy roscpp std_msgs std_srvs sensor_msgs geometry_msgs tf2 tf2_ros tf2_eigen tf2_geometry_msgs tf2_sensor_msgs ackermann_msgs dynamic_reconfigure
-  DEPENDS EIGEN3 Boost
+  #DEPENDS EIGEN3 Boost
+  DEPENDS Boost
 )
 
 include_directories(
         cfg/cpp
         include
-        ${EIGEN3_INCLUDE_DIR}
+        include/Eigen
+        include/optim
+        #${EIGEN3_INCLUDE_DIR}
         ${Boost_INCLUDE_DIRS}
         ${OpenCV_INCLUDE_DIRS}
         ${catkin_INCLUDE_DIRS}
@@ -54,7 +56,7 @@ include_directories(
 
 add_executable(${NODE_NAME}
   src/motion_planner.cpp
-  src/motion_planner/path_follower.cpp
+        src/motion_planner/path_optimizer.cpp
   src/motion_planner/path_planner.cpp
   src/motion_planner/occupancy_grid.cpp
   src/motion_planner/bounding_box.cpp

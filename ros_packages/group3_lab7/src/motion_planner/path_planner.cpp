@@ -242,7 +242,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
         // Expand the path from the parent to the leaf, check if any obstacles are in the way...
         cv::Vec2i leaf_position(0,0);
         const bool expansion_has_no_obstacles =
-                occupancy_grid.expandPath(cv::Vec2i(parent_row, parent_col),
+                occupancy_grid.tracePath(cv::Vec2i(parent_row, parent_col),
                            cv::Vec2i(random_row, random_col),
                            leaf_position,
                            options.maximum_branch_expansion_);
@@ -301,7 +301,7 @@ PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                     // Check if obstacles are in the way...
                     cv::Vec2i dummy_position;
                     const bool expansion_has_no_obstacles =
-                            occupancy_grid.expandPath(cv::Vec2i(leaf_row, leaf_col),
+                            occupancy_grid.tracePath(cv::Vec2i(leaf_row, leaf_col),
                                        cv::Vec2i(node.position_(0), node.position_(1)),
                                        dummy_position,
                                        std::numeric_limits<int>::max());

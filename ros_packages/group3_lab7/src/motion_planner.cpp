@@ -35,7 +35,7 @@
 
 #include <motion_planner/occupancy_grid.h>
 #include <motion_planner/path_planner.h>
-#include <motion_planner/path_follower.h>
+#include <motion_planner/path_optimizer.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <group3_lab7/motion_planner_Config.h>
@@ -44,12 +44,14 @@
 //#include <nanoflann/KDTreeVectorOfVectorsAdaptor.h>
 
 //#define LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION // <-- this is just an optimization
+#define ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
 
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
 #define GRID_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 #define MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE 10
 #define PATH_PUBLISHER_MESSAGE_QUEUE_SIZE 10
-//#define STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE 100
+#define STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE 5
+#define COMMANDED_HEADING_PUBLISHER_MESSAGE_QUEUE_SIZE 5
 #define COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE 5
 
 static_assert(SUBSCRIBER_MESSAGE_QUEUE_SIZE > 0);
@@ -69,8 +71,9 @@ static_assert(MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
 #define TOPIC_STATIC_OCCUPANCY_GRID    "/motion_planner/static_occupancy_grid"
 #define TOPIC_RRT_VISUALIZATION        "/motion_planner/rrt_visualization" // TODO: rename this to "markers"
 #define TOPIC_PATH_TO_GOAL             "/motion_planner/path_to_goal"
-//#define TOPIC_COMMANDED_STEERING_ANGLE "/motion_planner/steering_angle"
-#define TOPIC_COMMANDED_GOAL           "/motion_planner/commanded_goal"
+#define TOPIC_COMMANDED_STEERING_ANGLE "/motion_planner/steering_angle"
+#define TOPIC_COMMANDED_HEADING        "/motion_planner/commanded_heading"
+//#define TOPIC_COMMANDED_GOAL           "/motion_planner/commanded_goal"
 
 #define FRAME_MAP       "map"
 #define FRAME_BASE_LINK "base_link"
@@ -128,8 +131,9 @@ private:
     boost::shared_ptr<ros::Publisher> static_occupancy_grid_publisher_;
     boost::shared_ptr<ros::Publisher> rrt_visualization_publisher_;
     boost::shared_ptr<ros::Publisher> path_to_goal_publisher_;
-    //boost::shared_ptr<ros::Publisher> commanded_steering_angle_publisher_;
-    boost::shared_ptr<ros::Publisher> commanded_goal_publisher_;
+    boost::shared_ptr<ros::Publisher> commanded_steering_angle_publisher_;
+    boost::shared_ptr<ros::Publisher> commanded_heading_publisher_;
+    //boost::shared_ptr<ros::Publisher> commanded_goal_publisher_;
     std::mutex path_to_goal_publisher_mutex_;
 
     tf2_ros::Buffer tf_buffer_;
@@ -145,9 +149,8 @@ private:
     MotionPlanner::OccupancyGridMessage map_; // copied from "/map"
 
     std::mutex occupancy_grid_mutex_;
-    OccupancyGrid static_occupancy_grid_; // just a thin wrapper around map_->data.data()
     OccupancyGrid dynamic_occupancy_grid_;
-
+    OccupancyGrid static_occupancy_grid_; // just a thin wrapper around map_->data.data()
     cv::Vec2i static_occupancy_grid_center_;
     cv::Vec2i dynamic_occupancy_grid_center_;
 
@@ -156,8 +159,8 @@ private:
     Eigen::Affine3f T_grid_to_map_frame_;        // dynamic_occupancy_grid (pixels) to map frame (meters)
     Eigen::Affine3f T_laser_to_grid_frame_;
     Eigen::Affine3f T_map_to_grid_frame_;
-    //Eigen::Affine3f T_map_to_base_link_frame_;
-    //Eigen::Affine3f T_base_link_to_map_frame_;
+    Eigen::Affine3f T_map_to_base_link_frame_;
+    Eigen::Affine3f T_base_link_to_map_frame_;
 
     // =================================================================================================================
     // Path planning algorithms (RRT/RRT*/Informed-RRT*)
@@ -198,9 +201,14 @@ private:
 
     std::future<void> path_to_goal_publishing_task_;
     void publishCommandedPathToGoal(const PathPlanner::Path& path) const;
+    /*
     bool computeAndPublishCommandedGoal(
             const PathPlanner::Path& path,
             //boost::shared_ptr<MotionPlanner::KDTree2f> kdtree,
+            const nav_msgs::Odometry& odometry) const;
+    */
+    bool computeAndPublishCommandedSteeringAngle(
+            const PathPlanner::Path& path,
             const nav_msgs::Odometry& odometry) const;
 
 };
@@ -222,8 +230,9 @@ MotionPlanner::MotionPlanner()
         , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , rrt_visualization_publisher_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION, MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , path_to_goal_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::Path>(TOPIC_PATH_TO_GOAL, PATH_PUBLISHER_MESSAGE_QUEUE_SIZE)))
-        //, commanded_steering_angle_publisher_(new ros::Publisher(node_handle_.advertise<std_msgs::Float32>(TOPIC_COMMANDED_STEERING_ANGLE, STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE)))
-        , commanded_goal_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_GOAL, COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , commanded_steering_angle_publisher_(new ros::Publisher(node_handle_.advertise<std_msgs::Float32>(TOPIC_COMMANDED_STEERING_ANGLE, STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        , commanded_heading_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_HEADING, COMMANDED_HEADING_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+        //, commanded_goal_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_GOAL, COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE)))
         , has_valid_configuration_(false)
         , should_exit_path_planner_thread_(false)
 #if !defined(NDEBUG)
@@ -322,8 +331,8 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
 
     Eigen::Isometry3f T_base_link_to_map = poseToEigen(current_odometry.pose.pose);
 
-    //T_base_link_to_map_frame_ = T_base_link_to_map.matrix();
-    //T_map_to_base_link_frame_ = T_base_link_to_map_frame_.inverse();
+    T_base_link_to_map_frame_ = T_base_link_to_map.matrix();
+    T_map_to_base_link_frame_ = T_base_link_to_map_frame_.inverse();
 
     // Obtain laser-->map transform
     Eigen::Isometry3f T_laser_to_map = tf2::transformToEigen(tf_buffer_.lookupTransform(
@@ -432,6 +441,19 @@ void MotionPlanner::laserScanSubscriberCallback(MotionPlanner::LaserScanMessage 
     dynamic_occupancy_grid_publisher_->publish(dynamic_occupancy_grid_.convertToGridCellsMessage(
             dynamic_occupancy_grid_center_, meters_per_pixel, FRAME_LASER));
 
+#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
+
+    PathPlanner::Algorithm algorithm;
+    {
+        std::lock_guard<std::mutex> scoped_lock(configuration_mutex_);
+        algorithm = (PathPlanner::Algorithm) configuration_.algorithm;
+    }
+    if(algorithm > PathPlanner::INFORMED_RRT_STAR) {
+        dynamic_occupancy_grid_.computeDistanceTransform();
+        assert(dynamic_occupancy_grid_.hasDistances());
+    }
+#endif
+
     should_plan_path_.store(true);
 }
 
@@ -453,7 +475,8 @@ void MotionPlanner::odomSubscriberCallback(MotionPlanner::OdometryMessage odom_m
             return;
         }
         //computeAndPublishCommandedGoal(path_to_goal_, path_to_goal_kdtree_, *odom_msg);
-        computeAndPublishCommandedGoal(path_to_goal_, *odom_msg);
+        //computeAndPublishCommandedGoal(path_to_goal_, *odom_msg);
+        computeAndPublishCommandedSteeringAngle(path_to_goal_, *odom_msg);
     }
     // NOTE: should_plan_path_.store(true) should NOT be used here!
 }
@@ -568,11 +591,11 @@ void MotionPlanner::runPathPlanner() {
             bool should_generate_marker_messages = true;
             bool should_seed_last_solution = false;
             PathPlanner::Options path_planner_options;
-            PathFollower::Options path_follower_options;
+            PathOptimizer::Options path_follower_options;
             {
                 std::lock_guard<std::mutex> scoped_lock(configuration_mutex_);
                 path_planner_options = PathPlanner::Options(configuration_);
-                path_follower_options = PathFollower::Options(configuration_);
+                path_follower_options = PathOptimizer::Options(configuration_);
                 should_generate_marker_messages = configuration_.generate_marker_messages;
                 should_seed_last_solution = configuration_.seed_last_solution;
             }
@@ -621,12 +644,19 @@ void MotionPlanner::runPathPlanner() {
             }
             */
 
-            cv::Mat occupancy_grid;
+            OccupancyGrid occupancy_grid;
             cv::Vec2i occupancy_grid_center;
             Eigen::Affine3f T_grid_to_map;
             {
                 std::lock_guard<std::mutex> scoped_lock(occupancy_grid_mutex_);
-                dynamic_occupancy_grid_.copyTo(occupancy_grid); // make a local copy of the occupancy grid
+
+                if((path_planner_options.algorithm_ > PathPlanner::INFORMED_RRT_STAR) &&
+                   (not dynamic_occupancy_grid_.hasDistances())) {
+                    dynamic_occupancy_grid_.computeDistanceTransform();
+                }
+
+                dynamic_occupancy_grid_.copyMeTo(occupancy_grid); // make a local copy of the occupancy grid
+                                                                  // NOTE: don't use OpenCV's .copyTo()
                 occupancy_grid_center = dynamic_occupancy_grid_center_;
                 T_grid_to_map = T_grid_to_map_frame_;
             }
@@ -677,20 +707,23 @@ void MotionPlanner::runPathPlanner() {
                     std::chrono::nanoseconds(0)) != std::future_status::ready)) {
 
                 path_to_goal_publishing_task_ = std::async(
-                        std::launch::async, [&, path]() {
-                            const auto [success, interpolated_path] = PathFollower(path_follower_options).refinePath(path);
+                        std::launch::async, [&, grid_path]() {
+                            const auto [success, optimized_grid_path] = PathOptimizer(path_follower_options).optimizePath(
+                                    grid_path, occupancy_grid);
                             if(success)
                             {
+                                PathPlanner::Path optimized_path = TransformPath(optimized_grid_path, T_grid_to_map);
                                 {
                                     std::lock_guard<std::mutex> scoped_lock(path_to_goal_mutex_);
-                                    path_to_goal_ = interpolated_path;
+                                    path_to_goal_ = optimized_path;
                                     //recomputePathToGoalKDTree();
                                     //computeAndPublishCommandedGoal(path_to_goal_, path_to_goal_kdtree_, odometry);
-                                    computeAndPublishCommandedGoal(path_to_goal_, odometry);
+                                    //computeAndPublishCommandedGoal(path_to_goal_, odometry);
+                                    computeAndPublishCommandedSteeringAngle(path_to_goal_, odometry);
                                 }
                                 {
                                     std::lock_guard<std::mutex> scoped_lock(path_to_goal_publisher_mutex_);
-                                    publishCommandedPathToGoal(interpolated_path);
+                                    publishCommandedPathToGoal(optimized_path);
                                 }
                             }
                         });
@@ -721,6 +754,7 @@ boost::shared_ptr<MotionPlanner::KDTree2f> MotionPlanner::computeKDTree(const Pa
 }
 */
 
+#if 0
 bool MotionPlanner::computeAndPublishCommandedGoal(
         const PathPlanner::Path& path,
         //boost::shared_ptr<MotionPlanner::KDTree2f> kdtree,
@@ -797,6 +831,137 @@ bool MotionPlanner::computeAndPublishCommandedGoal(
 
     commanded_goal_publisher_->publish(goal_msg);
 }
+#endif
+
+
+bool MotionPlanner::computeAndPublishCommandedSteeringAngle(
+        const PathPlanner::Path& path,
+        const nav_msgs::Odometry& odometry) const {
+    return(false);
+}
+
+#if 0
+bool MotionPlanner::computeAndPublishCommandedSteeringAngle(
+        const PathPlanner::Path& path,
+        const nav_msgs::Odometry& odometry) const {
+
+    const Eigen::Vector2f current_position(odometry.pose.pose.position.x,
+                                           odometry.pose.pose.position.y);
+
+    const auto current_rotation_ZXY = Eigen::Quaternionf(
+            odometry.pose.pose.orientation.w,
+            odometry.pose.pose.orientation.x,
+            odometry.pose.pose.orientation.y,
+            odometry.pose.pose.orientation.z).toRotationMatrix().eulerAngles(2,0,1);
+
+    const float current_heading_angle = current_rotation_ZXY(0);
+
+    float shortest_distance = std::numeric_limits<float>::max();
+    int index_of_closest_point_on_path = (-1);
+    for(int i=0; i<path.size(); i++) {
+        const Eigen::Vector2f& point_on_path = path[i];
+        const float distance = Eigen::Vector2f(current_position - point_on_path).norm();
+        if(distance < shortest_distance) {
+            shortest_distance = distance;
+            index_of_closest_point_on_path = i;
+        }
+    }
+    assert(index_of_closest_point_on_path >= 0);
+
+    const float steering_lookahead_distance = steering_lookahead_distance_.load();
+    float total_linear_distance_on_path = 0.0f;
+
+    int i = index_of_closest_point_on_path;
+    while(total_linear_distance_on_path < steering_lookahead_distance) {
+        const int j = (i + 1);
+        if (j >= path.size()) {
+            break;
+        }
+        total_linear_distance_on_path += Eigen::Vector2f(path[j] - path[i]).norm();
+        i++;
+    }
+
+    const int index_of_goal_point = i;
+    assert(index_of_goal_point < path.size());
+    const Eigen::Vector2f& goal_position = path[index_of_goal_point]; // goal position in map frame
+
+    const auto goal_position_in_base_link_frame =
+            T_map_to_base_link_frame_ * Eigen::Vector3f(goal_position(0), goal_position(1), 0.0);
+
+    auto cartesian_to_polar = [](const Eigen::Vector2f& point) -> std::tuple<float, float> {
+        float theta = std::atan2(point(1),point(0));
+        float rho = point.norm();
+        return {theta, rho};
+    };
+
+    /*
+    auto polar_to_cartesian = [](float theta, float rho) -> Eigen::Vector2f {
+        return Eigen::Vector2f(rho * std::cos(theta), rho * std::sin(theta));
+    };
+    */
+    auto polar_to_cartesian = [](float theta, float rho) -> std::tuple<float, float> {
+        return {rho * std::cos(theta), rho * std::sin(theta) };
+    };
+
+    auto [theta, l_d] = cartesian_to_polar(Eigen::Vector2f(goal_position_in_base_link_frame(0),
+                                                           goal_position_in_base_link_frame(1)) - current_position);
+    float alpha = (theta - current_heading_angle);
+    if(alpha > M_PI) {
+        alpha -= M_2_PI; // ensure that alpha stays in the range [-pi,pi]
+    }
+
+    const float L = vehicle_wheelbase_;
+    float delta = std::atan((2.0 * L * std::sin(alpha)) / l_d);
+
+    /*
+    // (g_x, g_y) ... goal point in the car's coordinate frame
+
+    auto [g_x, g_y] = polar_to_cartesian(alpha, l_d);
+
+    const float R = (l_d * l_d) / std::abs(2*g_y);
+    const float R_test = std::abs(l_d / (2.0 * std::sin(alpha)));
+    */
+
+    std_msgs::Float32 steering_angle_message;
+    steering_angle_message.data = delta; // phi ... commanded steering angle (in radians)
+    commanded_steering_angle_publisher_->publish(steering_angle_message);
+
+    geometry_msgs::PoseStamped heading_message;
+    heading_message.header.stamp = ros::Time::now();
+    heading_message.header.frame_id = FRAME_BASE_LINK;
+    heading_message.pose.position.x = 0.0;
+    heading_message.pose.position.y = 0.0;
+    heading_message.pose.position.z = 0.0;
+
+    Eigen::Quaternionf q;
+    q = Eigen::AngleAxisf(delta, Eigen::Vector3f::UnitZ());
+    heading_message.pose.orientation.x = q.x();
+    heading_message.pose.orientation.y = q.y();
+    heading_message.pose.orientation.z = q.z();
+    heading_message.pose.orientation.w = q.w();
+
+    commanded_heading_publisher_->publish(heading_message);
+
+    /*
+
+            # Publish commanded_heading (for RViz)
+            pose_msg = PoseStamped()
+            pose_msg.header.stamp = rospy.Time.now()
+            pose_msg.header.frame_id = "base_link"
+            pose_msg.pose.position.x = 0
+            pose_msg.pose.position.y = 0
+            rotation = Rotation.from_euler('z', delta, degrees=False).as_quat()
+            pose_msg.pose.orientation.x = rotation[0]
+            pose_msg.pose.orientation.y = rotation[1]
+            pose_msg.pose.orientation.z = rotation[2]
+            pose_msg.pose.orientation.w = rotation[3]
+            self.commanded_heading_pub.publish(pose_msg)
+
+
+     */
+
+}
+#endif
 
 void MotionPlanner::publishCommandedPathToGoal(const PathPlanner::Path& path) const {
     nav_msgs::Path path_msg;
