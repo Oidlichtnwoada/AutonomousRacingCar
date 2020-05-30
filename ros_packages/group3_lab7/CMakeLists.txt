@@ -56,7 +56,8 @@ include_directories(
 
 add_executable(${NODE_NAME}
   src/motion_planner.cpp
-        src/motion_planner/path_optimizer.cpp
+  src/motion_planner/path.cpp
+  src/motion_planner/path_optimizer.cpp
   src/motion_planner/path_planner.cpp
   src/motion_planner/occupancy_grid.cpp
   src/motion_planner/bounding_box.cpp
