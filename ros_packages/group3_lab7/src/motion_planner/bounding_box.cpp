@@ -33,4 +33,4 @@ namespace motion_planner {
         const float overlap_ratio = (2.0f * overlapping_area) / (computeArea() + other_bounding_box.computeArea());
         return (overlap_ratio);
     }
-}
+} // namespace motion_planner

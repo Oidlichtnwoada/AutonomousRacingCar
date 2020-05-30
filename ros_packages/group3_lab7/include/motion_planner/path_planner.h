@@ -48,6 +48,7 @@ namespace motion_planner {
             int goal_proximity_threshold_; // in grid coordinates (pixels)
             int size_of_k_neighborhood_;   // a.k.a. just "k", only used for RRT* and Informed-RRT*
             int maximum_branch_expansion_; // in grid coordinates (pixels)
+            bool generate_marker_messages_;
 
             static constexpr Algorithm default_algorithm = INFORMED_RRT_STAR;
             static constexpr float default_reward_temporal_coherence = true;
@@ -59,6 +60,8 @@ namespace motion_planner {
             static constexpr int default_goal_proximity_threshold = 2;
             static constexpr int default_size_of_k_neighborhood = 10;
             static constexpr int default_maximum_branch_expansion = 5;
+            static constexpr bool default_generate_marker_messages = false;
+
         };
 
         std::tuple<
@@ -70,7 +73,7 @@ namespace motion_planner {
             const OccupancyGrid &occupancy_grid,
             const cv::Vec2i &occupancy_grid_center,
             const Eigen::Affine3f &T_grid_to_map,
-            GridPath seeded_nodes,
+            GridPath seeded_solution,
             const Options options = Options(),
             boost::shared_ptr<ros::Publisher> marker_publisher = nullptr);
 
@@ -97,4 +100,4 @@ namespace motion_planner {
         ) const;
     };
 
-}
+} // namespace motion_planner

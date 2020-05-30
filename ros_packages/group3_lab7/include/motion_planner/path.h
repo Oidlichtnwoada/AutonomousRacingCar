@@ -10,6 +10,9 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
+#include <json/json.hpp>
+#include <json/eigen_conversion.hpp>
+
 namespace motion_planner {
 
     template<typename T>
@@ -35,13 +38,35 @@ namespace motion_planner {
         return (output_path);
     }
 
-    #define ConvertMapPathToGridPath(map_path, grid_path) \
+} // namespace motion_planner
+
+#define ConvertMapPathToGridPath(map_path, grid_path) \
         motion_planner::ConvertPath<int,float>(map_path, grid_path)
 
-    #define ConvertGridPathToMapPath(grid_path, map_path) \
+#define ConvertGridPathToMapPath(grid_path, map_path) \
         motion_planner::ConvertPath<float,int>(grid_path, map_path)
 
-}
+namespace motion_planner {
+
+    template<typename T>
+    nlohmann::json PathToJson(const Path<T>& path) {
+        nlohmann::json j = nlohmann::json::array();
+        for(const auto& point : path) {
+            j.push_back(nlohmann::json {{"x",point(0)}, {"y",point(1)} });
+        }
+        return(j);
+    }
+
+    template<typename T>
+    Path<T> PathFromJson(const nlohmann::json& j) {
+        Path<T> path;
+        for(const auto& j_elem : j) {
+            path.push_back(Eigen::Vector2f(j_elem.at("x").get<T>(),
+                                           j_elem.at("y").get<T>()));
+        }
+        return(path);
+    }
+} // namespace motion_planner
 
 namespace motion_planner {
 
@@ -93,4 +118,4 @@ namespace motion_planner {
         interpolated_path.push_back(path.back().template cast<T>());
         return interpolated_path;
     }
-}
+} // namespace motion_planner

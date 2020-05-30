@@ -1045,7 +1045,7 @@ namespace motion_planner {
 
         path_to_goal_publisher_->publish(path_msg);
     }
-}
+} // namespace motion_planner
 
 using namespace motion_planner;
 

@@ -6,7 +6,6 @@
  */
 
 #include <motion_planner/path.h>
-#include <type_traits>
 
 namespace motion_planner {
 
@@ -25,5 +24,4 @@ namespace motion_planner {
         }
         return(grid_path);
     }
-
-}
+} // namespace motion_planner

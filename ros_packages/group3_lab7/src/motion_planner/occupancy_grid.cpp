@@ -190,4 +190,4 @@ namespace motion_planner {
             }
         }
     }
-}
+} // namespace motion_planner

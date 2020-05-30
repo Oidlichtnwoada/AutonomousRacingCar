@@ -67,4 +67,4 @@ namespace motion_planner {
         cv::Mat distances_;
 
     };
-}
+} // namespace motion_planner

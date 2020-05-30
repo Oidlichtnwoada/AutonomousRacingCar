@@ -22,7 +22,8 @@ namespace motion_planner {
               number_of_random_samples_(default_number_of_random_samples),
               goal_proximity_threshold_(default_goal_proximity_threshold),
               size_of_k_neighborhood_(default_size_of_k_neighborhood),
-              maximum_branch_expansion_(default_maximum_branch_expansion) {}
+              maximum_branch_expansion_(default_maximum_branch_expansion),
+              generate_marker_messages_(default_generate_marker_messages) {}
 
     PathPlanner::Options::Options(const Configuration &configuration)
             : algorithm_((Algorithm) configuration.algorithm),
@@ -30,7 +31,8 @@ namespace motion_planner {
               number_of_random_samples_(configuration.number_of_random_samples),
               goal_proximity_threshold_(configuration.goal_proximity_threshold),
               size_of_k_neighborhood_(configuration.size_of_k_neighborhood),
-              maximum_branch_expansion_(configuration.maximum_branch_expansion) {}
+              maximum_branch_expansion_(configuration.maximum_branch_expansion),
+              generate_marker_messages_(configuration.generate_marker_messages) {}
 
     PathPlanner::PathPlanner()
             : random_generator_(std::mt19937(PathPlanner::random_seed_)) {}
@@ -39,14 +41,24 @@ namespace motion_planner {
         return Eigen::Vector2f(row0 - row1, col0 - col1).norm();
     };
 
-    std::tuple<bool, PathPlanner::Tree, PathPlanner::MapPath, PathPlanner::GridPath>
+    std::tuple<
+            bool, PathPlanner::Tree,
+            PathPlanner::MapPath,
+            PathPlanner::GridPath>
     PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
                      const OccupancyGrid &occupancy_grid,
                      const cv::Vec2i &occupancy_grid_center,
                      const Eigen::Affine3f &T_grid_to_map,
-                     GridPath seeded_nodes,
+                     GridPath seeded_solution,
                      const Options options,
                      boost::shared_ptr<ros::Publisher> marker_publisher) {
+
+        #define RETURN_WITHOUT_SOLUTION \
+        { \
+            MapPath empty_map_path; \
+            GridPath empty_grid_path; \
+            return {false, tree, empty_map_path, empty_grid_path}; \
+        }
 
         const bool USE_RRT_STAR = (options.algorithm_ == RRT_STAR) || (options.algorithm_ == INFORMED_RRT_STAR);
         const bool USE_INFORMED_RRT_STAR = (options.algorithm_ == INFORMED_RRT_STAR);
@@ -90,9 +102,7 @@ namespace motion_planner {
             // goal lies outside grid bounds
 
             // TODO: Is there a better way to handle such a case?
-            MapPath map_path;
-            GridPath grid_path;
-            return {false, tree, map_path, grid_path};
+            RETURN_WITHOUT_SOLUTION
         }
 
         // Generate a uniform distribution across the entire grid (default for RRT, RRT* and
@@ -154,7 +164,7 @@ namespace motion_planner {
         std::set<size_t> leaves_in_proximity_to_goal; // vector of leaf indices
 
 #if defined(ENABLE_BOUNDING_BOX_COMPARISON)
-        const BoundingBox seeded_path_bounding_box = BoundingBox::fromPath<int>(seeded_nodes);
+        const BoundingBox seeded_path_bounding_box = BoundingBox::fromPath<int>(seeded_solution);
 
         const bool should_check_temporal_coherence =
                 (options.reward_temporal_coherence_ &&
@@ -171,11 +181,11 @@ namespace motion_planner {
             float random_row;
             float random_col;
 
-            if (!seeded_nodes.empty()) {
+            if (!seeded_solution.empty()) {
 
-                random_row = (float) seeded_nodes.front()(0);
-                random_col = (float) seeded_nodes.front()(1);
-                seeded_nodes.pop_front();
+                random_row = (float) seeded_solution.front()(0);
+                random_col = (float) seeded_solution.front()(1);
+                seeded_solution.pop_front();
 
             } else {
                 std::tie(random_row, random_col) = (USE_INFORMED_RRT_STAR && path_to_goal_found) ?
@@ -361,9 +371,7 @@ namespace motion_planner {
         }
 
         if (tree.nodes_.size() < 2) {
-            MapPath map_path;
-            GridPath grid_path;
-            return {false, tree, map_path, grid_path};
+            RETURN_WITHOUT_SOLUTION
         }
 
         // =================================================================================================================
@@ -448,10 +456,7 @@ namespace motion_planner {
             index.findNeighbors(nn_results, query_position, nanoflann::SearchParams(10));
 
             if (nn_results.size() == 0) {
-                // no path to goal?
-                MapPath map_path;
-                GridPath grid_path;
-                return {false, tree, map_path, grid_path};
+                RETURN_WITHOUT_SOLUTION
             }
             assert(nn_index < tree.nodes_.size());
             leaf_index_of_best_path_to_goal = nn_index;
@@ -505,7 +510,10 @@ namespace motion_planner {
             }
         }
 
-        bool should_generate_marker_messages = (marker_publisher.get() != nullptr);
+        bool should_generate_marker_messages =
+                options.generate_marker_messages_ &&
+                (marker_publisher.get() != nullptr);
+
         if (should_generate_marker_messages &&
             marker_publishing_task_.valid() &&
             marker_publishing_task_.wait_for(
@@ -851,4 +859,4 @@ namespace motion_planner {
         return (marker_messages);
     }
 
-}
+} // namespace motion_planner

@@ -42,4 +42,4 @@ namespace motion_planner {
         Eigen::Vector2f upper_bounds_;
 
     };
-}
+} // namespace motion_planner

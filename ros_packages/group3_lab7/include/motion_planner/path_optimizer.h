@@ -36,4 +36,4 @@ namespace motion_planner {
         PathOptimizer();
 
     };
-}
+} // namespace motion_planner

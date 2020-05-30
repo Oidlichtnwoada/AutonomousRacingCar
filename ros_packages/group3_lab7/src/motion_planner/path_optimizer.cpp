@@ -45,4 +45,4 @@ namespace motion_planner {
         return {true, ConvertPath<int, float>(resampled_path)};
     }
 
-}
+} // namespace motion_planner
