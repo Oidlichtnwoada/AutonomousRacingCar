@@ -8,7 +8,15 @@ Stefan Adelmann | Hannes  Brantner | Daniel Lukitsch | Thomas Pintaric
 
 # Lab 7: Motion Planning
 
-**TODO:** Description goes here.
+**For this lab, we implemented the following three path planning algorithms:
+
+- RRT
+- RRT*
+- Informed-RRT* [[Gammel et al. 2014]](https://arxiv.org/abs/1404.2334)
+
+![](media/algorithms.png)
+
+<u>Figure:</u> From left to right: RRT, RRT\*, Informed-RRT\*.
 
 ------
 
@@ -40,4 +48,22 @@ catkin build --workspace ${ROS_LAB_WORKSPACE}
 source ${ROS_LAB_WORKSPACE}/devel/setup.bash
 ```
 
-**TODO:** Document additional steps.
+### Demo
+
+![](media/rosgraph.png)
+
+<u>A ROS demo of all three algorithms can be launched as follows:</u>
+
+Terminal #1:
+
+```bash
+roslaunch group3_lab7 path_following_with_local_planner.launch
+```
+
+Terminal #2:
+
+```bash
+roslaunch group3_lab7 rviz.launch
+```
+
+**<u>WARNING:</u>** We discovered that the current apt-packaged version of RViz (1.13.12-1bionic.20200506.140253) will mishandle nav_msgs::OccupancyGrid messages, causing it to to crash. In order to run our demo, it may be neccesary to **rebuild RViz from source** (https://github.com/ros-visualization/rviz, "melodic-devel" branch) and link it against **OGRE 1.9.1** (https://github.com/OGRECave/ogre.git).

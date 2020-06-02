@@ -12,7 +12,6 @@
 
     <remap to="/motion_planner/steering_angle" from="/drive_controller/steering_angle" />
     <node pkg="group3_lab7" name="drive_controller" type="drive_controller.py" output="screen"/>
-
     <!--
     <node pkg="rviz" type="rviz" name="rviz" args="-d $(find group3_lab7)/launch/path_following_with_local_planner.rviz" output="screen"/>
     -->
