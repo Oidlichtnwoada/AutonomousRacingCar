@@ -40,11 +40,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <group3_lab7/motion_planner_Config.h>
 
-#include <nanoflann/nanoflann.hpp>
-//#include <nanoflann/KDTreeVectorOfVectorsAdaptor.h>
-
 //#define LIMIT_DYNAMIC_OCCUPANCY_GRID_TO_FORWARD_DIRECTION // <-- this is just an optimization
-#define ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
 
 #define SUBSCRIBER_MESSAGE_QUEUE_SIZE 1000
 #define GRID_PUBLISHER_MESSAGE_QUEUE_SIZE 10
@@ -73,7 +69,7 @@ static_assert(MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE > 0);
 #define TOPIC_PATH_TO_GOAL             "/motion_planner/path_to_goal"
 #define TOPIC_COMMANDED_STEERING_ANGLE "/motion_planner/steering_angle"
 #define TOPIC_COMMANDED_HEADING        "/motion_planner/commanded_heading"
-//#define TOPIC_COMMANDED_GOAL           "/motion_planner/commanded_goal"
+#define TOPIC_COMMANDED_GOAL           "/motion_planner/commanded_goal"
 
 #define FRAME_MAP       "map"
 #define FRAME_BASE_LINK "base_link"
@@ -142,7 +138,7 @@ namespace motion_planner {
         boost::shared_ptr<ros::Publisher> path_to_goal_publisher_;
         boost::shared_ptr<ros::Publisher> commanded_steering_angle_publisher_;
         boost::shared_ptr<ros::Publisher> commanded_heading_publisher_;
-        //boost::shared_ptr<ros::Publisher> commanded_goal_publisher_;
+        boost::shared_ptr<ros::Publisher> commanded_goal_publisher_;
         std::mutex path_to_goal_publisher_mutex_;
 
         tf2_ros::Buffer tf_buffer_;
@@ -192,7 +188,7 @@ namespace motion_planner {
         std::atomic<bool> should_plan_path_;
 
         std::mutex last_path_mutex_;
-        PathPlanner::MapPath last_path_; // previous solution (in map frame)
+        PathPlanner::MapPath last_shortest_path_; // previously found solution (in map frame)
 
 #if !defined(NDEBUG)
         unsigned long long laser_scan_messages_received_;
@@ -201,24 +197,12 @@ namespace motion_planner {
         unsigned long long map_messages_received_;
 #endif
 
-
-        //typedef KDTreeVectorOfVectorsAdaptor<std::deque<Eigen::Vector2f>, float> KDTree2f;
         std::mutex path_to_goal_mutex_;
-        PathPlanner::MapPath path_to_goal_;
-        //boost::shared_ptr<KDTree2f> path_to_goal_kdtree_; // <--- just a wrapper around path_to_goal_
-        //void recomputePathToGoalKDTree();
-        //static boost::shared_ptr<MotionPlanner::KDTree2f> computeKDTree(const PathPlanner::Path& path);
+        PathPlanner::MapPath path_to_goal_; // most recent (optimized) path to goal (in map frame)
 
         std::future<void> path_to_goal_publishing_task_;
 
         void publishCommandedPathToGoal(const PathPlanner::MapPath &path) const;
-
-        /*
-        bool computeAndPublishCommandedGoal(
-                const PathPlanner::Path& path,
-                //boost::shared_ptr<MotionPlanner::KDTree2f> kdtree,
-                const nav_msgs::Odometry& odometry) const;
-        */
         bool computeAndPublishCommandedSteeringAngle(
                 const PathPlanner::MapPath &path,
                 const nav_msgs::Odometry &odometry) const;
@@ -241,7 +225,7 @@ namespace motion_planner {
             , path_to_goal_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::Path>(TOPIC_PATH_TO_GOAL, PATH_PUBLISHER_MESSAGE_QUEUE_SIZE)))
             , commanded_steering_angle_publisher_(new ros::Publisher(node_handle_.advertise<std_msgs::Float32>(TOPIC_COMMANDED_STEERING_ANGLE, STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE)))
             , commanded_heading_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_HEADING, COMMANDED_HEADING_PUBLISHER_MESSAGE_QUEUE_SIZE)))
-            //, commanded_goal_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_GOAL, COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+            , commanded_goal_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PointStamped>(TOPIC_COMMANDED_GOAL, COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE)))
             , has_valid_configuration_(false), should_exit_path_planner_thread_(false)
 #if !defined(NDEBUG)
             , laser_scan_messages_received_(0)
@@ -300,10 +284,10 @@ namespace motion_planner {
         cv::imwrite("/tmp/occupancy_grid.png", dynamic_occupancy_grid_->occupancy());
         {
             std::ofstream o("/tmp/map_path.json");
-            o << std::setw(4) << PathToJson<float>(last_path_) << std::endl;
+            o << std::setw(4) << PathToJson<float>(last_shortest_path_) << std::endl;
         }
         {
-            GridPath gridPath = TransformPath<float,int>(last_path_, T_map_to_grid_frame_);
+            GridPath gridPath = TransformPath<float,int>(last_shortest_path_, T_map_to_grid_frame_);
             std::ofstream o("/tmp/grid_path.json");
             o << std::setw(4) << PathToJson<int>(gridPath) << std::endl;
         }
@@ -351,7 +335,7 @@ namespace motion_planner {
         }
         last_scan_timestamp_ = current_timestamp;
 
-        // Obtain laser-->base_link transform
+        // Obtain laser-->base_link transform (NOTE: this is a static transform)
         Eigen::Isometry3f T_laser_to_base_link = tf2::transformToEigen(tf_buffer_.lookupTransform(
                 FRAME_BASE_LINK, FRAME_LASER, ros::Time(0)).transform).cast<float>();
 
@@ -365,10 +349,6 @@ namespace motion_planner {
 
         T_base_link_to_map_frame_ = T_base_link_to_map.matrix();
         T_map_to_base_link_frame_ = T_base_link_to_map_frame_.inverse();
-
-        // Obtain laser-->map transform
-        Eigen::Isometry3f T_laser_to_map = tf2::transformToEigen(tf_buffer_.lookupTransform(
-                FRAME_MAP, scan_msg->header.frame_id, ros::Time(0)).transform).cast<float>();
 
         const float pixels_per_meter = 1.0f / map_->info.resolution;
         const float meters_per_pixel = map_->info.resolution;
@@ -472,21 +452,6 @@ namespace motion_planner {
         dynamic_occupancy_grid_->expand(grid_expansion_width);
         dynamic_occupancy_grid_publisher_->publish(dynamic_occupancy_grid_->convertToGridCellsMessage(
                 dynamic_occupancy_grid_center_, meters_per_pixel, FRAME_LASER));
-
-#if 0
-#ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
-        PathPlanner::Algorithm algorithm;
-        {
-            std::lock_guard<std::mutex> scoped_lock(configuration_mutex_);
-            algorithm = (PathPlanner::Algorithm) configuration_.algorithm;
-        }
-        if (algorithm > PathPlanner::INFORMED_RRT_STAR) {
-            dynamic_occupancy_grid_.computeDistanceTransform();
-            assert(dynamic_occupancy_grid_.hasDistances());
-        }
-#endif
-#endif
-
         should_plan_path_.store(true);
     }
 
@@ -712,18 +677,18 @@ namespace motion_planner {
                 boost::shared_ptr<ros::Publisher> marker_publisher =
                         should_generate_marker_messages ? rrt_visualization_publisher_ : nullptr;
 
-                PathPlanner::GridPath seeded_nodes; // TODO: <--- initialize!
+                PathPlanner::GridPath seeded_solution;
                 if (should_seed_last_solution) {
                     std::lock_guard<std::mutex> scoped_lock(last_path_mutex_);
-                    for (int i = 0; i < last_path_.size(); i++) {
-                        const Eigen::Vector2f old_waypoint_in_map_frame = last_path_[i];
+                    for (int i = 0; i < last_shortest_path_.size(); i++) {
+                        const Eigen::Vector2f old_waypoint_in_map_frame = last_shortest_path_[i];
 
                         const Eigen::Vector3f old_waypoint_in_new_grid_frame =
                                 T_map_to_grid_frame_ *
                                 Eigen::Vector3f(old_waypoint_in_map_frame(0),
                                                 old_waypoint_in_map_frame(1), 0.0f);
-                        seeded_nodes.push_back(Eigen::Vector2i(old_waypoint_in_new_grid_frame(0),
-                                                               old_waypoint_in_new_grid_frame(1)));
+                        seeded_solution.push_back(Eigen::Vector2i(old_waypoint_in_new_grid_frame(0),
+                                                                  old_waypoint_in_new_grid_frame(1)));
                     }
                 }
 
@@ -732,7 +697,7 @@ namespace motion_planner {
                         occupancy_grid,
                         occupancy_grid_center,
                         T_grid_to_map,
-                        seeded_nodes,
+                        seeded_solution,
                         path_planner_options,
                         marker_publisher);
 
@@ -741,7 +706,7 @@ namespace motion_planner {
                 } else {
 
                     std::lock_guard<std::mutex> scoped_lock(last_path_mutex_);
-                    last_path_ = path;
+                    last_shortest_path_ = path;
                 }
 
                 if (not(path_to_goal_publishing_task_.valid() && path_to_goal_publishing_task_.wait_for(
@@ -778,6 +743,116 @@ namespace motion_planner {
         }
         ROS_INFO("Path planner is shutting down...");
     }
+
+    bool MotionPlanner::computeAndPublishCommandedSteeringAngle(
+            const PathPlanner::MapPath &path,
+            const nav_msgs::Odometry &odometry) const {
+
+        if(path_to_goal_.empty()) {
+            return(false);
+        }
+
+        // The car's current position in the "map" frame
+        const Eigen::Vector2f car_position(odometry.pose.pose.position.x, odometry.pose.pose.position.y);
+        const float steering_lookahead_distance = steering_lookahead_distance_.load();
+
+        // TODO: resample path to goal?
+
+        int index_of_closest_point_on_path = (-1);
+        {
+            float shortest_distance = std::numeric_limits<float>::max();
+            for (int i = 0; i < path_to_goal_.size(); i++) {
+                const float distance = Eigen::Vector2f(car_position - path_to_goal_[i]).norm();
+                if (distance < shortest_distance) {
+                    shortest_distance = distance;
+                    index_of_closest_point_on_path = i;
+                }
+            }
+        }
+        assert(index_of_closest_point_on_path >= 0);
+
+        Eigen::Vector2f goal_position = path_to_goal_.back();
+        {
+            for (int i = index_of_closest_point_on_path; i < path_to_goal_.size(); i++) {
+                const float distance_to_waypoint = (car_position - path_to_goal_[i]).norm();
+                if (distance_to_waypoint > steering_lookahead_distance) {
+                    if(i>0) {
+                        const float previous_distance_to_waypoint = (car_position - path_to_goal_[i-1]).norm();
+
+                        const float error_1 = std::abs(distance_to_waypoint - steering_lookahead_distance);
+                        const float error_0 = std::abs(steering_lookahead_distance - previous_distance_to_waypoint);
+
+                        const float weight_1 = error_0 / (error_0 + error_1);
+                        const float weight_0 = (1.0f - weight_1);
+
+                        goal_position = (weight_1 * path_to_goal_[i]) + (weight_0 * path_to_goal_[i-1]);
+
+                    } else {
+                        goal_position = path_to_goal_[i];
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Publish the goal
+        {
+            geometry_msgs::PointStamped goal_msg;
+            goal_msg.header.stamp = ros::Time::now();
+            goal_msg.header.frame_id = FRAME_MAP;
+            goal_msg.point.x = goal_position(0);
+            goal_msg.point.y = goal_position(1);
+            goal_msg.point.z = 0.0f;
+            commanded_goal_publisher_->publish(goal_msg);
+        }
+
+        // =============================================================================================================
+        // Pure Pursuit control law
+        // =============================================================================================================
+
+        const Eigen::Vector3f goal_position_in_base_link_frame =
+                T_map_to_base_link_frame_ * Eigen::Vector3f(goal_position(0), goal_position(1), 0.0);
+
+        auto cartesian_to_polar = [](const Eigen::Vector2f& point) -> std::tuple<float, float> {
+            float theta = std::atan2(point(1),point(0));
+            float rho = point.norm();
+            return {theta, rho};
+        };
+
+        auto polar_to_cartesian = [](float theta, float rho) -> std::tuple<float, float> {
+            return {rho * std::cos(theta), rho * std::sin(theta) };
+        };
+
+        auto [theta, l_d] = cartesian_to_polar(Eigen::Vector2f(goal_position_in_base_link_frame(0),
+                                                               goal_position_in_base_link_frame(1)));
+        if(theta > M_PI) {
+            theta -= M_2_PI; // ensure that theta stays in the range [-pi,pi]
+        }
+        assert(theta >= -M_PI && theta <= +M_PI);
+
+        const float L = vehicle_wheelbase_;
+        float delta = std::atan((2.0 * L * std::sin(theta)) / l_d);
+
+        /*
+        // (g_x, g_y) ... goal point in the car's coordinate frame
+
+        auto [g_x, g_y] = polar_to_cartesian(alpha, l_d);
+
+        const float R = (l_d * l_d) / std::abs(2*g_y);
+        const float R_test = std::abs(l_d / (2.0 * std::sin(alpha)));
+        */
+
+        std_msgs::Float32 steering_angle_message;
+        steering_angle_message.data = delta; // phi ... commanded steering angle (in radians)
+        commanded_steering_angle_publisher_->publish(steering_angle_message);
+        return (true);
+    }
+
+
+
+
+
+
 
     /*
     void MotionPlanner::recomputePathToGoalKDTree() {
@@ -876,17 +951,18 @@ namespace motion_planner {
     }
 #endif
 
-
+#if 0
     bool MotionPlanner::computeAndPublishCommandedSteeringAngle(
             const PathPlanner::MapPath &path,
             const nav_msgs::Odometry &odometry) const {
         return (false);
     }
+#endif
 
 #if 0
     bool MotionPlanner::computeAndPublishCommandedSteeringAngle(
-            const PathPlanner::Path& path,
-            const nav_msgs::Odometry& odometry) const {
+            const PathPlanner::MapPath &path,
+            const nav_msgs::Odometry &odometry) const {
 
         const Eigen::Vector2f current_position(odometry.pose.pose.position.x,
                                                odometry.pose.pose.position.y);
