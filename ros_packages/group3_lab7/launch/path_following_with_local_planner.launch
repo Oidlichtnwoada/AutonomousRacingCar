@@ -7,7 +7,6 @@
     <node pkg="group3_lab7" name="path_publisher" type="path_publisher.py" output="screen"/>
     <node pkg="rqt_reconfigure" name="rqt_reconfigure" type="rqt_reconfigure"/>
 
-
     <remap to="/path_publisher/goal" from="/motion_planner/goal" />
     <node pkg="group3_lab7" name="motion_planner" type="motion_planner" output="screen"/>
 
