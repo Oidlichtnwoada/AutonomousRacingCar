@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+    <include file="$(find group3_lab7)/launch/headless_simulator.launch">
+        <arg name="map" default="$(find group3_lab7)/maps/levine.yaml"/>
+    </include>
+    <remap to="/move_base_simple/goal" from="/motion_planner/goal" />
+    <node pkg="group3_lab7" name="motion_planner" type="motion_planner" output="screen"/>
+</launch>

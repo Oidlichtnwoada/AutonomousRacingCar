@@ -2,7 +2,7 @@
 <package format="2">
   <name>group3_lab7</name>
   <version>0.0.1</version>
-  <description>Scan Matching Lab</description>
+  <description>Lab 7: Motion Planning</description>
   <maintainer email="thomas.pintaric@student.tuwien.ac.at">Thomas Pintaric</maintainer>
   <license>BSD</license>
   <author email="thomas.pintaric@student.tuwien.ac.at">Thomas Pintaric</author>
@@ -21,8 +21,10 @@
   <depend>tf2_sensor_msgs</depend>
   <build_depend>eigen</build_depend>
   <build_depend>boost</build_depend>
-  <!--
-  <test_depend>rosunit</test_depend>
-  -->
+  <depend>rospy</depend>
+  <depend>ackermann_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
+  <exec_depend>python-scipy</exec_depend>
+  <exec_depend>python-numpy</exec_depend>
   <export></export>
 </package>
