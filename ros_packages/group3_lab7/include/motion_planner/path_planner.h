@@ -70,7 +70,7 @@ namespace motion_planner {
                 MapPath  /* best path (map coordinates) */,
                 GridPath /* best path (grid coordinates) */>
         run(Eigen::Vector2f goal_in_map_frame,
-            const OccupancyGrid &occupancy_grid,
+            boost::shared_ptr<OccupancyGrid> occupancy_grid,
             const cv::Vec2i &occupancy_grid_center,
             const Eigen::Affine3f &T_grid_to_map,
             GridPath seeded_solution,

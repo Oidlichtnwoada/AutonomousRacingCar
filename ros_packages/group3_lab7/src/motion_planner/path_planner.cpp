@@ -46,7 +46,7 @@ namespace motion_planner {
             PathPlanner::MapPath,
             PathPlanner::GridPath>
     PathPlanner::run(Eigen::Vector2f goal_in_map_frame,
-                     const OccupancyGrid &occupancy_grid,
+                     boost::shared_ptr<OccupancyGrid> occupancy_grid,
                      const cv::Vec2i &occupancy_grid_center,
                      const Eigen::Affine3f &T_grid_to_map,
                      GridPath seeded_solution,
@@ -90,14 +90,14 @@ namespace motion_planner {
         // Root node is the origin in the laser frame (= center of the dynamic occupancy grid)
         const float root_row = (float) occupancy_grid_center(0);
         const float root_col = (float) occupancy_grid_center(1);
-        const bool root_is_blocked = occupancy_grid.isGridCellOccupied(root_row, root_col);
+        const bool root_is_blocked = occupancy_grid->isGridCellOccupied(root_row, root_col);
 
         // check if goal lies outside grid bounds
         if (root_is_blocked ||
             goal_row < 0.0f ||
-            goal_row >= (float) occupancy_grid.rows ||
+            goal_row >= (float) occupancy_grid->rows() ||
             goal_col < 0.0f ||
-            goal_col >= (float) occupancy_grid.cols) {
+            goal_col >= (float) occupancy_grid->cols()) {
 
             // goal lies outside grid bounds
 
@@ -107,8 +107,8 @@ namespace motion_planner {
 
         // Generate a uniform distribution across the entire grid (default for RRT, RRT* and
         // Informed-RRT* prior to finding a path to the goal).
-        UniformDistribution uniform_row_distribution(0.0f, (float) (occupancy_grid.rows - 1));
-        UniformDistribution uniform_col_distribution(0.0f, (float) (occupancy_grid.cols - 1));
+        UniformDistribution uniform_row_distribution(0.0f, (float) (occupancy_grid->rows() - 1));
+        UniformDistribution uniform_col_distribution(0.0f, (float) (occupancy_grid->cols() - 1));
 
         // For Informed-RRT* only:
         // Generate a uniform distribution across the best-fit (**) bounding rectangle (*) around the
@@ -143,9 +143,9 @@ namespace motion_planner {
                 sample_in_grid_frame = T_sampling_domain_to_grid_frame * Eigen::Vector3f(x, y, 0.0f);
 
             } while (sample_in_grid_frame(0) < 0.0f ||
-                     sample_in_grid_frame(0) >= (float) occupancy_grid.rows ||
+                     sample_in_grid_frame(0) >= (float) occupancy_grid->rows() ||
                      sample_in_grid_frame(1) < 0.0f ||
-                     sample_in_grid_frame(1) >= (float) occupancy_grid.cols);
+                     sample_in_grid_frame(1) >= (float) occupancy_grid->cols());
 
             return {sample_in_grid_frame(0),
                     sample_in_grid_frame(1)};
@@ -193,7 +193,7 @@ namespace motion_planner {
                                                    sample_from_entire_grid();
             }
 
-            if (occupancy_grid.isGridCellOccupied(random_row, random_col)) {
+            if (occupancy_grid->isGridCellOccupied(random_row, random_col)) {
                 // grid cell is occupied
                 continue;
             }
@@ -244,15 +244,15 @@ namespace motion_planner {
             const Node &parent_node = tree.nodes_[parent_node_index];
             const float parent_row = parent_node.position_(0);
             const float parent_col = parent_node.position_(1);
-            assert(not occupancy_grid.isGridCellOccupied(parent_row, parent_col));
+            assert(not occupancy_grid->isGridCellOccupied(parent_row, parent_col));
 
             // Expand the path from the parent to the leaf, check if any obstacles are in the way...
             cv::Vec2i leaf_position(0, 0);
             const bool expansion_has_no_obstacles =
-                    occupancy_grid.tracePath(cv::Vec2i(parent_row, parent_col),
-                                             cv::Vec2i(random_row, random_col),
-                                             leaf_position,
-                                             options.maximum_branch_expansion_);
+                    occupancy_grid->tracePath(cv::Vec2i(parent_row, parent_col),
+                                              cv::Vec2i(random_row, random_col),
+                                              leaf_position,
+                                              options.maximum_branch_expansion_);
 
             if (!expansion_has_no_obstacles) {
                 continue;
@@ -261,7 +261,7 @@ namespace motion_planner {
             const float leaf_row = (float) leaf_position(0);
             const float leaf_col = (float) leaf_position(1);
 
-            assert(not occupancy_grid.isGridCellOccupied(leaf_row, leaf_col));
+            assert(not occupancy_grid->isGridCellOccupied(leaf_row, leaf_col));
 
             if (leaves_in_proximity_to_goal.find(parent_node_index) != leaves_in_proximity_to_goal.end()) {
                 // parent is already in proximity of the goal, check if the new node is even closer
@@ -309,10 +309,10 @@ namespace motion_planner {
                         // Check if obstacles are in the way...
                         cv::Vec2i dummy_position;
                         const bool expansion_has_no_obstacles =
-                                occupancy_grid.tracePath(cv::Vec2i(leaf_row, leaf_col),
-                                                         cv::Vec2i(node.position_(0), node.position_(1)),
-                                                         dummy_position,
-                                                         std::numeric_limits<int>::max());
+                                occupancy_grid->tracePath(cv::Vec2i(leaf_row, leaf_col),
+                                                          cv::Vec2i(node.position_(0), node.position_(1)),
+                                                          dummy_position,
+                                                          std::numeric_limits<int>::max());
 
                         if (!expansion_has_no_obstacles) {
                             continue;
@@ -532,7 +532,7 @@ namespace motion_planner {
                                 map_path,
                                 goal_in_map_frame,
                                 T_grid_to_map,
-                                Eigen::Vector2i(occupancy_grid.rows, occupancy_grid.cols),
+                                Eigen::Vector2i(occupancy_grid->rows(), occupancy_grid->cols()),
                                 T_sampling_domain_to_grid_frame,
                                 Eigen::Vector2f(heuristic_sampling_domain_major_axis_length,
                                                 heuristic_sampling_domain_minor_axis_length));

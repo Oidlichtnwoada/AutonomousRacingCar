@@ -56,7 +56,6 @@ include_directories(
 
 add_executable(${NODE_NAME}
   src/motion_planner.cpp
-  src/motion_planner/path.cpp
   src/motion_planner/path_optimizer.cpp
   src/motion_planner/path_planner.cpp
   src/motion_planner/occupancy_grid.cpp
@@ -85,3 +84,15 @@ install(FILES
         launch/occupancy_grids.rviz
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+# =================================================================
+
+add_executable(path_optimization_test
+        src/path_optimization_test.cpp
+        src/motion_planner/path_optimizer.cpp
+        #src/motion_planner/path_planner.cpp
+        src/motion_planner/occupancy_grid.cpp
+        src/motion_planner/bounding_box.cpp
+        )
+
+target_link_libraries(path_optimization_test ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})

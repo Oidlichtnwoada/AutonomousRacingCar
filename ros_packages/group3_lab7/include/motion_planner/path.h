@@ -11,7 +11,6 @@
 #include <Eigen/Geometry>
 
 #include <json/json.hpp>
-#include <json/eigen_conversion.hpp>
 
 namespace motion_planner {
 
@@ -26,25 +25,61 @@ namespace motion_planner {
     static_assert((std::is_same<GridPath::value_type::value_type, int>::value),
                   "motion_planner::GridPath value type must be (int)");
 
-    MapPath TransformPath(const GridPath& grid_path, const Eigen::Affine3f& T_grid_to_map);
-    GridPath TransformPath(const MapPath& map_path, const Eigen::Affine3f& T_map_to_grid);
-
     template<typename T, typename U>
+    Path<U> TransformPath(const Path<T> from_path, const Eigen::Affine3f& transform) {
+        Path<U> to_path;
+        for(const auto& p : from_path) {
+            to_path.push_back(Eigen::Vector3f(transform * Eigen::Vector3f(p(0), p(1), 0.0)).template cast<U>().head(2));
+        }
+        return(to_path);
+    }
+
+    //MapPath TransformPath(const GridPath& grid_path, const Eigen::Affine3f& T_grid_to_map);
+    //GridPath TransformPath(const MapPath& map_path, const Eigen::Affine3f& T_map_to_grid);
+
+    template<typename U, typename T, int pixel_center_offset = 0>
     std::deque<Eigen::Matrix<T, 2, 1> > ConvertPath(const std::deque<Eigen::Matrix<U, 2, 1> > &input_path) {
         typename std::deque<Eigen::Matrix<T, 2, 1> > output_path;
         for (const Eigen::Matrix<U, 2, 1> &p : input_path) {
             output_path.push_back(p.template cast<T>());
+            if(pixel_center_offset>0) {
+                output_path.back() += Eigen::Matrix<T, 2, 1>(0.5, 0.5);
+            } else if(pixel_center_offset<0) {
+                output_path.back() -= Eigen::Matrix<T, 2, 1>(0.5, 0.5);
+            }
         }
         return (output_path);
+    }
+
+    template<typename T>
+    Path<float> ApproximateNormals(const Path<T>& path, int window_width=3) {
+        assert(path.size() >= window_width);
+        Path<float> normals;
+        normals.resize(path.size());
+        const int half_window_width = std::max<int>(1, (window_width-1)/2);
+        for(int j=0; j<path.size(); j++) {
+            const int i = std::max<int>(0,j-half_window_width);
+            const int k = std::min<int>(path.size()-1,j+half_window_width);
+            Eigen::MatrixXf M(k-i+1, 2);
+            for(int m=0; m<=(k-i); m++) {
+                M.row(m) = path[i+m].template cast<float>();
+            }
+            const Eigen::MatrixXf centered = M.rowwise() - M.colwise().mean();
+            const Eigen::MatrixXf covariance = centered.adjoint() * centered;
+            const Eigen::Vector2f normal = Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf>(
+                    covariance).eigenvectors().leftCols(1);
+            normals[j] = (normal.template cast<float>()).normalized();
+        }
+        return(normals);
     }
 
 } // namespace motion_planner
 
 #define ConvertMapPathToGridPath(map_path, grid_path) \
-        motion_planner::ConvertPath<int,float>(map_path, grid_path)
+        motion_planner::ConvertPath<float,int>(map_path, grid_path)
 
 #define ConvertGridPathToMapPath(grid_path, map_path) \
-        motion_planner::ConvertPath<float,int>(grid_path, map_path)
+        motion_planner::ConvertPath<int,float>(grid_path, map_path)
 
 namespace motion_planner {
 
@@ -61,8 +96,8 @@ namespace motion_planner {
     Path<T> PathFromJson(const nlohmann::json& j) {
         Path<T> path;
         for(const auto& j_elem : j) {
-            path.push_back(Eigen::Vector2f(j_elem.at("x").get<T>(),
-                                           j_elem.at("y").get<T>()));
+            path.push_back(typename Path<T>::value_type(j_elem.at("x").get<T>(),
+                                                        j_elem.at("y").get<T>()));
         }
         return(path);
     }

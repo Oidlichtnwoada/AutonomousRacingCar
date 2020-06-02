@@ -158,10 +158,10 @@ namespace motion_planner {
         MotionPlanner::OccupancyGridMessage map_; // copied from "/map"
 
         std::mutex occupancy_grid_mutex_;
-        OccupancyGrid dynamic_occupancy_grid_;
-        OccupancyGrid static_occupancy_grid_; // just a thin wrapper around map_->data.data()
-        cv::Vec2i static_occupancy_grid_center_;
-        cv::Vec2i dynamic_occupancy_grid_center_;
+        boost::shared_ptr<OccupancyGrid> dynamic_occupancy_grid_;
+        boost::shared_ptr<OccupancyGrid> static_occupancy_grid_; // just a thin wrapper around map_->data.data()
+        cv::Vec2i static_occupancy_grid_center_;  // TODO: add this to class OccupancyGrid
+        cv::Vec2i dynamic_occupancy_grid_center_; // TODO: add this to class OccupancyGrid
 
         // Affine transformations from grid coordinates to the "map" and "laser" frames
         Eigen::Affine3f T_grid_to_laser_frame_;      // dynamic_occupancy_grid (pixels) to laser frame (meters)
@@ -231,41 +231,23 @@ namespace motion_planner {
     }
 
     MotionPlanner::MotionPlanner()
-            : node_handle_(ros::NodeHandle()), laser_scan_subscriber_(new ros::Subscriber(
-            node_handle_.subscribe(TOPIC_SCAN, SUBSCRIBER_MESSAGE_QUEUE_SIZE,
-                                   &MotionPlanner::laserScanSubscriberCallback, this))), odometry_subscriber_(
-            new ros::Subscriber(node_handle_.subscribe(TOPIC_ODOM, SUBSCRIBER_MESSAGE_QUEUE_SIZE,
-                                                       &MotionPlanner::odomSubscriberCallback, this))),
-              goal_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_GOAL, SUBSCRIBER_MESSAGE_QUEUE_SIZE,
-                                                                          &MotionPlanner::goalSubscriberCallback,
-                                                                          this))), map_subscriber_(new ros::Subscriber(
-                    node_handle_.subscribe(TOPIC_MAP, SUBSCRIBER_MESSAGE_QUEUE_SIZE,
-                                           &MotionPlanner::mapSubscriberCallback, this))),
-              tf_listener_(new tf2_ros::TransformListener(tf_buffer_, node_handle_, true)), debug_service_(
-                    new ros::ServiceServer(
-                            node_handle_.advertiseService("debug", &MotionPlanner::debugServiceCallback, this))),
-              static_occupancy_grid_publisher_(new ros::Publisher(
-                      node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID,
-                                                                  GRID_PUBLISHER_MESSAGE_QUEUE_SIZE))),
-              dynamic_occupancy_grid_publisher_(new ros::Publisher(
-                      node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID,
-                                                                  GRID_PUBLISHER_MESSAGE_QUEUE_SIZE))),
-              rrt_visualization_publisher_(new ros::Publisher(
-                      node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION,
-                                                                         MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE))),
-              path_to_goal_publisher_(new ros::Publisher(
-                      node_handle_.advertise<nav_msgs::Path>(TOPIC_PATH_TO_GOAL, PATH_PUBLISHER_MESSAGE_QUEUE_SIZE))),
-              commanded_steering_angle_publisher_(new ros::Publisher(
-                      node_handle_.advertise<std_msgs::Float32>(TOPIC_COMMANDED_STEERING_ANGLE,
-                                                                STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE))),
-              commanded_heading_publisher_(new ros::Publisher(
-                      node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_HEADING,
-                                                                         COMMANDED_HEADING_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+            : node_handle_(ros::NodeHandle())
+            , laser_scan_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_SCAN, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::laserScanSubscriberCallback, this))), odometry_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_ODOM, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::odomSubscriberCallback, this)))
+            , goal_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_GOAL, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::goalSubscriberCallback, this))), map_subscriber_(new ros::Subscriber(node_handle_.subscribe(TOPIC_MAP, SUBSCRIBER_MESSAGE_QUEUE_SIZE, &MotionPlanner::mapSubscriberCallback, this)))
+            , tf_listener_(new tf2_ros::TransformListener(tf_buffer_, node_handle_, true)), debug_service_(new ros::ServiceServer(node_handle_.advertiseService("debug", &MotionPlanner::debugServiceCallback, this)))
+            , static_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_STATIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+            , dynamic_occupancy_grid_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::GridCells>(TOPIC_DYNAMIC_OCCUPANCY_GRID, GRID_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+            , rrt_visualization_publisher_(new ros::Publisher(node_handle_.advertise<visualization_msgs::Marker>(TOPIC_RRT_VISUALIZATION, MARKER_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+            , path_to_goal_publisher_(new ros::Publisher(node_handle_.advertise<nav_msgs::Path>(TOPIC_PATH_TO_GOAL, PATH_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+            , commanded_steering_angle_publisher_(new ros::Publisher(node_handle_.advertise<std_msgs::Float32>(TOPIC_COMMANDED_STEERING_ANGLE, STEERING_ANGLE_PUBLISHER_MESSAGE_QUEUE_SIZE)))
+            , commanded_heading_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_HEADING, COMMANDED_HEADING_PUBLISHER_MESSAGE_QUEUE_SIZE)))
             //, commanded_goal_publisher_(new ros::Publisher(node_handle_.advertise<geometry_msgs::PoseStamped>(TOPIC_COMMANDED_GOAL, COMMANDED_GOAL_PUBLISHER_MESSAGE_QUEUE_SIZE)))
             , has_valid_configuration_(false), should_exit_path_planner_thread_(false)
 #if !defined(NDEBUG)
-            , laser_scan_messages_received_(0), odometry_messages_received_(0), goal_messages_received_(0),
-              map_messages_received_(0)
+            , laser_scan_messages_received_(0)
+            , odometry_messages_received_(0)
+            , goal_messages_received_(0)
+            , map_messages_received_(0)
 #endif
 
 
@@ -311,8 +293,20 @@ namespace motion_planner {
         std::lock_guard<std::mutex> scoped_grid_lock(occupancy_grid_mutex_);
         std::lock_guard<std::mutex> scoped_path_lock(last_path_mutex_);
         std::cout << "MotionPlanner::debugServiceCallback()" << std::endl;
-        cv::imwrite("/tmp/occupancy_grid_distances.png", dynamic_occupancy_grid_.distances());
-        cv::imwrite("/tmp/occupancy_grid.png", dynamic_occupancy_grid_);
+        if(not dynamic_occupancy_grid_->hasDistances()) {
+            dynamic_occupancy_grid_->computeDistanceTransform();
+        }
+        cv::imwrite("/tmp/occupancy_grid_distances.png", dynamic_occupancy_grid_->distances());
+        cv::imwrite("/tmp/occupancy_grid.png", dynamic_occupancy_grid_->occupancy());
+        {
+            std::ofstream o("/tmp/map_path.json");
+            o << std::setw(4) << PathToJson<float>(last_path_) << std::endl;
+        }
+        {
+            GridPath gridPath = TransformPath<float,int>(last_path_, T_map_to_grid_frame_);
+            std::ofstream o("/tmp/grid_path.json");
+            o << std::setw(4) << PathToJson<int>(gridPath) << std::endl;
+        }
         return (true);
 
     }
@@ -409,7 +403,7 @@ namespace motion_planner {
 
         // =================================================================================================================
 
-        dynamic_occupancy_grid_.setTo(cv::Scalar(GRID_CELL_IS_FREE)); // clear the grid
+        dynamic_occupancy_grid_->clearOccupancy(); // set every cell to GRID_CELL_IS_FREE
 
         const float angle_min = scan_msg->angle_min;
         const float angle_increment = scan_msg->angle_increment;
@@ -458,11 +452,11 @@ namespace motion_planner {
 
                 const int center_row = dynamic_occupancy_grid_center_(0);
                 const int center_col = dynamic_occupancy_grid_center_(1);
-                const int u_max = dynamic_occupancy_grid_.rows - 1;
-                const int v_max = dynamic_occupancy_grid_.cols - 1;
+                const int u_max = dynamic_occupancy_grid_->rows() - 1;
+                const int v_max = dynamic_occupancy_grid_->cols() - 1;
 
-                assert(u >= 0 && v >= 0 && u < dynamic_occupancy_grid_.rows && v < dynamic_occupancy_grid_.cols);
-                dynamic_occupancy_grid_.at<uint8_t>(u, v) = GRID_CELL_IS_OCCUPIED;
+                assert(u >= 0 && v >= 0 && u < dynamic_occupancy_grid_->rows() && v < dynamic_occupancy_grid_->cols());
+                dynamic_occupancy_grid_->setGridCellToOccupied(u,v); // set the cell to GRID_CELL_IS_OCCUPIED
             }
         }
 
@@ -475,12 +469,12 @@ namespace motion_planner {
             grid_expansion_width += static_cast<float>(configuration_.extra_occupancy_grid_dilation);
             assert(grid_expansion_width >= 0);
         }
-        dynamic_occupancy_grid_.expand(grid_expansion_width);
-        dynamic_occupancy_grid_publisher_->publish(dynamic_occupancy_grid_.convertToGridCellsMessage(
+        dynamic_occupancy_grid_->expand(grid_expansion_width);
+        dynamic_occupancy_grid_publisher_->publish(dynamic_occupancy_grid_->convertToGridCellsMessage(
                 dynamic_occupancy_grid_center_, meters_per_pixel, FRAME_LASER));
 
+#if 0
 #ifdef ENABLE_DYNAMIC_OCCUPANCY_GRID_DISTANCE_TRANSFORM
-
         PathPlanner::Algorithm algorithm;
         {
             std::lock_guard<std::mutex> scoped_lock(configuration_mutex_);
@@ -490,6 +484,7 @@ namespace motion_planner {
             dynamic_occupancy_grid_.computeDistanceTransform();
             assert(dynamic_occupancy_grid_.hasDistances());
         }
+#endif
 #endif
 
         should_plan_path_.store(true);
@@ -565,15 +560,13 @@ namespace motion_planner {
         static_occupancy_grid_center_ = cv::Vec2i(
                 static_cast<int>(-map_->info.origin.position.y * pixels_per_meter),  // rows <--> y
                 static_cast<int>(-map_->info.origin.position.x * pixels_per_meter)); // cols <--> x
-        static_occupancy_grid_ = OccupancyGrid(cv::Mat(info.height,
-                                                       info.width, CV_8UC1,
-                                                       (void *) map_->data.data())); // just a thin wrapper around map_->data.data()
 
-        cv::threshold(static_occupancy_grid_, static_occupancy_grid_ /* in-place */, 1, 255, cv::THRESH_BINARY);
-        cv::bitwise_not(static_occupancy_grid_, static_occupancy_grid_);
+        static_occupancy_grid_ = boost::shared_ptr<OccupancyGrid>(new OccupancyGrid(
+                cv::Mat(info.height, info.width, CV_8UC1, (void *) map_->data.data()))); // just a thin wrapper around map_->data.data()
+        static_occupancy_grid_->applyThresholdAndInvert();
 
         // Publish static occupancy grid (for RViz)
-        static_occupancy_grid_publisher_->publish(static_occupancy_grid_.convertToGridCellsMessage(
+        static_occupancy_grid_publisher_->publish(static_occupancy_grid_->convertToGridCellsMessage(
                 static_occupancy_grid_center_, meters_per_pixel, FRAME_MAP));
 
         if (info.origin.orientation.x != 0.0 || info.origin.orientation.y != 0.0 || info.origin.orientation.z != 0.0) {
@@ -612,8 +605,8 @@ namespace motion_planner {
         dynamic_occupancy_grid_center_ = cv::Vec2i(center_col,
                                                    center_row); // NOTE: grid is transposed w.r.t. vehicle's local coordinate system
         const cv::Scalar grid_cell_is_free(GRID_CELL_IS_FREE);
-        dynamic_occupancy_grid_ = cv::Mat(dynamic_occupancy_grid_cols, dynamic_occupancy_grid_rows, CV_8UC1,
-                                          grid_cell_is_free);
+        dynamic_occupancy_grid_ = boost::shared_ptr<OccupancyGrid>(new OccupancyGrid(
+                dynamic_occupancy_grid_cols, dynamic_occupancy_grid_rows, CV_8UC1, grid_cell_is_free));
 
         should_plan_path_.store(true);
     }
@@ -686,18 +679,26 @@ namespace motion_planner {
                 }
                 */
 
-                OccupancyGrid occupancy_grid;
+                boost::shared_ptr<OccupancyGrid> occupancy_grid;
                 cv::Vec2i occupancy_grid_center;
                 Eigen::Affine3f T_grid_to_map;
                 {
                     std::lock_guard<std::mutex> scoped_lock(occupancy_grid_mutex_);
 
+#if 0
                     if ((path_planner_options.algorithm_ > PathPlanner::INFORMED_RRT_STAR) &&
                         (not dynamic_occupancy_grid_.hasDistances())) {
                         dynamic_occupancy_grid_.computeDistanceTransform();
                     }
+#endif
 
-                    dynamic_occupancy_grid_.copyMeTo(occupancy_grid); // make a local copy of the occupancy grid
+                    if(not dynamic_occupancy_grid_) {
+                        continue;
+                    }
+                    assert(dynamic_occupancy_grid_->hasOccupancy());
+                    occupancy_grid = boost::shared_ptr<OccupancyGrid>(new OccupancyGrid(*dynamic_occupancy_grid_));
+                    assert(occupancy_grid->hasOccupancy());
+
                     // NOTE: don't use OpenCV's .copyTo()
                     occupancy_grid_center = dynamic_occupancy_grid_center_;
                     T_grid_to_map = T_grid_to_map_frame_;
@@ -726,7 +727,6 @@ namespace motion_planner {
                     }
                 }
 
-
                 auto[success, tree, path, grid_path] = path_planner_.run(
                         Eigen::Vector2f(goal.pose.position.x, goal.pose.position.y),
                         occupancy_grid,
@@ -747,14 +747,15 @@ namespace motion_planner {
                 if (not(path_to_goal_publishing_task_.valid() && path_to_goal_publishing_task_.wait_for(
                         std::chrono::nanoseconds(0)) != std::future_status::ready)) {
 
+                    assert(occupancy_grid->hasOccupancy());
                     path_to_goal_publishing_task_ = std::async(
-                            std::launch::async, [&, grid_path]() {
+                            std::launch::async, [&, grid_path, occupancy_grid]() {
                                 const auto[success, optimized_grid_path] = PathOptimizer(
                                         path_follower_options).optimizePath(
                                         grid_path, occupancy_grid);
                                 if (success) {
-                                    PathPlanner::MapPath optimized_path = TransformPath(optimized_grid_path,
-                                                                                     T_grid_to_map);
+                                    PathPlanner::MapPath optimized_path =
+                                            TransformPath<float,float>(optimized_grid_path, T_grid_to_map);
                                     {
                                         std::lock_guard<std::mutex> scoped_lock(path_to_goal_mutex_);
                                         path_to_goal_ = optimized_path;
