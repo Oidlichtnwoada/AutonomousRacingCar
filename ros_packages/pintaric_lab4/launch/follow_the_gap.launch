@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="pintaric_lab4" name="follow_the_gap" type="follow_the_gap.py" output="screen"/>
+    <node pkg="pintaric_lab4" name="drive_controller" type="drive_controller.py" output="screen"/>
+    <node pkg="rqt_reconfigure" name="rqt_reconfigure" type="rqt_reconfigure"/>
+    <node pkg="rqt_gui" name="rqt_gui" type="rqt_gui" respawn="false"
+        args = "--perspective-file $(find pintaric_lab4)/params/follow_the_gap.perspective"/>
+    <arg name="dynparam_delay" default="1.5" />
+    <node pkg="dynamic_reconfigure" name="$(anon dynparam)" type="dynparam"
+        args="load /drive_controller $(find pintaric_lab4)/params/reactive_driving.yaml"
+        launch-prefix="bash -c 'sleep $(arg dynparam_delay); $0 $@' "/>
+</launch>

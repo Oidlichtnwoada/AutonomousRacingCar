@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>pintaric_lab4</name>
+  <version>0.0.1</version>
+  <description>Reactive Driving Lab</description>
+  <maintainer email="thomas.pintaric@student.tuwien.ac.at">Thomas Pintaric</maintainer>
+  <license>BSD</license>
+  <author email="thomas.pintaric@student.tuwien.ac.at">Thomas Pintaric</author>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>ackermann_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
+  <exec_depend>python-scipy</exec_depend>
+  <exec_depend>python-numpy</exec_depend>
+  <export>
+  </export>
+</package>
