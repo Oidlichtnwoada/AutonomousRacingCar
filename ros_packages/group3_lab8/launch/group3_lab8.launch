@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Start simulator before the custom node -->
+  <include file="$(find f110_simulator)/launch/simulator.launch"/>
+
+  <node pkg="group3_lab8" name="wall_follow_reinforced_learning" type="lab8_test.py" output="screen"/>
+
+</launch>

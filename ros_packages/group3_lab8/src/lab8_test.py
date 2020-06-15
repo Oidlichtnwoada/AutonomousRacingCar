@@ -5,8 +5,8 @@ from stable_baselines import PPO2
 
 #ROS Imports
 import rospy
-from sensor_msgs.msg import Image, LaserScan
-from ackermann_msgs.msg import AckermannDriveStamped, AckermannDrive
+from sensor_msgs.msg import LaserScan
+from ackermann_msgs.msg import AckermannDriveStamped
 
 class WallFollow:
     """ Implement Wall Following on the car
