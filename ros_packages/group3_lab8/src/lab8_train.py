@@ -1,3 +1,5 @@
+import math
+
 import gym
 import numpy as np
 
@@ -149,7 +151,7 @@ class RacecarEnv(F110Env):
 
         """
         # TODO: start not always 0, 0
-        # dist_to_start = math.sqrt((self.x-self.start_x) ** 2 + (self.y-self.start_y) ** 2)
+        dist_to_start = math.sqrt((self.x-self.start_x) ** 2 + (self.y-self.start_y) ** 2)
         left_t = 1.5
         right_t = 5
         timeout = self.current_time >= self.timeout
@@ -190,8 +192,8 @@ class RacecarEnv(F110Env):
         else:
             temp_y = 0
         dist2 = delta_pt[0] ** 2 + temp_y ** 2
-        close = dist2 <= 0.1
-        # close = dist_to_start <= self.start_thresh
+        # close = dist2 <= 0.1
+        close = dist_to_start <= 1
         if close and not self.near_start:
             self.near_start = True
             self.num_toggles += 1
