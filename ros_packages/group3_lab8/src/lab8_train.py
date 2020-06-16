@@ -6,24 +6,25 @@ import numpy as np
 import sim_requests_pb2
 
 from f110_gym.envs.f110_env import F110Env
-# from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines.common.policies import MlpPolicy
-# from stable_baselines import DQN
 from stable_baselines import PPO2
+#from stable_baselines.ddpg.policies import MlpPolicy
+#from stable_baselines import DDPG
 from stable_baselines.common.env_checker import check_env
 
 
 class RacecarEnv(F110Env):
     def __init__(self):
         super().__init__()
-        actions_low = np.array([0.5, -0.4189], dtype=np.float32)
-        actions_high = np.array([1.5, 0.4189], dtype=np.float32)
+        actions_low = np.array([1.0, -0.4189], dtype=np.float32)
+        actions_high = np.array([1.0, 0.4189], dtype=np.float32)
         self.action_space = gym.spaces.Box(actions_low, actions_high, dtype=np.float32)
         self.lap_driven = False
+        self.timeout = 1E18
 
         # observations_low =  np.array([  ], dtype=np.float32)
         # observations_high = np.array([  ], dtype=np.float32)
-        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(1080,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low=0, high=255, shape=(54,), dtype=np.float32)
         # loading the map (uses the ROS convention with .yaml and an image file)
         map_path = '../maps/levine_blocked.yaml'
         map_img_ext = '.pgm'  # png extension for example
@@ -40,9 +41,9 @@ class RacecarEnv(F110Env):
         cs_r = 5.4562
 
         self.init_map(map_path, map_img_ext, False, False)
-        self.update_params(mu, h_cg, l_r, cs_f, cs_r, I_z, mass, executable_dir, {'x': [-8.679326],
-                                                                                  'y': [-1.895007],
-                                                                                  'theta': [0.192166]})
+        self.update_params(mu, h_cg, l_r, cs_f, cs_r, I_z, mass, executable_dir, {'x': [0.480721921921],
+                                                                                  'y': [-0.0170010328293],
+                                                                                  'theta': [0.0172652381447]})
 
         # Initial state (for two cars)
         # initial_x = [0.0]
@@ -51,7 +52,7 @@ class RacecarEnv(F110Env):
         # lap_time = 0.0
 
         # Resetting the environment
-        self.reset()
+        print(self.reset().shape)
 
     def step(self, action):
         # can't step if params not set
@@ -124,18 +125,36 @@ class RacecarEnv(F110Env):
             done = self._check_done()
             info = {}
 
+        # reward = self.timestep
+        red_scan = np.array(obs["scans"][-1][240:780], dtype=np.float32)[0::10]
+
         # TODO: do we need step reward?
         if self.in_collision:
-            reward = -1E6
+            reward = 0
+            #print("collision")
         elif self.lap_driven:
-            reward = 1E6
+            #print("lap completed")
+            reward = 1E9
             self.lap_driven = False
         else:
-            reward = 1
+            #print("step")
+            #reward = 1/((red_scan[0] - red_scan[-1])**4) 
+            min_val = min(red_scan)
+            if min_val < 0.5:
+            	reward = -10000
+            elif min_val < 0.7:
+            	reward = -10
+            elif min_val < 0.9:
+                reward = 10
+            else:
+            	reward = 10000
 
-        # reward = self.timestep
+        self.accumulated_rew += reward
 
-        return np.array(obs["scans"], dtype=np.float32), reward, done, info
+        if done:
+            print(self.accumulated_rew)
+
+        return red_scan, reward, done, info
 
     # TODO: return obs, reward, done, info
     # return obs, reward, done, info
@@ -201,9 +220,12 @@ class RacecarEnv(F110Env):
         elif not close and self.near_start:
             self.near_start = False
         done = (self.in_collision | timeout | (self.num_toggles >= 10))
+
         return done
 
     def reset(self):
+
+        self.accumulated_rew = 0
 
         self.current_time = 0.0
         self.in_collision = False
@@ -317,6 +339,6 @@ class RacecarEnv(F110Env):
 racecar_env = RacecarEnv()  # gym.make('f110_gym:f110-v0')
 # check_env(racecar_env)
 
-model = PPO2(MlpPolicy, racecar_env, verbose=1)
-model.learn(total_timesteps=8000)
+model = PPO2(MlpPolicy, racecar_env, verbose=0)
+model.learn(total_timesteps=150000) #, log_interval=8000)
 model.save("../params/deepqn_lab8")

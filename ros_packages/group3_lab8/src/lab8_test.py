@@ -16,12 +16,12 @@ class WallFollow:
     """
 
     def __init__(self):
-        self.trained_model = PPO2.load("deepqn_lab8")  # <-- adjust path
+        self.trained_model = PPO2.load("/home/daniel/Desktop/ros_python3/catkin_ws/src/group3_lab8/params/deepqn_lab8")  # <-- adjust path
         self.lidar_sub = rospy.Subscriber('scan', LaserScan, self.lidar_callback, queue_size=1)
         self.drive_pub = rospy.Publisher('nav', AckermannDriveStamped, queue_size=1)
 
     def lidar_callback(self, data):
-        actions = self.trained_model.predict(np.array(data.ranges, dtype=np.float32))
+        actions = self.trained_model.predict(np.array(data.ranges[240:780], dtype=np.float32)[0::10])
 
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = rospy.Time.now()
