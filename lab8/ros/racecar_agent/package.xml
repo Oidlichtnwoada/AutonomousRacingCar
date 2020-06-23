@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>racecar_agent</name>
+  <version>0.0.1</version>
+  <description>f1/tenth racecar agent</description>
+  <maintainer email="thomas.pintaric@gmail.com">Thomas Pintaric</maintainer>
+  <license>0BSD</license>
+  <author email="thomas.pintaric@gmail.com">Thomas Pintaric</author>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>ackermann_msgs</depend>
+  <exec_depend>python-scipy</exec_depend>
+  <exec_depend>python-numpy</exec_depend>
+  <export>
+  </export>
+</package>

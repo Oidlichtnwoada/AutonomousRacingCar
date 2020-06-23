@@ -1,7 +1,7 @@
 #!/bin/bash 
 
 # -------------------------------------------------------
-# Author: Thomas Pintaric (thomas.pintaric@epfl.ch)
+# Author: Thomas Pintaric (thomas.pintaric@gmail.com)
 # SPDX-License-Identifier: 0BSD
 # -------------------------------------------------------
 #
@@ -71,7 +71,7 @@ cd ${ROS_SDK_ROOT}
 # TODO: Patch dynamic_reconfigure for Python 3, then use "wstool merge custom.rosinstall"
 # https://answers.ros.org/question/252882/how-to-clone-with-proper-branch-options-using-wstool/
 
-export INSTALL_ROS_PACKAGES="rospy ros_core ros_comm actionlib joy"
+export INSTALL_ROS_PACKAGES="rospy ros_core ros_comm actionlib joy sensor_msgs ackermann_msgs"
 export DO_NOT_INSTALL_ROS_PACKAGES="rqt_rviz rviz_plugin_tutorials librviz_tutorial"
 
 catkin config --init -DCMAKE_BUILD_TYPE=Release --blacklist ${DO_NOT_INSTALL_ROS_PACKAGES} --install

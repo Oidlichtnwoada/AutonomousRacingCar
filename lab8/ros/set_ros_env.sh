@@ -1,7 +1,7 @@
 #!/bin/bash 
 
 # -------------------------------------------------------
-# Author: Thomas Pintaric (thomas.pintaric@epfl.ch)
+# Author: Thomas Pintaric (thomas.pintaric@gmail.com)
 # SPDX-License-Identifier: 0BSD
 # -------------------------------------------------------
 

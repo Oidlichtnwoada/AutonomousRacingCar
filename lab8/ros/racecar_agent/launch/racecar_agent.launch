@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="racecar_agent" name="racecar_agent" type="racecar_agent.py" output="screen">
+    <param name="model" type="string" value="$(find racecar_agent)/models/model" />
+  </node>
+</launch>
