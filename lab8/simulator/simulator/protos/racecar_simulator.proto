@@ -1,0 +1,234 @@
+/*
+ * ---------------------------------------------------------------------------------------------------------------------
+ * Author: Thomas Pintaric (thomas.pintaric@gmail.com)
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ * ---------------------------------------------------------------------------------------------------------------------
+ */
+
+syntax = "proto3";
+package f1tenth;
+option optimize_for = SPEED;
+
+message Empty {}
+
+/*
+ * ---------------------------------------------------------------------------------------------------------------------
+ * Vehicle
+ * ---------------------------------------------------------------------------------------------------------------------
+ */
+
+message VehicleDefinition {
+
+  message Constraints {
+    // Source: "CommonRoad: Vehicle Models", (Version 2019b) by Matthias Althoff
+    float minimum_steering_angle = 1; // [rad]
+    float maximum_steering_angle = 2; // [rad]
+    float minimum_steering_velocity = 3; // [rad/s]
+    float maximum_steering_velocity = 4; // [rad/s]
+    float maximum_velocity = 5; // [m/s]
+    float switching_velocity = 6; // the velocity above which the engine power is not sufficient to cause wheel slip [m/s]
+    float maximum_acceleration = 7; // [m/s^2]
+    float maximum_deceleration = 8; // [m/s^2]
+  }
+
+  message Parameters {
+    // Source: "CommonRoad: Vehicle Models", (Version 2019b) by Matthias Althoff
+    float l = 1;    // vehicle length [m]
+    float w = 2;    // vehicle width [m]
+    float m = 3;    // total vehicle mass [kg]
+    float I_z = 4;  // moment of inertia for sprung mass about the z-axis [kg m^2]
+    float l_f = 5;  // distance from spring mass center of gravity to front axle [m]
+    float l_r = 6;  // distance from spring mass center of gravity to rear axle [m]
+    float h_cg = 7; // center of gravity height of total mass [m]
+    float C_Sf = 8; // cornering stiffness coefficient of the front wheels
+    float C_Sr = 9; // cornering stiffness coefficient of the rear wheels
+    float mu = 10;  // friction coefficient
+  }
+
+  message LaserRangeScannerParameters {
+    float distance_from_rear_axle = 1; // # distance from the center of the rear axle to the sensor [m]
+    uint32 number_of_rays = 2; // same as: ((maximum_angle-minimum_angle) / angular_increment) + 1
+    float minimum_angle = 3; // [rad]
+    float maximum_angle = 4; // [rad]
+    float angular_increment = 5; // [rad]
+    float minimum_range = 6; // [m]
+    float maximum_range = 7; // [m]
+    float gaussian_noise_sigma = 8; // standard deviation of (simulated) gaussian noise [m]
+  }
+
+  Constraints constraints = 1 ;
+  Parameters parameters = 2;
+  LaserRangeScannerParameters laser_range_scanner_parameters = 3;
+  // TODO: add additional sensors parameters (e.g. IMU) here...
+}
+
+message VehicleState {
+
+  message Pose {
+    float x = 1;   // s_x; x-position in the map coordinate frame [m]
+    float y = 2;   // s_y; y-position in the map coordinate frame [m]
+    float yaw = 3; // yaw (psi) angle [rad]
+  }
+
+  Pose pose = 1;
+
+  message Motion {
+    float steering_angle = 1; // steering (delta) angle of the front wheels [rad]
+    float longitudinal_velocity = 2; // u; velocity in x-direction [m/s]
+    float yaw_rate = 3; // yaw (psi) rate [rad/s]
+    float slip_angle = 4; // slip (beta) angle at vehicle center [rad]
+  }
+  Motion motion = 2;
+
+
+  message Collision {
+    bool in_collision = 1;
+    // TODO: extend this with message with more information (such as the collision angle(s))
+  }
+  Collision collision = 3;
+
+  message LaserRangeScan {
+    VehicleDefinition.LaserRangeScannerParameters parameters = 1;
+    repeated float ranges = 2;
+    // TODO: intensities are not implemented
+  }
+  LaserRangeScan laser_range_scan = 4;
+
+  // TODO: add other sensor output (e.g. from simulated IMU) here...
+}
+
+message VehicleControlInput {
+
+  message StandardControlInput {
+    float steering_angle_velocity = 1; // steering angle velocity of the front wheels [rad/s]
+    float longitudinal_acceleration = 2; // longitudinal acceleration (along the x-axis) [m/s^2]
+  }
+
+  message LegacyControlInput {
+    float steering_angle = 1; // steering angle of the front wheels [rad]
+    float longitudinal_velocity = 2; // longitudinal velocity (along the x-axis) [m/s]
+  }
+
+  oneof control_input {
+    StandardControlInput standard_control_input = 1;
+    LegacyControlInput legacy_control_input = 2;
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------------------------------------------------
+ * Generic error message
+ * ---------------------------------------------------------------------------------------------------------------------
+ */
+
+message Error {
+  string message = 1;
+}
+
+/*
+ * ---------------------------------------------------------------------------------------------------------------------
+ * Simulation
+ * ---------------------------------------------------------------------------------------------------------------------
+ */
+
+message SimulationState {
+  uint64 simulation_handle = 1;
+  string simulation_tag = 2;
+  float simulation_time = 3; // timestamp [s]
+  repeated VehicleDefinition vehicle_definitions = 4;
+  repeated VehicleState vehicle_states = 5;
+  bool uses_lidar_lookup_table = 6;
+}
+
+message GetSimulationStateRequest {
+  oneof identifier {
+    uint64 simulation_handle = 1;
+    string simulation_tag = 2;
+  }
+}
+
+message GetSimulationStateResponse {
+  oneof response {
+    Error error = 1;
+    SimulationState simulation_state = 2;
+  }
+}
+
+message SimulationScenario {
+  string scenario_name = 1;
+  uint32 number_of_vehicles = 2;
+  bool supports_lidar_lookup_table = 3;
+  enum CollisionBehavior {
+    STOP_VEHICLE = 0;
+  }
+  CollisionBehavior collision_behavior = 4;
+}
+
+message ListSimulationScenariosResponse {
+  repeated SimulationScenario simulation_scenarios = 1;
+}
+
+message CreateSimulationRequest {
+  string scenario_name = 1;
+  string simulation_tag = 2;
+  bool should_use_lidar_lookup_table = 3;
+}
+
+message CreateSimulationResponse {
+  oneof response {
+    Error error = 1;
+    SimulationState simulation_state = 2; // initial state at t=0
+  }
+}
+
+message DeleteSimulationRequest {
+  oneof identifier {
+    uint64 simulation_handle = 1;
+    string simulation_tag = 2;
+  }
+}
+
+message DeleteSimulationResponse {
+  oneof response {
+    Error error = 1;
+    uint64 deleted_simulation_handle = 2;
+    string deleted_simulation_tag = 3;
+  }
+}
+
+message SimulationStepRequest {
+  oneof identifier {
+    uint64 simulation_handle = 1;
+    string simulation_tag = 2;
+  }
+  float time_step = 3; // [s]
+  repeated VehicleControlInput vehicle_control_input = 4;
+}
+
+message SimulationStepResponse {
+  oneof response {
+    Error error = 1;
+    SimulationState simulation_state = 2;
+  }
+}
+
+message GetVersionResponse {
+  uint32 version_major = 1;
+  uint32 version_minor = 2;
+  uint32 version_patch = 3;
+}
+
+/*
+ * ---------------------------------------------------------------------------------------------------------------------
+ * Simulator Service
+ * ---------------------------------------------------------------------------------------------------------------------
+ */
+
+service Simulator {
+  rpc GetVersion (Empty) returns (GetVersionResponse) {}
+  rpc ListSimulationScenarios (Empty) returns (ListSimulationScenariosResponse) {}
+  rpc CreateSimulation (CreateSimulationRequest) returns (CreateSimulationResponse) {}
+  rpc DeleteSimulation (DeleteSimulationRequest) returns (DeleteSimulationResponse) {}
+  rpc GetSimulationState (GetSimulationStateRequest) returns (GetSimulationStateResponse) {}
+  rpc SimulationStep (SimulationStepRequest) returns (SimulationStepResponse) {}
+}

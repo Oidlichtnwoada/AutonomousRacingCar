@@ -1,0 +1,185 @@
+{
+    "document_version" : "1.0",
+    "scenarios" : [
+        {
+            "scenario_name" : "tuw_arc_lab8",
+            "map_reference" : "f1_aut",
+            "collision_behavior" : 0,
+            "vehicles" : [
+                {
+                    "vehicle_definition_name" : "tuw_arc_lab8_racecar",
+                    "initial_state" : {
+                        "pose" : {
+                            "x" : 0.25,
+                            "y" : 0.0,
+                            "yaw" : 0.0
+                        },
+                        "motion" : {
+                            "steering_angle" : 0.0,
+                            "longitudinal_velocity" : 1.0,
+                            "yaw_rate" : 0.0,
+                            "slip_angle" : 0.0
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "scenario_name" : "f1tenth_two_car_race",
+            "map_reference" : "f1_aut",
+            "collision_behavior" : 0,
+            "vehicles" : [
+                {
+                    "vehicle_definition_name" : "f1tenth_racecar",
+                    "initial_state" : {
+                        "pose" : {
+                            "x" : 0.0,
+                            "y" : 0.0,
+                            "yaw" : 0.0
+                        },
+                        "motion" : {
+                            "steering_angle" : 0.0,
+                            "longitudinal_velocity" : 0.0,
+                            "yaw_rate" : 0.0,
+                            "slip_angle" : 0.0
+                        }
+                    }
+                },
+                {
+                    "vehicle_definition_name" : "f1tenth_racecar",
+                    "initial_state" : {
+                        "pose" : {
+                            "x" : -2.0,
+                            "y" : 0.0,
+                            "yaw" : 0.0
+                        },
+                        "motion" : {
+                            "steering_angle" : 0.0,
+                            "longitudinal_velocity" : 0.0,
+                            "yaw_rate" : 0.0,
+                            "slip_angle" : 0.0
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "maps" : [
+        {
+            "map_name" : "f1_aut",
+            "map_resolution" : 0.05,
+            "map_origin" : [-50, -50],
+            "obstacles" : "f1_aut.obstacles.octree",
+            "drivable_area" : "f1_aut.drivable_area.png",
+            "subdirectory" : "maps",
+            "enable_lookup_table" : true,
+            "rays_per_lut_bin" : 1080
+        },
+        {
+            "map_name" : "f1_esp",
+            "map_resolution" : 0.05,
+            "map_origin" : [-50, -50],
+            "obstacles" : "f1_esp.obstacles.octree",
+            "drivable_area" : "f1_esp.drivable_area.png",
+            "subdirectory" : "maps",
+            "enable_lookup_table" : true,
+            "rays_per_lut_bin" : 1080
+        },
+        {
+            "map_name" : "f1_gbr",
+            "map_resolution" : 0.05,
+            "map_origin" : [-50, -50],
+            "obstacles" : "f1_gbr.obstacles.octree",
+            "drivable_area" : "f1_gbr.drivable_area.png",
+            "subdirectory" : "maps",
+            "enable_lookup_table" : true,
+            "rays_per_lut_bin" : 1080
+        },
+        {
+            "map_name" : "f1_mco",
+            "map_resolution" : 0.05,
+            "map_origin" : [-50, -50],
+            "obstacles" : "f1_mco.obstacles.octree",
+            "drivable_area" : "f1_mco.drivable_area.png",
+            "subdirectory" : "maps",
+            "enable_lookup_table" : true,
+            "rays_per_lut_bin" : 1080
+        }
+    ],
+    "vehicles" : [
+        {
+            "vehicle_definition_name": "tuw_arc_lab8_racecar",
+            "vehicle_definition": {
+                "constraints": {
+                    "minimum_steering_angle": -0.4189,
+                    "maximum_steering_angle": 0.4189,
+                    "minimum_steering_velocity": -3.2,
+                    "maximum_steering_velocity": 3.2,
+                    "maximum_velocity": 7.0,
+                    "switching_velocity": 1.05,
+                    "maximum_acceleration": 7.51,
+                    "maximum_deceleration": 8.26
+                },
+                "parameters": {
+                    "l": 0.3302,
+                    "w": 0.2032,
+                    "m": 3.47,
+                    "I_z": 0.04712,
+                    "l_f": 0.15875,
+                    "l_r": 0.17145,
+                    "h_cg": 0.074,
+                    "C_Sf": 4.7180,
+                    "C_Sr": 5.4562,
+                    "mu": 0.523
+                },
+                "laser_range_scanner_parameters": {
+                    "distance_from_rear_axle": 0.275,
+                    "number_of_rays": 120,
+                    "minimum_angle": -3.14159265359,
+                    "maximum_angle": 3.14159265359,
+                    "angular_increment": 0.05235987755,
+                    "minimum_range": 0,
+                    "maximum_range": 20.0,
+                    "gaussian_noise_sigma": 0.01
+                }
+            }
+        },
+        {
+            "vehicle_definition_name": "f1tenth_racecar",
+            "vehicle_definition": {
+                "constraints": {
+                    "minimum_steering_angle": -0.4189,
+                    "maximum_steering_angle": 0.4189,
+                    "minimum_steering_velocity": -3.2,
+                    "maximum_steering_velocity": 3.2,
+                    "maximum_velocity": 7.0,
+                    "switching_velocity": 1.05,
+                    "maximum_acceleration": 7.51,
+                    "maximum_deceleration": 8.26
+                },
+                "parameters": {
+                    "l": 0.3302,
+                    "w": 0.2032,
+                    "m": 3.47,
+                    "I_z": 0.04712,
+                    "l_f": 0.15875,
+                    "l_r": 0.17145,
+                    "h_cg": 0.074,
+                    "C_Sf": 4.7180,
+                    "C_Sr": 5.4562,
+                    "mu": 0.523
+                },
+                "laser_range_scanner_parameters": {
+                    "distance_from_rear_axle": 0.275,
+                    "number_of_rays": 1080,
+                    "minimum_angle": -3.14159265359,
+                    "maximum_angle": 3.14159265359,
+                    "angular_increment": 0.00581776417,
+                    "minimum_range": 0,
+                    "maximum_range": 20.0,
+                    "gaussian_noise_sigma": 0.01
+                }
+            }
+        }
+    ]
+}

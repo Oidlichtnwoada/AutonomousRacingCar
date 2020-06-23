@@ -1,0 +1,9 @@
+image: f1_gbr.png
+drivable_area: f1_gbr.drivable_area.png
+obstacles: f1_gbr.obstacles.octree
+resolution: 0.050000
+origin: [-50, -50, 0]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.2
+
