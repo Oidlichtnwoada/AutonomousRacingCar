@@ -45,9 +45,7 @@ If the car crashes into a wall the reward is decreased by 1000 and the episode i
 
 The following video shows the state space exploration during training:
 
-<video controls>
-  <source src="../slack/exploration_during_training.mp4" type="video/mp4">
-</video>
+![](../slack/exploration_during_training.gif)
 
 ### Testing
 
@@ -63,8 +61,6 @@ The next picture shows the racecar agent driving the car inside the simulator:
 
 The following video shows the performance of the trained agent on the **f1_mco.yaml** racemap:
 
-<video controls>
-  <source src="../slack/driving_video.mp4" type="video/mp4">
-</video>
+![](../slack/driving_video.gif)
 
 As can be seen in the previous video, the model generalizes pretty good and even avoids artificially added obstacles on the track. Nonetheless, the agent crashes in corner 5, because the track used for training has not contained such steep curves.
