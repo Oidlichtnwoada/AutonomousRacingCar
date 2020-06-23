@@ -1,0 +1,5 @@
+tensorforce[tf_gpu]
+pyyaml
+grpcio-tools
+gym
+numpy
