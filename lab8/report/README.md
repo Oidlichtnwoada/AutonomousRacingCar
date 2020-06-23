@@ -31,9 +31,9 @@ pip install -r lab8/gym/requirements.txt
 We used the **PPO** agent from [**Tensorforce**](https://github.com/tensorforce/tensorforce) consisting of a convolutional neural network with two hidden layers each consisting of 64 neurons. The batch size was taken to be 10, therefore the parameters in the neural net are updated every tenth timestep. The agent was also initialized to introduce a little bit of action noise to enable a better state exploration in the long term.
 
 The racecar agent was trained with a modified [f1tenth_simulator](https://github.com/pintaric/f1tenth_simulator) and a modified [f1tenth_gym](https://github.com/pintaric/f1tenth_gym) because the given sources were incomplete. The standard simulator used single-step forward integration to integrate the vehicle dynamics, but our modified simulator uses the Runge-Kutta Dormand-Prince method to integrate, which provides a much tighter error bound than the first one. The action space was continuous and the borders were passed with a parameter file. The number of laser scans that are observed can also be changed via a parameter in the respective file, but the default was to take every ninth ray resulting in 120 rays. The model was trained with the Python script **lab8/gym/train_with_tensorforce.py**. The reward per step is equivalent to the **driven_distance** added with the squared **distance_from_obstacle**, which are both read out by the position of the car in the simulator from the following cost maps:
-<img src="./f1_aut.driven_distances.colorized.png" style="zoom:50%"/>
+![](./f1_aut.driven_distances.colorized.png)
 The above costmap described the distance in the direction of the goal that has been covered by the current position of the car.
-<img src="./f1_aut.distances_from_nearest_obstacle.colorized.png" style="zoom:50%"/>
+![](./f1_aut.distances_from_nearest_obstacle.colorized.png)
 The above costmap described the distance to the nearest obstacle by the current position of the car.
 These costmaps can be creates fully automatic by running the script **lab8/costmaps/process_all_maps.bash**.
 
