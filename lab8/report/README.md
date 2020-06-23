@@ -63,4 +63,4 @@ The following video shows the performance of the trained agent on the **f1_mco.y
 
 ![](../slack/driving_video.gif)
 
-As can be seen in the previous video, the model generalizes pretty good and even avoids artificially added obstacles on the track. Nonetheless, the agent crashes in corner 5, because the track used for training has not contained such steep curves.
+As can be seen in the previous video, the model generalizes pretty good and even avoids artificially added obstacles on the track. Nonetheless, the agent crashes in corner 5 and 16, because the track used for training has not contained such steep curves.
